@@ -120,7 +120,8 @@
                style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
                       font-size:15px; font-family:Consolas,'Courier New',monospace;" value="z^2 + 1">
         <div id="customPrev" style="margin:9px 0 2px; font-size:16px; min-height:24px; color:var(--ink);"></div>
-        <div id="customErr" style="font-size:12px; color:#c53030; min-height:16px;"></div>
+        <div id="customErr" style="font-size:12px; color:#c53030; min-height:0;"></div>
+        <div id="customNote" style="font-size:12px; color:#b7791f; line-height:1.5;"></div>
         <p style="font-size:11.5px;color:var(--sub);margin:6px 0 0;line-height:1.55;">
           可用 <b>z　i　e　pi</b>，运算 <b>+ − * / ^</b>，函数
           <b>exp　ln　sin　cos　tan　sinh　cosh　tanh　sqrt　conj　abs　re　im</b>；支持隐式乘法（如 2z、z(z−1)）。<br>
@@ -251,7 +252,7 @@ const CFUNCS={ exp:cexp, ln:clog, log:clog, sin:csin, cos:ccos, tan:ctan,
   abs:a=>({x:cabs(a),y:0}), re:a=>({x:a.x,y:0}), im:a=>({x:a.y,y:0}) };
 const CFUNC_ML={ sqrt:1 }; // sqrt 用 <msqrt> 特殊排版，其余按 name(...)
 function parseCFunc(src){
-  const s=String(src||""); let i=0;
+  const s=String(src||""); let i=0, multivalued=false;
   // ---- 词法 ----
   const toks=[];
   while(i<s.length){
@@ -300,7 +301,7 @@ function parseCFunc(src){
   function parseUnary(){
     const tk=peek();
     if(tk&&tk.t==="-"){ next(); const R=parseUnary(); const rev=R.ev;
-      return { prec:3, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
+      return { prec:3, isIntConst:R.isIntConst, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
     if(tk&&tk.t==="+"){ next(); return parseUnary(); }
     return parsePow();
   }
@@ -308,6 +309,7 @@ function parseCFunc(src){
     const base=parsePrimary();
     if(peek()&&peek().t==="^"){
       next(); const ex=parseUnary(), bev=base.ev, eev=ex.ev;
+      if(!ex.isIntConst) multivalued=true;   // 非整数次幂 → 主值支（多值）
       return { prec:4, ev:z=>cpow(bev(z),eev(z)), ml:`<msup><mrow>${wrap(base,4)}</mrow><mrow>${ex.ml}</mrow></msup>` };
     }
     return base;
@@ -315,8 +317,8 @@ function parseCFunc(src){
   function parsePrimary(){
     const tk=next();
     if(!tk) throw new Error("表达式不完整");
-    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:5,ev:e.ev,ml:e.ml}; }
-    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
+    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:5,isIntConst:e.isIntConst,ev:e.ev,ml:e.ml}; }
+    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,isIntConst:Number.isInteger(v),ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
     if(tk.t==="id"){
       const nm=tk.v;
       if(nm==="z") return {prec:5,ev:z=>z,ml:`<mi>z</mi>`};
@@ -326,6 +328,7 @@ function parseCFunc(src){
       // 函数调用
       const fn=CFUNCS[nm];
       if(!fn) throw new Error("未知的名称：“"+nm+"”");
+      if(nm==="sqrt"||nm==="ln"||nm==="log") multivalued=true;  // 多值 → 主值支
       if(!peek()||next().t!=="(") throw new Error("函数 "+nm+" 后要跟括号，如 "+nm+"(z)");
       const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("函数 "+nm+" 缺少右括号 )");
       const aev=arg.ev;
@@ -339,7 +342,7 @@ function parseCFunc(src){
   if(p<toks.length) throw new Error("表达式末尾有多余内容");
   // 自检：在几个点求值确认不抛异常
   root.ev({x:0.3,y:0.4});
-  return { fn: z=>root.ev(z), ml: root.ml };
+  return { fn: z=>root.ev(z), ml: root.ml, multivalued };
 }
 
 /* ============ 参数（线性映射用）============ */
@@ -680,16 +683,19 @@ funcBtns.appendChild(customBtn);
 
 function compileCustom(doDraw){
   const src=document.getElementById("customIn").value;
-  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev");
+  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev"), noteEl=document.getElementById("customNote");
   try{
     const r=parseCFunc(src);
     customFn=r.fn; customML=r.ml; Fcustom.f=r.fn;
     prevEl.innerHTML=mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+r.ml);
     errEl.textContent="";
+    noteEl.innerHTML = r.multivalued
+      ? "⚠ 含<b>多值函数</b>（sqrt / ln / 非整数次幂）：图中画的是<b>主值支</b>，辐角取 (−π, π]、分支切割在<b>负实轴</b>；曲线跨负实轴处主值会跳变（图上表现为断裂或突跳），并非计算错误。"
+      : "";
     if(doDraw){ EduTelemetry.log("custom", src.slice(0,40)); if(F===Fcustom) draw(); }
     return true;
   }catch(e){
-    errEl.textContent="⚠ "+e.message;
+    errEl.textContent="⚠ "+e.message; noteEl.innerHTML="";
     return false;   // 保留上一次成功编译的 customFn
   }
 }
@@ -753,7 +759,10 @@ mask.onclick=closeHelp;
     `<li>在 ${fp} = 0 的<b>临界点</b>（如 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")} 在 ${mml("<mrow><mi>z</mi><mo>=</mo><mn>0</mn></mrow>")}）：标架退化，保角性失效，夹角会成倍变化；</li>`+
     `<li><b>共轭 ${mml("<mover accent='true'><mi>z</mi><mo>&#x2015;</mo></mover>")}</b>（非解析）：橙箭头被<b>翻转</b>——夹角大小不变但定向反了，叫<b>反保角</b>，正好和解析映射对照。</li>`+
     `</ul>`+
-    `<h3>③ 颜色约定</h3>`+
+    `<h3>③ 多值函数只画主值支</h3>`+
+    `<p>自定义里的 ${mml("<msqrt><mi>z</mi></msqrt>")}、${mml("<mi>ln</mi><mo>&#x2061;</mo><mi>z</mi>")}（${mml("<mi>log</mi><mo>&#x2061;</mo><mi>z</mi>")}）以及<b>非整数次幂</b>（如 ${mml("<msup><mi>z</mi><mrow><mn>1</mn><mo>/</mo><mn>2</mn></mrow></msup>")}、${mml("<msup><mi>z</mi><mi>i</mi></msup>")}）都是<b>多值函数</b>。本工具一律画它们的<b>主值支</b>：辐角取 ${mml("<mrow><mo>(</mo><mo>&#x2212;</mo><mi>&#x3C0;</mi><mo>,</mo><mi>&#x3C0;</mi><mo>]</mo></mrow>")}，<b>分支切割取在负实轴</b>。所以当曲线<b>跨过负实轴</b>时，主值会发生跳变——图上会出现<b>断裂或突然的跳线</b>，这是主值支的固有现象，并非计算出错。检测到这类函数时，自定义框下会给出提醒。</p>`+
+    `<p>整数次幂（${mml("<msup><mi>z</mi><mn>2</mn></msup>")}、${mml("<msup><mi>z</mi><mn>3</mn></msup>")}…）、${mml("<msup><mi>e</mi><mi>z</mi></msup>")}、${mml("<mi>sin</mi><mo>&#x2061;</mo><mi>z</mi>")} 等是<b>单值</b>的，没有分支问题。</p>`+
+    `<h3>④ 颜色约定</h3>`+
     `<p><b>蓝</b>＝实部坐标线（竖直线 / 极坐标同心圆），<b>橙</b>＝虚部坐标线（水平线 / 极坐标射线）。加粗的两条是过探针 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 的坐标线，方便追踪它们被映成了哪两条曲线。</p>`;
 })();
 
