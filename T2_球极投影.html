@@ -69,6 +69,16 @@
   .readout math{font-size:1.18em;}
   .readout b{color:#1a202c;}
   .corr math{font-size:1.04em;}
+
+  /* ===== 手机 / 窄屏适配（电脑端布局不变）===== */
+  @media (max-width:720px){
+    html,body{height:auto;}                 /* 放开固定高度，允许整页滚动 */
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:62vh; min-height:320px;} /* 画布不再被挤成一条 */
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
 </style>
 </head>
 <body>
