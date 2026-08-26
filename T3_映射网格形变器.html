@@ -114,6 +114,20 @@
           <label style="min-width:38px;">Im <math><mi>b</mi></math></label><input id="bIm" type="number" step="0.1" value="0"></div>
       </div>
 
+      <div class="box" id="customBox" style="display:none;">
+        <h2>自定义 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <input id="customIn" type="text" spellcheck="false" autocomplete="off"
+               style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+                      font-size:15px; font-family:Consolas,'Courier New',monospace;" value="z^2 + 1">
+        <div id="customPrev" style="margin:9px 0 2px; font-size:16px; min-height:24px; color:var(--ink);"></div>
+        <div id="customErr" style="font-size:12px; color:#c53030; min-height:16px;"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:6px 0 0;line-height:1.55;">
+          可用 <b>z　i　e　pi</b>，运算 <b>+ − * / ^</b>，函数
+          <b>exp　ln　sin　cos　tan　sinh　cosh　tanh　sqrt　conj　abs　re　im</b>；支持隐式乘法（如 2z、z(z−1)）。<br>
+          例：<code>z^3-z</code>　<code>1/(z^2+1)</code>　<code>sin(z)+z</code>　<code>exp(z)-conj(z)</code>
+        </p>
+      </div>
+
       <div class="box">
         <h2>形变过程</h2>
         <div class="row"><label style="min-width:40px;"><math><mi>t</mi></math> =</label>
@@ -208,10 +222,129 @@ function cscale(a,k){return{x:a.x*k,y:a.y*k};}
 function cconj(a){return{x:a.x,y:-a.y};}
 function cexp(a){const e=Math.exp(a.x);return{x:e*Math.cos(a.y),y:e*Math.sin(a.y)};}
 function csin(a){return{x:Math.sin(a.x)*Math.cosh(a.y),y:Math.cos(a.x)*Math.sinh(a.y)};}
+function ccos(a){return{x:Math.cos(a.x)*Math.cosh(a.y),y:-Math.sin(a.x)*Math.sinh(a.y)};}
+function ctan(a){return cdiv(csin(a),ccos(a));}
+function csinh(a){return{x:Math.sinh(a.x)*Math.cos(a.y),y:Math.cosh(a.x)*Math.sin(a.y)};}
+function ccosh(a){return{x:Math.cosh(a.x)*Math.cos(a.y),y:Math.sinh(a.x)*Math.sin(a.y)};}
+function ctanh(a){return cdiv(csinh(a),ccosh(a));}
+function clog(a){return{x:Math.log(Math.hypot(a.x,a.y)),y:Math.atan2(a.y,a.x)};} // 主值 Log
+function csqrt(a){const r=Math.hypot(a.x,a.y),t=Math.atan2(a.y,a.x),sr=Math.sqrt(r);return{x:sr*Math.cos(t/2),y:sr*Math.sin(t/2)};}
+function cpow(a,b){                                    // 复幂：整数实指数用重复乘（精确），否则取主值
+  if(Math.abs(b.y)<1e-12 && Math.abs(b.x-Math.round(b.x))<1e-12){
+    let n=Math.round(b.x); if(n===0) return {x:1,y:0};
+    const neg=n<0; n=Math.abs(n); let r={x:1,y:0};
+    for(let k=0;k<n;k++) r=cmul(r,a);
+    return neg?cdiv(ONE,r):r;
+  }
+  if(a.x===0&&a.y===0) return {x:0,y:0};
+  return cexp(cmul(b,clog(a)));
+}
 function cabs(a){return Math.hypot(a.x,a.y);}
+
+/* ============ 复数表达式解析器（自定义 f(z)，不用 eval）============
+   支持：z  i  e  pi/π  实数；运算 + − * / ^（右结合）与一元负号；
+   隐式乘法（2z、z(z−1)、(z+1)(z−1)）；函数
+   exp ln log sin cos tan sinh cosh tanh sqrt conj abs re im。
+   parseCFunc(src) → {fn:z=>{x,y}, ml:MathML内容串}，语法错误抛 Error（中文提示）。 */
+const CFUNCS={ exp:cexp, ln:clog, log:clog, sin:csin, cos:ccos, tan:ctan,
+  sinh:csinh, cosh:ccosh, tanh:ctanh, sqrt:csqrt, conj:cconj,
+  abs:a=>({x:cabs(a),y:0}), re:a=>({x:a.x,y:0}), im:a=>({x:a.y,y:0}) };
+const CFUNC_ML={ sqrt:1 }; // sqrt 用 <msqrt> 特殊排版，其余按 name(...)
+function parseCFunc(src){
+  const s=String(src||""); let i=0;
+  // ---- 词法 ----
+  const toks=[];
+  while(i<s.length){
+    const c=s[i];
+    if(c===" "||c==="\t"){ i++; continue; }
+    if(/[0-9.]/.test(c)){ let j=i+1; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num",v:s.slice(i,j)}); i=j; continue; }
+    if(/[a-zA-Zπ]/.test(c)){ let j=i+1; while(j<s.length&&/[a-zA-Z]/.test(s[j])) j++; toks.push({t:"id",v:s.slice(i,j)}); i=j; continue; }
+    if("+-*/^(),".indexOf(c)>=0){ toks.push({t:c}); i++; continue; }
+    if(c==="×"){ toks.push({t:"*"}); i++; continue; }
+    if(c==="÷"){ toks.push({t:"/"}); i++; continue; }
+    if(c==="−"){ toks.push({t:"-"}); i++; continue; }
+    throw new Error("无法识别的字符：“"+c+"”");
+  }
+  let p=0;
+  const peek=()=>toks[p], next=()=>toks[p++];
+  const startsPrimary=tk=>tk&&(tk.t==="num"||tk.t==="id"||tk.t==="(");
+  // 节点 {ev, ml, prec}；prec: 加1 乘2 一元3 幂4 原子5
+  function wrap(node,need){ return node.prec<need ? `<mrow><mo>(</mo>${node.ml}<mo>)</mo></mrow>` : node.ml; }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    let L=parseMul();
+    while(peek()&&(peek().t==="+"||peek().t==="-")){
+      const op=next().t, R=parseMul(), Lml=wrap(L,1), Rml=wrap(R,op==="-"?2:1), lev=L.ev, rev=R.ev;
+      L={ prec:1, ev: op==="+" ? z=>cadd(lev(z),rev(z)) : z=>csub(lev(z),rev(z)),
+          ml: Lml+`<mo>${op==="+"?"+":"&#x2212;"}</mo>`+Rml };
+    }
+    return L;
+  }
+  function parseMul(){
+    let L=parseUnary();
+    while(true){
+      const tk=peek();
+      let op=null;
+      if(tk&&(tk.t==="*"||tk.t==="/")){ op=next().t; }
+      else if(startsPrimary(tk)){ op="*"; }          // 隐式乘法
+      else break;
+      const R=parseUnary(), lev=L.ev, rev=R.ev;
+      if(op==="/"){
+        L={ prec:2, ev:z=>cdiv(lev(z),rev(z)), ml:`<mfrac><mrow>${L.ml}</mrow><mrow>${R.ml}</mrow></mfrac>` };
+      }else{
+        L={ prec:2, ev:z=>cmul(lev(z),rev(z)), ml: wrap(L,2)+wrap(R,2) };  // 相乘并列，不显符号
+      }
+    }
+    return L;
+  }
+  function parseUnary(){
+    const tk=peek();
+    if(tk&&tk.t==="-"){ next(); const R=parseUnary(); const rev=R.ev;
+      return { prec:3, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
+    if(tk&&tk.t==="+"){ next(); return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    const base=parsePrimary();
+    if(peek()&&peek().t==="^"){
+      next(); const ex=parseUnary(), bev=base.ev, eev=ex.ev;
+      return { prec:4, ev:z=>cpow(bev(z),eev(z)), ml:`<msup><mrow>${wrap(base,4)}</mrow><mrow>${ex.ml}</mrow></msup>` };
+    }
+    return base;
+  }
+  function parsePrimary(){
+    const tk=next();
+    if(!tk) throw new Error("表达式不完整");
+    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:5,ev:e.ev,ml:e.ml}; }
+    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
+    if(tk.t==="id"){
+      const nm=tk.v;
+      if(nm==="z") return {prec:5,ev:z=>z,ml:`<mi>z</mi>`};
+      if(nm==="i") return {prec:5,ev:()=>({x:0,y:1}),ml:`<mi>i</mi>`};
+      if(nm==="e") return {prec:5,ev:()=>({x:Math.E,y:0}),ml:`<mi>e</mi>`};
+      if(nm==="pi"||nm==="π") return {prec:5,ev:()=>({x:Math.PI,y:0}),ml:`<mi>&#x3C0;</mi>`};
+      // 函数调用
+      const fn=CFUNCS[nm];
+      if(!fn) throw new Error("未知的名称：“"+nm+"”");
+      if(!peek()||next().t!=="(") throw new Error("函数 "+nm+" 后要跟括号，如 "+nm+"(z)");
+      const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("函数 "+nm+" 缺少右括号 )");
+      const aev=arg.ev;
+      const ml = CFUNC_ML[nm]==1 ? `<msqrt>${arg.ml}</msqrt>`
+                : `<mi>${nm}</mi><mo>&#x2061;</mo><mrow><mo>(</mo>${arg.ml}<mo>)</mo></mrow>`;
+      return {prec:5, ev:z=>fn(aev(z)), ml};
+    }
+    throw new Error("无法解析：附近有多余符号");
+  }
+  const root=parseExpr();
+  if(p<toks.length) throw new Error("表达式末尾有多余内容");
+  // 自检：在几个点求值确认不抛异常
+  root.ev({x:0.3,y:0.4});
+  return { fn: z=>root.ev(z), ml: root.ml };
+}
 
 /* ============ 参数（线性映射用）============ */
 let A={x:0.8,y:0.6}, B={x:0.3,y:0};
+let customFn=z=>cadd(cmul(z,z),ONE), customML=`<msup><mi>z</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn>`; // 自定义 f(z)，默认 z²+1
 
 /* ============ 映射函数表 ============ */
 const FUNCS=[
@@ -517,6 +650,7 @@ const aRe=document.getElementById("aRe"),aIm=document.getElementById("aIm"),bRe=
 
 // 函数按钮
 const funcBtns=document.getElementById("funcBtns");
+const Fcustom={id:"custom", f:customFn, note:"自定义映射：保角性由数值判定——含 conj 等非解析项时会显示反保角/一般。"};
 FUNCS.forEach((fn,i)=>{
   const b=document.createElement("button");
   b.innerHTML=mml(fn.ml);
@@ -525,10 +659,41 @@ FUNCS.forEach((fn,i)=>{
     F=fn; EduTelemetry.log("func",fn.id);
     [...funcBtns.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel");
     document.getElementById("linBox").style.display = (fn.id==="lin"?"block":"none");
+    document.getElementById("customBox").style.display="none";
     draw();
   };
   funcBtns.appendChild(b);
 });
+// 自定义 f(z) 按钮
+const customBtn=document.createElement("button");
+customBtn.innerHTML='<span style="font-size:12px;">&#x270E;</span> '+mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>");
+customBtn.title="自定义映射函数";
+customBtn.onclick=()=>{
+  F=Fcustom; EduTelemetry.log("func","custom");
+  [...funcBtns.children].forEach(c=>c.classList.remove("sel")); customBtn.classList.add("sel");
+  document.getElementById("linBox").style.display="none";
+  document.getElementById("customBox").style.display="block";
+  compileCustom(false);
+  draw();
+};
+funcBtns.appendChild(customBtn);
+
+function compileCustom(doDraw){
+  const src=document.getElementById("customIn").value;
+  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev");
+  try{
+    const r=parseCFunc(src);
+    customFn=r.fn; customML=r.ml; Fcustom.f=r.fn;
+    prevEl.innerHTML=mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+r.ml);
+    errEl.textContent="";
+    if(doDraw){ EduTelemetry.log("custom", src.slice(0,40)); if(F===Fcustom) draw(); }
+    return true;
+  }catch(e){
+    errEl.textContent="⚠ "+e.message;
+    return false;   // 保留上一次成功编译的 customFn
+  }
+}
+document.getElementById("customIn").addEventListener("input",()=>compileCustom(true));
 
 // 形变滑杆
 const morph=document.getElementById("morph"), tVal=document.getElementById("tVal");
@@ -575,7 +740,7 @@ mask.onclick=closeHelp;
     `<p>复变函数 ${mml("<mrow><mi>w</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></mrow>")} 把 ${z} 平面（左）上的每个点搬到 ${w} 平面（右）。左边一张规则的网格，被 f 搬过去后会被<b>拉伸、旋转、弯曲</b>成什么样，就是这个工具要看的。</p>`+
     `<h3>① 怎么操作</h3>`+
     `<ul>`+
-    `<li>上方选<b>映射函数</b>（选"线性"时可调 a、b）；</li>`+
+    `<li>上方选<b>映射函数</b>（选"线性"时可调 a、b）；点 <b>&#x270E; ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}</b> 可<b>自定义</b>——输入如 <code>z^3-z</code>、<code>1/(z^2+1)</code>、<code>sin(z)+z</code>，工具会自动数值分析其保角性；</li>`+
     `<li>拖动<b>形变滑杆 t</b>（或点 <b>▶ 形变演示</b>）：t 从 0 到 1，右图网格会从原来的直线<b>逐渐弯曲</b>成 f 的像，看清"形变"发生的过程；</li>`+
     `<li>在<b>左图拖动</b>移动探针 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")}，右图同步显示它的像 ${mml("<msub><mi>w</mi><mn>0</mn></msub>")}；</li>`+
     `<li><b>切换网格</b>在直角网格与极坐标网格（同心圆＋射线）之间切换——对 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")}、${mml("<msup><mi>e</mi><mi>z</mi></msup>")} 用极坐标更直观；</li>`+
