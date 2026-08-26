@@ -553,14 +553,14 @@ EduTelemetry.log("open");
 
 // ── 访问统计（PV+UV，发往自建计数服务；离线/连不上时静默跳过，绝不影响工具使用）──
 (function(){
-  var CNT_ENDPOINT = "https://fubian-counter.dihe.workers.dev"; // Cloudflare Worker 计数服务
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter"; // 腾讯云 CloudBase 计数服务（国内可达）
   var TOOL = "T2_球极投影";                              // ← 本工具的统计名（每个工具改这一行）
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{
     var seenKey="fbtool_seen:"+TOOL;
     var first=localStorage.getItem(seenKey)?0:1;
     if(first) localStorage.setItem(seenKey,"1");
-    var url=CNT_ENDPOINT+"/hit?tool="+encodeURIComponent(TOOL)+"&first="+first;
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
     if(navigator.sendBeacon) navigator.sendBeacon(url);
     else fetch(url,{mode:"no-cors",keepalive:true});
   }catch(e){}
