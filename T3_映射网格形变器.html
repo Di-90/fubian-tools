@@ -14,13 +14,15 @@
   body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
        background:var(--bg); line-height:1.55;}
   math{font-family:"Cambria Math","STIX Two Math",serif;}
-  .top{display:flex; align-items:center; justify-content:space-between; gap:12px;
-       padding:12px 18px; background:var(--card); border-bottom:1px solid var(--line);}
-  .top h1{font-size:18px; margin:0; letter-spacing:.5px;}
-  .top .hint{font-size:12.5px; color:var(--sub);}
-  #helpBtn{border:1px solid var(--line); background:#fff; border-radius:20px; cursor:pointer;
-           font-size:13px; padding:5px 13px; color:var(--blue);}
-  #helpBtn:hover{background:#ebf4ff;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
   .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
   .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
            border:1px solid var(--line); border-radius:12px; overflow:hidden;}
@@ -89,8 +91,9 @@
 </head>
 <body>
   <div class="top">
-    <h1>T3 · 映射网格形变器</h1>
+    <h1>映射网格形变器</h1>
     <span class="hint">左图拖动＝移动 <math><msub><mi>z</mi><mn>0</mn></msub></math>；拖动形变滑杆看网格弯曲</span>
+    <span class="tag">T3 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
