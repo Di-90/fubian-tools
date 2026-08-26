@@ -90,7 +90,7 @@
 <body>
   <div class="top">
     <h1>T3 · 映射网格形变器</h1>
-    <span class="hint">左图拖动＝移动 <math><mi>z</mi><mn>0</mn></math>；拖动形变滑杆看网格弯曲</span>
+    <span class="hint">左图拖动＝移动 <math><msub><mi>z</mi><mn>0</mn></msub></math>；拖动形变滑杆看网格弯曲</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -102,21 +102,21 @@
 
     <div class="panel">
       <div class="box">
-        <h2>映射函数 w = f(z)</h2>
+        <h2>映射函数 <math><mi>w</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
         <div class="fbtns" id="funcBtns"></div>
       </div>
 
       <div class="box" id="linBox" style="display:none;">
-        <h2>线性参数（w = a z + b）</h2>
-        <div class="row"><label>Re a</label><input id="aRe" type="number" step="0.1" value="0.8">
-          <label style="min-width:38px;">Im a</label><input id="aIm" type="number" step="0.1" value="0.6"></div>
-        <div class="row"><label>Re b</label><input id="bRe" type="number" step="0.1" value="0.3">
-          <label style="min-width:38px;">Im b</label><input id="bIm" type="number" step="0.1" value="0"></div>
+        <h2>线性参数（<math><mi>w</mi><mo>=</mo><mi>a</mi><mi>z</mi><mo>+</mo><mi>b</mi></math>）</h2>
+        <div class="row"><label>Re <math><mi>a</mi></math></label><input id="aRe" type="number" step="0.1" value="0.8">
+          <label style="min-width:38px;">Im <math><mi>a</mi></math></label><input id="aIm" type="number" step="0.1" value="0.6"></div>
+        <div class="row"><label>Re <math><mi>b</mi></math></label><input id="bRe" type="number" step="0.1" value="0.3">
+          <label style="min-width:38px;">Im <math><mi>b</mi></math></label><input id="bIm" type="number" step="0.1" value="0"></div>
       </div>
 
       <div class="box">
         <h2>形变过程</h2>
-        <div class="row"><label style="min-width:40px;">t =</label>
+        <div class="row"><label style="min-width:40px;"><math><mi>t</mi></math> =</label>
           <input id="morph" type="range" min="0" max="100" value="100">
           <b id="tVal" style="min-width:34px; text-align:right;">1.00</b></div>
         <div class="btns" style="margin-top:6px;">
@@ -127,7 +127,7 @@
       </div>
 
       <div class="box">
-        <h2>探针 z<sub>0</sub></h2>
+        <h2>探针 <math><msub><mi>z</mi><mn>0</mn></msub></math></h2>
         <div class="row"><label>实部 Re</label><input id="zRe" type="number" step="0.1" value="0.8"></div>
         <div class="row"><label>虚部 Im</label><input id="zIm" type="number" step="0.1" value="0.6"></div>
       </div>
@@ -137,7 +137,7 @@
       <div class="box toggles">
         <h2>显示选项</h2>
         <label><input type="checkbox" id="tGrid2" checked> 网格</label>
-        <label><input type="checkbox" id="tHi" checked> 高亮过 z<sub>0</sub> 的坐标线</label>
+        <label><input type="checkbox" id="tHi" checked> 高亮过 <math><msub><mi>z</mi><mn>0</mn></msub></math> 的坐标线</label>
         <label><input type="checkbox" id="tFrame" checked> 局部标架（看保角）</label>
         <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
       </div>
@@ -147,7 +147,7 @@
         <div class="legend">
           <span><i class="bar" style="background:var(--blue)"></i>实部网格线 / 圆</span>
           <span><i class="bar" style="background:var(--orange)"></i>虚部网格线 / 射线</span>
-          <span><i class="dot" style="background:var(--gold)"></i><math><mrow><mi>z</mi><mn>0</mn></mrow></math> / 像 <math><mrow><mi>w</mi><mn>0</mn></mrow></math></span>
+          <span><i class="dot" style="background:var(--gold)"></i><math><msub><mi>z</mi><mn>0</mn></msub></math> / 像 <math><msub><mi>w</mi><mn>0</mn></msub></math></span>
         </div>
         <div class="btns" style="margin-top:10px;">
           <button id="bExport">导出使用数据</button>
@@ -230,7 +230,7 @@ const FUNCS=[
     note:"分式线性（Möbius）：把虚轴↔单位圆、右半平面↔单位圆内；保角、且把圆/直线仍变为圆/直线。"},
   {id:"sin",  ml:`<mi>sin</mi><mo>&#x2061;</mo><mi>z</mi>`, f:z=>csin(z), analytic:true,
     note:"正弦映射：把水平/竖直网格映成一族共焦椭圆与双曲线；z=±π/2… 为临界点。"},
-  {id:"conj", ml:`<mover accent="true"><mi>z</mi><mo>&#x203E;</mo></mover>`, f:z=>cconj(z), analytic:false,
+  {id:"conj", ml:`<mover accent="true"><mi>z</mi><mo>&#x2015;</mo></mover>`, f:z=>cconj(z), analytic:false,
     note:"共轭（非解析！）：沿实轴翻折——夹角大小不变，但定向翻转（反保角），与上面解析映射形成对照。"}
 ];
 let F=FUNCS[1];  // 默认 z²
@@ -307,14 +307,6 @@ function drawViewport(cx, mapper, toScreen, title, titleML){
   ctx.fillStyle = (mapper===gmap? "#fbfcff":"#fdfefb");
   ctx.fillRect(cx-W/4,0,W/2,H);
 
-  // 坐标轴
-  if(show.axis){
-    ctx.strokeStyle="#b7c2d0"; ctx.lineWidth=1.2;
-    const o=toScreen({x:0,y:0});
-    ctx.beginPath(); ctx.moveTo(cx-W/4,o.y); ctx.lineTo(cx+W/4,o.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(o.x,0); ctx.lineTo(o.x,H); ctx.stroke();
-  }
-
   // 网格
   if(show.grid){
     if(!gridPolar){
@@ -340,10 +332,25 @@ function drawViewport(cx, mapper, toScreen, title, titleML){
       }
     }
   }
+
+  // 坐标轴（画在网格之上、深色带箭头，突出平面本身的实轴/虚轴）
+  if(show.axis){
+    const o=toScreen({x:0,y:0}), x0=cx-W/4, x1=cx+W/4, yTop=8, yBot=H-8;
+    ctx.strokeStyle="#5f6b7a"; ctx.fillStyle="#5f6b7a"; ctx.lineWidth=1.7;
+    ctx.beginPath(); ctx.moveTo(x0,o.y); ctx.lineTo(x1-5,o.y); ctx.stroke();
+    axHead(x1-4, o.y, 0);              // 指向 +Re（右）
+    ctx.beginPath(); ctx.moveTo(o.x,yBot); ctx.lineTo(o.x,yTop+5); ctx.stroke();
+    axHead(o.x, yTop+4, -Math.PI/2);   // 指向 +Im（上）
+  }
   ctx.restore();
 
   // 标题 + 轴标签（叠加层）
   addLabel(titleML, cx, 22, "#2d3748", 16);
+  if(show.axis){
+    const o=toScreen({x:0,y:0});
+    addLabel(mml("<mi>Re</mi>"), cx+W/4-16, o.y-14, "#4a5568", 14);
+    addLabel(mml("<mi>Im</mi>"), o.x+16, 46, "#4a5568", 14);
+  }
 }
 
 /* ============ 箭头 ============ */
@@ -354,6 +361,13 @@ function arrow(x0,y0,x1,y1,color,width){
   ctx.beginPath(); ctx.moveTo(x1,y1);
   ctx.lineTo(x1-ah*Math.cos(ang-0.42), y1-ah*Math.sin(ang-0.42));
   ctx.lineTo(x1-ah*Math.cos(ang+0.42), y1-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill();
+}
+function axHead(x,y,ang){
+  const ah=7;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  ctx.lineTo(x-ah*Math.cos(ang-0.4), y-ah*Math.sin(ang-0.4));
+  ctx.lineTo(x-ah*Math.cos(ang+0.4), y-ah*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
 }
 function dot(p,color,r){
@@ -416,7 +430,7 @@ function draw(){
   ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(W/2,10); ctx.lineTo(W/2,H-10); ctx.stroke();
   // 中间箭头提示 f
-  addLabel(mml("<mover><mo>&#x27F6;</mo><mrow><mspace width='2px'/></mrow></mover>")+"&nbsp;f", W/2, 46, "#718096", 15);
+  addLabel(mml("<mover accent='false'><mo stretchy='false'>&#x27F6;</mo><mi>f</mi></mover>"), W/2, 46, "#718096", 18);
 
   const an=analyze();
   if(show.frame) drawFrames(an);
@@ -572,7 +586,7 @@ mask.onclick=closeHelp;
     `<ul>`+
     `<li><b>解析映射</b>（如 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")}、${mml("<mfrac><mn>1</mn><mi>z</mi></mfrac>")}、${mml("<msup><mi>e</mi><mi>z</mi></msup>")}）：两箭头一起<b>旋转 arg ${fp}、放大 |${fp}| 倍</b>，但仍然<b>互相垂直</b>——这就是<b>保角性</b>（角度不变）；</li>`+
     `<li>在 ${fp} = 0 的<b>临界点</b>（如 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")} 在 ${mml("<mrow><mi>z</mi><mo>=</mo><mn>0</mn></mrow>")}）：标架退化，保角性失效，夹角会成倍变化；</li>`+
-    `<li><b>共轭 ${mml("<mover accent='true'><mi>z</mi><mo>&#x203E;</mo></mover>")}</b>（非解析）：橙箭头被<b>翻转</b>——夹角大小不变但定向反了，叫<b>反保角</b>，正好和解析映射对照。</li>`+
+    `<li><b>共轭 ${mml("<mover accent='true'><mi>z</mi><mo>&#x2015;</mo></mover>")}</b>（非解析）：橙箭头被<b>翻转</b>——夹角大小不变但定向反了，叫<b>反保角</b>，正好和解析映射对照。</li>`+
     `</ul>`+
     `<h3>③ 颜色约定</h3>`+
     `<p><b>蓝</b>＝实部坐标线（竖直线 / 极坐标同心圆），<b>橙</b>＝虚部坐标线（水平线 / 极坐标射线）。加粗的两条是过探针 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 的坐标线，方便追踪它们被映成了哪两条曲线。</p>`;
