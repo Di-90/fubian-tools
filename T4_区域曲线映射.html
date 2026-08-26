@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T3b 区域与曲线映射</title>
+<title>T4 区域与曲线映射</title>
 <style>
   :root{
     --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
@@ -90,7 +90,7 @@
   <div class="top">
     <h1>区域与曲线映射</h1>
     <span class="hint">左图选定区域/曲线并拖动控制点，右图画出经 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math> 变形后的像</span>
-    <span class="tag">T3b · 复变函数与积分变换</span>
+    <span class="tag">T4 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -176,7 +176,7 @@
 <script>
 /* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
 const EduTelemetry = (function(){
-  const KEY="edu_telemetry_T3b"; let buf=[];
+  const KEY="edu_telemetry_T4"; let buf=[];
   try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
   function log(type,detail){
     buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
@@ -188,7 +188,7 @@ const EduTelemetry = (function(){
     const csv=rows.map(r=>r.join(",")).join("\n");
     const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download="T3b_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+    a.download="T4_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   return {log, exportCSV};
 })();
@@ -870,7 +870,7 @@ EduTelemetry.log("open");
 // ── 访问统计（PV+UV；离线/连不上时静默跳过，绝不影响工具使用）──
 (function(){
   var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
-  var TOOL = "T3b_区域曲线映射";
+  var TOOL = "T4_区域曲线映射";
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{
     var seenKey="fbtool_seen:"+TOOL;
