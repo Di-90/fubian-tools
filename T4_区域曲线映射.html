@@ -506,8 +506,10 @@ function addLabel(html,x,y,color,size){
   d.innerHTML=html; overlay.appendChild(d);
 }
 
-/* ============ 画一条采样曲线（带断裂）============ */
-function drawCurve(zpts, mapper, toScreen, color, width){
+/* ============ 画一条采样曲线（带断裂，裁到本视口半区，避免越过分隔线画进另一平面）============ */
+function drawCurve(zpts, mapper, toScreen, color, width, clipCx){
+  ctx.save();
+  if(clipCx!=null){ ctx.beginPath(); ctx.rect(clipCx-W/4,0,W/2,H); ctx.clip(); }
   ctx.strokeStyle=color; ctx.lineWidth=width; ctx.beginPath();
   let pen=false, prev=null;
   for(const z of zpts){
@@ -522,6 +524,7 @@ function drawCurve(zpts, mapper, toScreen, color, width){
     prev=p;
   }
   ctx.stroke();
+  ctx.restore();
 }
 
 /* ============ 区域填充（映射闭合多边形后填充）============ */
@@ -605,8 +608,8 @@ function draw(){
   // 图形 / 区域边界
   const strokes=S.strokes(state);
   for(const st of strokes){
-    drawCurve(st, z=>z, toL, "#1d4ed8", 2.6);
-    drawCurve(st, z=>F.f(z), toR, "#1d4ed8", 2.6);
+    drawCurve(st, z=>z, toL, "#1d4ed8", 2.6, cxL);
+    drawCurve(st, z=>F.f(z), toR, "#1d4ed8", 2.6, cxR);
   }
   // 分隔线 + f 箭头
   ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.5;
