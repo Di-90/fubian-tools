@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T2 球极投影 / 复球面</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:space-between; gap:12px;
+       padding:12px 18px; background:var(--card); border-bottom:1px solid var(--line);}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px;}
+  .top .hint{font-size:12.5px; color:var(--sub);}
+  #helpBtn{border:1px solid var(--line); background:#fff; border-radius:20px; cursor:pointer;
+           font-size:13px; padding:5px 13px; color:var(--blue);}
+  #helpBtn:hover{background:#ebf4ff;}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:grab;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  .panel{width:308px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .row label{font-size:13px; min-width:60px; color:var(--sub);}
+  .row input[type=number]{width:74px; padding:4px 6px; border:1px solid var(--line);
+       border-radius:6px; font-size:14px;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .btns button.go{background:var(--purple); color:#fff; border-color:var(--purple);}
+  .btns button.go:hover{filter:brightness(1.08);}
+  .btns button.go2{background:var(--green); color:#fff; border-color:var(--green);}
+  .btns button.go2:hover{filter:brightness(1.08);}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  /* modal */
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(640px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.18em;}
+  .readout b{color:#1a202c;}
+  .corr math{font-size:1.04em;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>T2 · 球极投影与复球面</h1>
+    <span class="hint">拖动画布空白处可旋转视角；拖动金色点移动 <math><mi>z</mi></math></span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>复数 z</h2>
+        <div class="row">
+          <label>实部 Re</label><input id="inRe" type="number" step="0.1" value="2">
+        </div>
+        <div class="row">
+          <label>虚部 Im</label><input id="inIm" type="number" step="0.1" value="0.6">
+        </div>
+        <div class="btns" style="margin-top:8px;">
+          <button id="bZero">z = 0（南极）</button>
+          <button id="bUnit">放到单位圆</button>
+        </div>
+        <div class="btns" style="margin-top:7px;">
+          <button id="bProj" class="go2">▶ 投影演示</button>
+          <button id="bInf" class="go">▶ 演示 z → ∞</button>
+        </div>
+        <div class="btns" style="margin-top:7px;">
+          <button id="bView">复位视角</button>
+        </div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tWire" checked> 球面经纬线</label>
+        <label><input type="checkbox" id="tGrid" checked> 复平面网格</label>
+        <label><input type="checkbox" id="tRay" checked> 投影线（北极 → z）</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+        <label><input type="checkbox" id="tSnap"> 吸附到 0.25 网格</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--gold)"></i>平面点 <math><mi>z</mi></math></span>
+          <span><i class="dot" style="background:var(--green)"></i>球面像 <math><mi>P</mi></math></span>
+          <span><i class="dot" style="background:var(--purple)"></i>北极 N（∞）</span>
+          <span><i class="dot" style="background:var(--blue)"></i>南极 S（0）</span>
+        </div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV，供教改成效数据）============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T2"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T2_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML，浏览器原生渲染，离线无需外部库）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+const GRK={xi:"&#x3BE;", eta:"&#x3B7;", zeta:"&#x3B6;"};
+function fmt(v){ let r=Math.round(v*100)/100; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+function mn(v){ return v<0 ? `<mo>&#x2212;</mo><mn>${Math.abs(v)}</mn>` : `<mn>${v}</mn>`; }
+function mmlComplex(re,im){
+  let r=Math.round(re*100)/100, i=Math.round(im*100)/100;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(i===0) return mn(r);
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${ai}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}<mi>i</mi>`;
+  return `${mn(r)}<mo>${i<0?"&#x2212;":"+"}</mo>${coef}<mi>i</mi>`;
+}
+
+/* ============ 场景状态 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=600,H=480, cx=300, cy=240, baseScale=70, zoomK=1;
+let az=-0.62, el=0.44;              // 视角：绕竖直轴方位角 + 俯仰角（弧度）
+let z={x:2, y:0.6};                 // 复平面上的点 z = x + iy（平面 u=0）
+let snap=false;
+const show={wire:true, grid:true, ray:true, axis:true};
+let anim=null;                      // z→∞ 演示
+let projAnim=null;                  // 投影构造演示（从 N 沿射线找球面交点 P）
+
+/* ---- 3D → 2D 正交投影（竖直轴 = ζ 轴，向上）---- */
+function project(x,y,u){
+  const ca=Math.cos(az), sa=Math.sin(az);
+  const X = x*ca - y*sa;            // 屏幕水平
+  const Y = x*sa + y*ca;            // 绕竖直轴后的“进深”方向
+  const ce=Math.cos(el), se=Math.sin(el);
+  const U2 = Y*se + u*ce;           // 屏幕竖直（俯仰后）
+  const near = -(Y*ce - u*se);      // 朝向观察者：越大越近
+  const s = baseScale*zoomK;
+  return { x: cx + X*s, y: cy - U2*s, near };
+}
+/* ---- 屏幕点反投影到复平面（u=0）---- */
+function unproject(sx,sy){
+  const s=baseScale*zoomK;
+  const X=(sx-cx)/s, U2=(cy-sy)/s;
+  const se=Math.sin(el);
+  const Y = U2/se;                  // u=0 时 U2 = Y*se
+  const ca=Math.cos(az), sa=Math.sin(az);
+  return { x: X*ca + Y*sa, y: -X*sa + Y*ca };
+}
+/* ---- z → 球面像 P（球极投影，单位球心在原点，平面过赤道，自北极投影）---- */
+function sphereImg(x,y){
+  const r2=x*x+y*y, d=1+r2;
+  return { xi: 2*x/d, eta: 2*y/d, zeta: (r2-1)/d };
+}
+
+/* ============ 预生成球面线框 ============ */
+const wire=[];        // 经线 + 非赤道纬线（每条 = 点数组）
+let equatorPts=[];    // 赤道（= 复平面单位圆 |z|=1），单独高亮
+(function buildWire(){
+  const seg=60;
+  for(let k=0;k<12;k++){                       // 经线，lon = 0..330，每 30°
+    const lon=k*Math.PI/6, pts=[];
+    for(let i=0;i<=seg;i++){
+      const lat=-Math.PI/2 + Math.PI*i/seg;
+      pts.push([Math.cos(lat)*Math.cos(lon), Math.cos(lat)*Math.sin(lon), Math.sin(lat)]);
+    }
+    wire.push(pts);
+  }
+  [-60,-30,30,60].forEach(deg=>{               // 纬线，每 30°（赤道另画）
+    const lat=deg*Math.PI/180, r=Math.cos(lat), u=Math.sin(lat), pts=[];
+    for(let i=0;i<=seg;i++){ const t=2*Math.PI*i/seg; pts.push([r*Math.cos(t), r*Math.sin(t), u]); }
+    wire.push(pts);
+  });
+  for(let i=0;i<=seg;i++){ const t=2*Math.PI*i/seg; equatorPts.push([Math.cos(t), Math.sin(t), 0]); }
+})();
+
+/* ============ 绘制 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+function strokeSeg(p,q,color,width,alpha,dash){
+  ctx.globalAlpha=(alpha==null?1:alpha); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+}
+function marker(a,color,r){
+  const p=project(a[0],a[1],a[2]);
+  ctx.globalAlpha=1;
+  ctx.shadowColor="rgba(0,0,0,0.22)"; ctx.shadowBlur=3; ctx.shadowOffsetY=1;
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
+  ctx.shadowColor="transparent"; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=1.4; ctx.strokeStyle="#fff"; ctx.stroke();
+  return p;
+}
+// 沿曲线逐段绘制，按每段“朝向观察者”(near>0) 决定前明后暗，营造遮挡立体感
+function drawCurveOcc(pts,color,width,aFront,aBack){
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    const pa=project(a[0],a[1],a[2]), pb=project(b[0],b[1],b[2]);
+    const front=(pa.near+pb.near)>0;
+    strokeSeg(pa,pb,color,width, front?aFront:aBack, front?[]:[3,4]);
+  }
+}
+
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels();
+  const s=baseScale*zoomK;
+
+  // 背景渐变
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#fbfdff"); bg.addColorStop(1,"#eaf0f7");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // ===== 复平面（填充面 + 网格 + Re/Im 轴）=====
+  if(show.grid){
+    const R=3;
+    const c=[project(-R,-R,0),project(R,-R,0),project(R,R,0),project(-R,R,0)];
+    ctx.beginPath(); ctx.moveTo(c[0].x,c[0].y);
+    for(let i=1;i<4;i++) ctx.lineTo(c[i].x,c[i].y); ctx.closePath();
+    ctx.fillStyle="rgba(176,202,232,0.14)"; ctx.fill();
+    for(let i=-R;i<=R;i++){
+      const ax=(i===0);
+      strokeSeg(project(i,-R,0),project(i,R,0), ax?"#7d8da0":"#c6d1df", ax?1.5:1, ax?0.8:0.5);
+      strokeSeg(project(-R,i,0),project(R,i,0), ax?"#7d8da0":"#c6d1df", ax?1.5:1, ax?0.8:0.5);
+    }
+    const reP=project(R+0.38,0,0), imP=project(0,R+0.38,0);
+    addLabel(mml("<mi>Re</mi>"), reP.x, reP.y, "#586a7e", 14);
+    addLabel(mml("<mi>Im</mi>"), imP.x, imP.y, "#586a7e", 14);
+  }
+
+  // ===== 复球面：着色球体（渐变 + 高光 + 轮廓）=====
+  const gx=cx - s*0.34, gy=cy - s*0.40;
+  const g=ctx.createRadialGradient(gx,gy,s*0.05, cx,cy,s*1.10);
+  g.addColorStop(0,"rgba(244,249,255,0.94)");
+  g.addColorStop(0.45,"rgba(168,203,238,0.70)");
+  g.addColorStop(0.82,"rgba(104,148,198,0.62)");
+  g.addColorStop(1,"rgba(58,94,144,0.60)");
+  ctx.beginPath(); ctx.arc(cx,cy,s,0,7); ctx.fillStyle=g; ctx.fill();
+  const hg=ctx.createRadialGradient(gx,gy,0, gx,gy,s*0.55);
+  hg.addColorStop(0,"rgba(255,255,255,0.75)"); hg.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.beginPath(); ctx.arc(cx,cy,s,0,7); ctx.fillStyle=hg; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,s,0,7); ctx.lineWidth=1.5; ctx.strokeStyle="rgba(48,80,128,0.55)"; ctx.stroke();
+
+  // ===== 经纬线（前明后暗）=====
+  if(show.wire){
+    for(const pts of wire) drawCurveOcc(pts, "#3a5e86", 1, 0.55, 0.13);
+  }
+  // ===== 坐标轴 ζ（贯穿南北极）=====
+  if(show.axis){
+    strokeSeg(project(0,0,-1.42),project(0,0,1.5),"#8794a6",1.2,0.6,[5,5]);
+  }
+  // ===== 赤道 |z|=1（前实后虚，突出）=====
+  for(let i=0;i<equatorPts.length-1;i++){
+    const a=equatorPts[i], b=equatorPts[i+1];
+    const pa=project(a[0],a[1],a[2]), pb=project(b[0],b[1],b[2]);
+    const front=(pa.near+pb.near)>0;
+    strokeSeg(pa,pb,"#2b6cb0", front?2.7:1.4, front?1:0.42, front?[]:[3,4]);
+  }
+  const eqL=project(Math.cos(-0.55),Math.sin(-0.55),0);
+  addLabel(mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>=</mo><mn>1</mn></mrow>"), eqL.x+4, eqL.y+2, "#2b6cb0", 13);
+
+  // ===== 投影线 + 关键点 =====
+  const P=sphereImg(z.x,z.y);
+  const Pv=[P.xi,P.eta,P.zeta], N=[0,0,1], S=[0,0,-1], Zp=[z.x,z.y,0];
+
+  if(projAnim){
+    // —— 投影构造演示：从北极 N 沿射线滑向 z，画出与球面的交点 P ——
+    drawProjConstruction(N,Zp,Pv);
+  }else if(show.ray){
+    strokeSeg(project(N[0],N[1],N[2]),project(Zp[0],Zp[1],Zp[2]),"#7b8794",1.5,0.9,[6,5]); // N → z
+    strokeSeg(project(N[0],N[1],N[2]),project(Pv[0],Pv[1],Pv[2]),"#2f855a",2.4,1,[]);        // N → P
+  }
+  const pN=marker(N,"#6b46c1",4), pS=marker(S,"#2b6cb0",4);
+  addLabel("N&#x2009;"+mml("<mo>(</mo><mi>&#x221E;</mi><mo>)</mo>"), pN.x, pN.y-16, "#6b46c1",15);
+  addLabel("S&#x2009;"+mml("<mo>(</mo><mn>0</mn><mo>)</mo>"), pS.x, pS.y+16, "#2b6cb0",15);
+  // 演示未越过交点前先不画最终的 P（由 drawProjConstruction 在到达时才落点）
+  if(!(projAnim && projAnim.pt < projAnim.tP)){
+    const pop = (projAnim ? projAnim.pop : 1);
+    const pP=marker(Pv,"#2f855a",4.5*pop); addLabel(mml("<mi>P</mi>"), pP.x+13, pP.y-7, "#2f855a",16);
+  }
+  const pZ=marker(Zp,"#b7791f",5);   addLabel(mml("<mi>z</mi>"), pZ.x+13, pZ.y+11, "#b7791f",16);
+
+  updateReadout(P);
+}
+
+// 投影构造演示：沿 N→z 线段画到参数 pt 处，标出球面交点 P（pt=tP 时越过球面）
+function drawProjConstruction(N,Z,Pv){
+  const pt=projAnim.pt, tP=projAnim.tP;
+  const Q=[ N[0]+pt*(Z[0]-N[0]), N[1]+pt*(Z[1]-N[1]), N[2]+pt*(Z[2]-N[2]) ];
+  const pN=project(N[0],N[1],N[2]), pQ=project(Q[0],Q[1],Q[2]);
+  if(pt<=tP){
+    // 尚未触及球面：一条“探寻中”的灰色虚线射线 N→Q
+    strokeSeg(pN,pQ,"#7b8794",1.8,0.9,[6,5]);
+  }else{
+    // 已越过交点：N→P 实绿（这段就是投影线），P→Q 继续灰虚线延伸到 z
+    const pPv=project(Pv[0],Pv[1],Pv[2]);
+    strokeSeg(pN,pPv,"#2f855a",2.4,1,[]);
+    strokeSeg(pPv,pQ,"#7b8794",1.5,0.85,[6,5]);
+  }
+  // 沿射线行进的小圆点（gold，示意“从北极望向 z 的视线”）
+  ctx.globalAlpha=1; ctx.shadowColor="rgba(0,0,0,0.2)"; ctx.shadowBlur=3; ctx.shadowOffsetY=1;
+  ctx.fillStyle="#b7791f"; ctx.beginPath(); ctx.arc(pQ.x,pQ.y,4,0,7); ctx.fill();
+  ctx.shadowColor="transparent"; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=1.2; ctx.strokeStyle="#fff"; ctx.stroke();
+}
+
+function updateReadout(P){
+  const r=Math.hypot(z.x,z.y);
+  const bar=(rel,n)=>mml(`<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>${rel}</mo><mn>${n}</mn></mrow>`);
+  let corr;
+  if(r<0.06) corr=`${mml("<mrow><mi>z</mi><mo>=</mo><mn>0</mn></mrow>")} → 对应<b>南极 S</b>。`;
+  else if(Math.abs(r-1)<0.04) corr=`${bar("=",1)}（单位圆）→ 像落在<b>赤道</b>上。`;
+  else if(r<1) corr=`${bar("&lt;",1)} → 像在<b>南半球</b>（赤道以下）。`;
+  else corr=`${bar("&gt;",1)} → 像在<b>北半球</b>（赤道以上）；${mml("<mi>z</mi>")} 越远，像越靠近<b>北极 N</b>。`;
+  const coord=`<mo>(</mo><mi>${GRK.xi}</mi><mo>,</mo><mi>${GRK.eta}</mi><mo>,</mo><mi>${GRK.zeta}</mi><mo>)</mo>`;
+  document.getElementById("readout").innerHTML =
+    `<h2 style="margin-bottom:8px;">读数</h2>`+
+    `<div>${mml("<mi>z</mi><mo>=</mo>"+mmlComplex(z.x,z.y))}</div>`+
+    `<div>${mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mo>=</mo>")} <b>${fmt(r)}</b></div>`+
+    `<div><span class="k">球面像</span> ${mml("<mi>P</mi><mo>=</mo>"+coord+"<mo>=</mo>")} <b>(${fmt(P.xi)}, ${fmt(P.eta)}, ${fmt(P.zeta)})</b></div>`+
+    `<div class="corr">${corr}</div>`;
+}
+
+/* ============ 交互 ============ */
+function setZ(x,y,logType,syncInputs){
+  if(snap){ x=Math.round(x/0.25)*0.25; y=Math.round(y/0.25)*0.25; }
+  z.x=x; z.y=y;
+  if(syncInputs!==false){                       // 从输入框打字时不回写，否则会清掉正在输入的小数点
+    document.getElementById("inRe").value=Math.round(x*100)/100;
+    document.getElementById("inIm").value=Math.round(y*100)/100;
+  }
+  if(logType) EduTelemetry.log(logType, x.toFixed(2)+","+y.toFixed(2));
+  draw();
+}
+
+let mode=null, lastX=0, lastY=0;
+function screenXY(e){
+  const r=cv.getBoundingClientRect();
+  return { x:(e.clientX-r.left), y:(e.clientY-r.top) };
+}
+cv.addEventListener("pointerdown",e=>{
+  if(anim||projAnim) return;
+  const m=screenXY(e), pZ=project(z.x,z.y,0);
+  if(Math.hypot(m.x-pZ.x, m.y-pZ.y) < 18){ mode="drag"; }
+  else { mode="orbit"; lastX=m.x; lastY=m.y; }
+  cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing");
+});
+cv.addEventListener("pointermove",e=>{
+  if(!mode) return;
+  const m=screenXY(e);
+  if(mode==="drag"){
+    const w=unproject(m.x,m.y); setZ(w.x,w.y,"drag");
+  }else{
+    az += (m.x-lastX)*0.01;
+    el = Math.min(1.40, Math.max(0.18, el - (m.y-lastY)*0.01));
+    lastX=m.x; lastY=m.y; draw();
+  }
+});
+function endPointer(){ if(mode==="orbit") EduTelemetry.log("orbit"); mode=null; cv.classList.remove("grabbing"); }
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+cv.addEventListener("wheel",e=>{
+  e.preventDefault();
+  zoomK = Math.min(2.2, Math.max(0.55, zoomK * (e.deltaY<0?1.08:0.926)));
+  draw();
+},{passive:false});
+
+document.getElementById("inRe").addEventListener("input",e=>{ const v=parseFloat(e.target.value); setZ(isNaN(v)?0:v, z.y, "input", false); });
+document.getElementById("inIm").addEventListener("input",e=>{ const v=parseFloat(e.target.value); setZ(z.x, isNaN(v)?0:v, "input", false); });
+// 失焦时把规范化后的数值回填输入框（例如 "0.50"→"0.5"、清空→"0"）
+document.getElementById("inRe").addEventListener("blur",()=>{ document.getElementById("inRe").value=Math.round(z.x*100)/100; });
+document.getElementById("inIm").addEventListener("blur",()=>{ document.getElementById("inIm").value=Math.round(z.y*100)/100; });
+
+document.getElementById("bZero").onclick=()=>{ setZ(0,0,"preset_zero"); };
+document.getElementById("bUnit").onclick=()=>{
+  let r=Math.hypot(z.x,z.y); if(r<1e-6){ setZ(1,0,"preset_unit"); return; }
+  setZ(z.x/r, z.y/r, "preset_unit");
+};
+document.getElementById("bView").onclick=()=>{ az=-0.62; el=0.44; zoomK=1; EduTelemetry.log("reset_view"); draw(); };
+
+document.getElementById("bInf").onclick=()=>{
+  if(anim||projAnim) return;
+  let r0=Math.hypot(z.x,z.y); let dx,dy;
+  if(r0<1e-6){ dx=1; dy=0; r0=0; } else { dx=z.x/(r0||1); dy=z.y/(r0||1); }
+  anim={ dx, dy, r0, rMax:45, start:performance.now(), dur:2600 };
+  EduTelemetry.log("anim_inf");
+  requestAnimationFrame(stepInf);
+};
+function easeIn(t){ return t*t*t; }
+function easeIO(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+function stepInf(now){
+  const raw=Math.min(1,(now-anim.start)/anim.dur);
+  const r=anim.r0 + (anim.rMax-anim.r0)*easeIn(raw);
+  z.x=anim.dx*r; z.y=anim.dy*r;
+  document.getElementById("inRe").value=Math.round(z.x*100)/100;
+  document.getElementById("inIm").value=Math.round(z.y*100)/100;
+  draw();
+  if(raw<1) requestAnimationFrame(stepInf); else anim=null;
+}
+
+// ▶ 投影演示：从北极 N 沿射线滑向 z，动态找出与球面的交点 P
+document.getElementById("bProj").onclick=()=>{
+  if(anim||projAnim) return;
+  const r2=z.x*z.x+z.y*z.y;
+  projAnim={ start:performance.now(), dur:2200, pt:0, tP:2/(1+r2), pop:1 };
+  EduTelemetry.log("anim_proj");
+  requestAnimationFrame(stepProj);
+};
+function stepProj(now){
+  const raw=Math.min(1,(now-projAnim.start)/projAnim.dur);
+  projAnim.pt=easeIO(raw);
+  // 越过交点后给 P 一个“落点回弹”的放大再收缩效果
+  if(projAnim.pt>=projAnim.tP){
+    const since=(projAnim.pt-projAnim.tP)/Math.max(1e-3,1-projAnim.tP);   // 0→1
+    projAnim.pop=1+0.9*Math.max(0,1-since*3);
+  }else projAnim.pop=1;
+  draw();
+  if(raw<1) requestAnimationFrame(stepProj);
+  else { projAnim=null; draw(); }   // 结束后回到静态完整展示
+}
+
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+// 显示开关
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); draw(); }); }
+bindToggle("tWire","wire"); bindToggle("tGrid","grid"); bindToggle("tRay","ray"); bindToggle("tAxis","axis");
+document.getElementById("tSnap").addEventListener("change",e=>{ snap=e.target.checked; EduTelemetry.log("toggle","snap="+snap); });
+
+// 使用说明弹窗
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+function openHelp(){ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("helpBtn").onclick=openHelp;
+document.getElementById("modalX").onclick=closeHelp;
+mask.onclick=closeHelp;
+(function(){
+  const z1=mml("<mi>z</mi>"), P=mml("<mi>P</mi>");
+  const formula=mml(
+    `<mi>P</mi><mo>=</mo><mo>(</mo>`+
+    `<mfrac><mrow><mn>2</mn><mi>x</mi></mrow><mrow><mn>1</mn><mo>+</mo><msup><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mn>2</mn></msup></mrow></mfrac><mo>,</mo>`+
+    `<mfrac><mrow><mn>2</mn><mi>y</mi></mrow><mrow><mn>1</mn><mo>+</mo><msup><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mn>2</mn></msup></mrow></mfrac><mo>,</mo>`+
+    `<mfrac><mrow><msup><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mn>2</mn></msup><mo>&#x2212;</mo><mn>1</mn></mrow><mrow><mn>1</mn><mo>+</mo><msup><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mn>2</mn></msup></mrow></mfrac>`+
+    `<mo>)</mo>`);
+  document.getElementById("helpBody").innerHTML =
+    `<h2>球极投影与复球面</h2>`+
+    `<p>把单位球面放在复平面上（球心在原点，赤道正好落在复平面的<b>单位圆</b> ${mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>=</mo><mn>1</mn></mrow>")} 上）。从<b>北极 N</b> 向复平面上的点 ${z1} 连一条直线，这条线与球面的交点就是 ${z1} 的<b>球面像</b> ${P}。</p>`+
+    `<h3>① 对应关系</h3>`+
+    `<ul>`+
+    `<li>${z1} = 0 &nbsp;↔&nbsp; <b>南极 S</b>；</li>`+
+    `<li>${mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>=</mo><mn>1</mn></mrow>")} &nbsp;↔&nbsp; <b>赤道</b>；</li>`+
+    `<li>${mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>&lt;</mo><mn>1</mn></mrow>")} 在<b>南半球</b>，${mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>&gt;</mo><mn>1</mn></mrow>")} 在<b>北半球</b>；</li>`+
+    `<li>${z1} 越来越远（${mml("<mrow><mi>z</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow>")}）时，像越来越靠近<b>北极 N</b>——于是我们把 N 看成唯一的<b>无穷远点 ∞</b>。加上这一点后的复平面就是<b>扩充复平面（复球面）</b>。</li>`+
+    `</ul>`+
+    `<h3>② 投影公式</h3>`+
+    `<p style="text-align:center;">${formula}</p>`+
+    `<p>其中 ${mml("<mrow><mi>z</mi><mo>=</mo><mi>x</mi><mo>+</mo><mi>i</mi><mi>y</mi></mrow>")}，${mml(`<mrow><mo>(</mo><mi>${GRK.xi}</mi><mo>,</mo><mi>${GRK.eta}</mi><mo>,</mo><mi>${GRK.zeta}</mi><mo>)</mo></mrow>`)} 是球面上像点 ${P} 的坐标。</p>`+
+    `<h3>③ 怎么操作</h3>`+
+    `<ul>`+
+    `<li><b>拖动金色点</b> ${z1} 在复平面上移动，实时看它的球面像 ${P} 怎么跑；</li>`+
+    `<li><b>拖动画布空白处</b>旋转视角，滚轮缩放；<b>复位视角</b>回到默认角度；</li>`+
+    `<li>点 <b>▶ 投影演示</b>：从<b>北极 N</b> 向 ${z1} 拉一条直线，直线穿过球面的那一点就是球面像 ${P}——动画会沿射线滑动、在交点处“落”下 ${P}；</li>`+
+    `<li>点 <b>▶ 演示 z → ∞</b>：让 ${z1} 沿当前方向飞向远处，观察 ${P} 爬向北极；</li>`+
+    `<li>右侧可开关经纬线 / 网格 / 投影线 / 坐标轴；<b>导出使用数据</b>把匿名操作记录存为 CSV。</li>`+
+    `</ul>`;
+})();
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+"px"; cv.style.height=H+"px";
+  cx=W/2; cy=H*0.52; baseScale=Math.min(W,H)/6.2;
+  draw();
+}
+window.addEventListener("resize",resize);
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV，发往自建计数服务；离线/连不上时静默跳过，绝不影响工具使用）──
+(function(){
+  var CNT_ENDPOINT = "https://REPLACE-ME.workers.dev"; // ← 部署 Cloudflare Worker 后，把这里换成你的网址
+  var TOOL = "T2_球极投影";                              // ← 本工具的统计名（每个工具改这一行）
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"/hit?tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+setZ(z.x, z.y, null);
+resize();
+</script>
+</body>
+</html>

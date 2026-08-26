@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>复平面运算器 · T1 · 复变函数与积分变换</title>
+<style>
+  /* ===== 共用脚手架样式（可复制到 T2/T3…）===== */
+  :root{
+    --z1:#2563eb;   /* 蓝：第一个复数 */
+    --z2:#d97706;   /* 金：第二个复数 */
+    --res:#059669;  /* 绿：运算结果 */
+    --mir:#7c3aed;  /* 紫：共轭/镜像等辅助 */
+    --grid:#e6eaf0; --axis:#94a3b8; --circle:#cbd5e1;
+    --ink:#1e293b; --sub:#64748b; --bg:#f5f7fa; --panel:#ffffff; --line:#e2e8f0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+       color:var(--ink);background:var(--bg);}
+  header.appbar{background:linear-gradient(90deg,#1e3a8a,#2563eb);color:#fff;
+       padding:10px 18px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  header.appbar h1{font-size:18px;margin:0;font-weight:600;}
+  header.appbar .sub{font-size:12.5px;opacity:.85;}
+  header.appbar .tag{margin-left:auto;font-size:12px;background:rgba(255,255,255,.18);
+       padding:3px 10px;border-radius:999px;}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap;}
+  .stage{flex:1 1 520px;min-width:340px;background:var(--panel);border:1px solid var(--line);
+       border-radius:12px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .side{flex:0 0 320px;display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;
+       box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--sub);font-weight:600;letter-spacing:.3px;}
+  canvas{width:100%;display:block;border-radius:8px;background:#fff;cursor:crosshair;touch-action:none;}
+  .cv-wrap{position:relative;}
+  #cvOverlay{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  #cvOverlay .lbl{position:absolute;white-space:nowrap;line-height:1;
+       font-family:"Cambria Math","STIX Two Math",serif;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;}
+  #cvOverlay .lbl math{font-size:1em;}
+  .ops{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+  .ops button{flex:1 1 auto;min-width:52px;padding:9px 6px;border:1px solid var(--line);
+       background:#fff;border-radius:8px;font-size:15px;cursor:pointer;color:var(--ink);
+       transition:.15s;}
+  .ops button:hover{border-color:var(--z1);}
+  .ops button.active{background:var(--z1);color:#fff;border-color:var(--z1);}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;font-size:13px;color:var(--sub);}
+  .toolbar .zoom{margin-left:auto;display:flex;gap:6px;}
+  .toolbar button.mini{border:1px solid var(--line);background:#fff;border-radius:6px;
+       width:30px;height:28px;cursor:pointer;font-size:15px;line-height:1;}
+  .row{display:flex;align-items:center;gap:8px;margin:7px 0;}
+  .row .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+  .row label{width:26px;font-weight:600;}
+  .row input[type=number]{width:74px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;font-size:13px;}
+  .row .unit{color:var(--sub);}
+  .readout{font-size:13px;line-height:1.7;background:#f8fafc;border:1px solid var(--line);
+       border-radius:8px;padding:8px 10px;margin-top:6px;font-variant-numeric:tabular-nums;}
+  .readout b{font-weight:600;}
+  .toggles{display:flex;flex-direction:column;gap:8px;font-size:13px;}
+  .toggles label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .actions{display:flex;gap:8px;margin-top:4px;}
+  .actions button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);
+       background:#fff;cursor:pointer;font-size:13px;}
+  .actions button.primary{background:var(--res);color:#fff;border-color:var(--res);}
+  .hint{font-size:12.5px;color:var(--sub);line-height:1.6;}
+  .val-res{color:var(--res);font-weight:600;}
+  code.eq{background:#eef2ff;color:#3730a3;padding:1px 6px;border-radius:5px;font-size:12.5px;}
+  .math{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-style:normal;
+        font-size:14.5px;white-space:nowrap;}
+  .math i{font-style:italic;}
+  .math sub{font-size:.72em;vertical-align:-.25em;}
+  .math .ovl{text-decoration:overline;}
+  .readout .math{font-size:14px;}
+  math{font-size:1.15em;}
+  .readout math{font-size:1.06em;}
+  #lawHint math{margin:1px 0;}
+  .btn-play{padding:8px 18px;border:none;border-radius:8px;background:var(--res);color:#fff;
+       font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-play:disabled{opacity:.55;cursor:default;}
+  .btn-help{background:rgba(255,255,255,.18);border:none;color:#fff;padding:4px 12px;
+       border-radius:999px;font-size:12.5px;cursor:pointer;}
+  .btn-help:hover{background:rgba(255,255,255,.3);}
+  #playHint{font-size:12.5px;color:var(--sub);}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;
+       justify-content:center;z-index:50;padding:20px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:85vh;overflow:auto;
+       padding:22px 26px;box-shadow:0 12px 44px rgba(0,0,0,.25);}
+  .modal h2{margin:0 0 4px;font-size:19px;color:var(--ink);}
+  .modal h3{margin:18px 0 6px;font-size:15px;color:var(--z1);border-left:3px solid var(--z1);padding-left:8px;}
+  .modal p,.modal li{font-size:13.5px;line-height:1.75;color:#334155;}
+  .modal ul{margin:6px 0;padding-left:20px;}
+  .modal .close{float:right;border:none;background:#f1f5f9;border-radius:8px;width:30px;height:30px;
+       cursor:pointer;font-size:18px;color:var(--sub);line-height:1;}
+  .modal .kbd{background:#eef2ff;color:#3730a3;padding:1px 7px;border-radius:5px;font-size:12.5px;}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <h1>复平面运算器</h1>
+  <span class="sub">复数的运算与几何意义 · 加 / 减 / 乘 / 除 / 共轭</span>
+  <span class="tag">T1 · 复变函数与积分变换 · 第1周</span>
+  <button class="btn-help" id="btnHelp">？使用说明</button>
+</header>
+
+<div class="wrap">
+  <!-- 画布 -->
+  <div class="stage">
+    <div class="ops" id="ops">
+      <button data-op="add" class="active">z₁ + z₂</button>
+      <button data-op="sub">z₁ − z₂</button>
+      <button data-op="mul">z₁ · z₂</button>
+      <button data-op="div">z₁ ÷ z₂</button>
+      <button data-op="conj">共轭 z̄₁</button>
+    </div>
+    <div class="cv-wrap"><canvas id="cv"></canvas><div id="cvOverlay"></div></div>
+    <div class="toolbar">
+      <button class="btn-play" id="btnPlay">▶ 运算</button>
+      <span id="playHint">显示初始向量 · 点击「运算」查看过程</span>
+      <span class="zoom">
+        <button class="mini" id="zin" title="放大">＋</button>
+        <button class="mini" id="zout" title="缩小">－</button>
+      </span>
+    </div>
+  </div>
+
+  <!-- 侧栏 -->
+  <div class="side">
+    <div class="card">
+      <h2>输入复数</h2>
+      <div class="row">
+        <span class="dot" style="background:var(--z1)"></span>
+        <label style="color:var(--z1)" id="lblZ1">z₁</label>
+        <input type="number" id="z1r" step="0.1" value="2">
+        <span class="unit">+</span>
+        <input type="number" id="z1i" step="0.1" value="1">
+        <span class="unit">i</span>
+      </div>
+      <div class="readout" id="ro1"></div>
+      <div id="z2block">
+        <div class="row" style="margin-top:12px">
+          <span class="dot" style="background:var(--z2)"></span>
+          <label style="color:var(--z2)" id="lblZ2">z₂</label>
+          <input type="number" id="z2r" step="0.1" value="-1">
+          <span class="unit">+</span>
+          <input type="number" id="z2i" step="0.1" value="1.5">
+          <span class="unit">i</span>
+        </div>
+        <div class="readout" id="ro2"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 id="resTitle">运算结果</h2>
+      <div class="readout" id="roRes"></div>
+      <div class="hint" id="lawHint" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>显示选项</h2>
+      <div class="toggles">
+        <label><input type="checkbox" id="tGrid" checked> 网格</label>
+        <label><input type="checkbox" id="tCircle" checked> 单位圆</label>
+        <label><input type="checkbox" id="tConstruct" checked> 几何构造（平行四边形 / 相似三角形 / 角弧）</label>
+        <label><input type="checkbox" id="tSnap"> 吸附到 0.25 网格</label>
+      </div>
+      <div class="actions">
+        <button id="btnReset">重置</button>
+        <button id="btnExport" class="primary">导出使用数据</button>
+      </div>
+      <div class="hint" style="margin-top:8px">使用数据仅本机匿名记录（操作类型/次数），供教改成效分析，导出为 CSV。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 使用说明弹窗 -->
+<div class="modal-bg" id="helpModal">
+  <div class="modal">
+    <button class="close" id="helpClose">×</button>
+    <h2>使用说明</h2>
+    <div id="helpBody"></div>
+  </div>
+</div>
+
+<script>
+/* =======================================================================
+   共用脚手架：匿名使用埋点（可整段复制到 T2/T3… 的工具里）
+   记录 {t, tool, event, detail}，存 localStorage，可导出 CSV。
+   ======================================================================= */
+const EduTelemetry = (function(){
+  const TOOL = "T1_复平面运算器";
+  const KEY = "edutool_log_" + TOOL;
+  let buf = [];
+  try { buf = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e){ buf = []; }
+  let lastThrottle = {};
+  function log(event, detail, throttleMs){
+    const now = Date.now();
+    if(throttleMs){
+      if(lastThrottle[event] && now - lastThrottle[event] < throttleMs) return;
+      lastThrottle[event] = now;
+    }
+    buf.push({ t: new Date().toISOString(), tool: TOOL, event: event, detail: detail==null?"":String(detail) });
+    if(buf.length > 5000) buf.splice(0, buf.length - 5000);
+    try { localStorage.setItem(KEY, JSON.stringify(buf)); } catch(e){}
+  }
+  function exportCSV(){
+    const rows = [["time","tool","event","detail"]];
+    buf.forEach(r => rows.push([r.t, r.tool, r.event, '"'+r.detail.replace(/"/g,'""')+'"']));
+    const csv = "﻿" + rows.map(r => r.join(",")).join("\r\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = TOOL + "_使用数据_" + new Date().toISOString().slice(0,10) + ".csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  return { log, exportCSV, count: ()=>buf.length };
+})();
+
+/* =======================================================================
+   T1 复平面运算器
+   ======================================================================= */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const overlay = document.getElementById("cvOverlay");
+
+// 画布上的公式标签用 HTML+MathML 叠加层渲染（canvas 位图无法显示真正的公式排版）
+function clearLabels(){ overlay.innerHTML = ""; }
+function addLabel(html, x, y, color, opts){
+  opts = opts || {};
+  const d = document.createElement("div");
+  d.className = "lbl";
+  d.style.left = x + "px"; d.style.top = y + "px";
+  d.style.color = color;
+  d.style.fontSize = (opts.size || 16) + "px";
+  if(opts.weight) d.style.fontWeight = opts.weight;
+  if(opts.alpha!=null) d.style.opacity = opts.alpha;
+  // anchor: 'lb'=左下角对齐(x,y)（默认，配 textAlign left/baseline bottom）；'c'=居中对齐
+  d.style.transform = (opts.anchor==="c") ? "translate(-50%,-50%)" : "translateY(-100%)";
+  d.innerHTML = html;
+  overlay.appendChild(d);
+}
+
+// 状态
+let state = {
+  z1: {re: 2, im: 1},
+  z2: {re: -1, im: 1.5},
+  op: "add",
+  scale: 60,          // 每单位像素
+  grid: true, circle: true, construct: true, snap: false,
+  drag: null          // 'z1' | 'z2' | null
+};
+
+// 动画 / 阶段状态：idle(仅初始向量) → anim(过程) → done(结果，初始半透明)
+let anim = {phase:"idle", t:0, raf:0, start:0};
+// 动画时长（放慢）：乘/除分两段(旋转/伸缩)所以更长，加/减/共轭较短
+function animDur(op){ return (op==="mul"||op==="div") ? 2600 : 1800; }
+function easeIO(x){ return x<0.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2; }
+function setPhase(p){
+  if(anim.raf){ cancelAnimationFrame(anim.raf); anim.raf=0; }
+  anim.phase=p; anim.t = (p==="done")?1:0;
+  updatePlayBtn(); draw();
+}
+function play(){
+  if(anim.phase==="anim") return;
+  anim.phase="anim"; anim.start=performance.now(); anim.dur=animDur(state.op); updatePlayBtn();
+  const stepf=(now)=>{
+    const raw=Math.min(1,(now-anim.start)/anim.dur);
+    anim.t=raw; draw();   // 线性时间，缓动在各绘制阶段内单独施加（乘/除两段各自缓入缓出）
+    if(raw<1){ anim.raf=requestAnimationFrame(stepf); }
+    else { anim.raf=0; anim.phase="done"; anim.t=1; updatePlayBtn(); draw(); EduTelemetry.log("compute", state.op); }
+  };
+  anim.raf=requestAnimationFrame(stepf);
+}
+function updatePlayBtn(){
+  const b=document.getElementById("btnPlay"), h=document.getElementById("playHint");
+  if(!b) return;
+  if(anim.phase==="idle"){ b.textContent="▶ 运算"; b.disabled=false; h.textContent="显示初始向量 · 点击「运算」查看过程"; }
+  else if(anim.phase==="anim"){ b.textContent="运算中…"; b.disabled=true; h.textContent="正在演示运算过程…"; }
+  else { b.textContent="↻ 重放"; b.disabled=false; h.textContent="已显示结果（初始向量半透明）"; }
+}
+
+// ---- 复数运算 ----
+const C = {
+  add:(a,b)=>({re:a.re+b.re, im:a.im+b.im}),
+  sub:(a,b)=>({re:a.re-b.re, im:a.im-b.im}),
+  mul:(a,b)=>({re:a.re*b.re-a.im*b.im, im:a.re*b.im+a.im*b.re}),
+  div:(a,b)=>{const d=b.re*b.re+b.im*b.im; return {re:(a.re*b.re+a.im*b.im)/d, im:(a.im*b.re-a.re*b.im)/d};},
+  conj:(a)=>({re:a.re, im:-a.im}),
+  abs:(a)=>Math.hypot(a.re,a.im),
+  arg:(a)=>Math.atan2(a.im,a.re)   // (-π, π]
+};
+
+// ---- 几何：世界坐标 <-> 屏幕坐标 ----
+let W=0, H=0, cx=0, cy=0, DPR=1;
+function resize(){
+  DPR = window.devicePixelRatio || 1;
+  const rect = cv.getBoundingClientRect();
+  W = rect.width; H = Math.max(360, Math.min(560, rect.width)); // 近正方形
+  cv.style.height = H + "px";
+  cv.width = W*DPR; cv.height = H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cx = W/2; cy = H/2;
+  draw();
+}
+const toScreen = p => ({x: cx + p.re*state.scale, y: cy - p.im*state.scale});
+const toWorld  = (x,y) => ({re:(x-cx)/state.scale, im:(cy-y)/state.scale});
+
+// ---- 数字格式 ----
+function fmt(x){ let v = Math.round(x*100)/100; if(Object.is(v,-0)) v=0; return v.toString(); }
+function fmtC(z){
+  const r=Math.round(z.re*100)/100, i=Math.round(z.im*100)/100;
+  const rr = Object.is(r,-0)?0:r, ii = Object.is(i,-0)?0:i;
+  if(ii===0) return `${rr}`;
+  if(rr===0) return `${ii===1?"":ii===-1?"−":ii} i`.replace("-","−");
+  const sign = ii<0 ? "−" : "+";
+  const ai = Math.abs(ii);
+  return `${rr} ${sign} ${ai===1?"":ai} i`;
+}
+const deg = r => Math.round(r*180/Math.PI*10)/10;
+
+// 公式格式化（MathML，浏览器原生渲染真正的数学排版：分式横线/下标/竖线/共轭上划线/直立 arg；离线、无需外部库）
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function mn(v){ return v<0 ? `<mo>&#x2212;</mo><mn>${Math.abs(v)}</mn>` : `<mn>${v}</mn>`; }
+function degM(v){ return `${mn(v)}<mo>&#xB0;</mo>`; }
+const X = {
+  z:(n)=>`<msub><mi>z</mi><mn>${n}</mn></msub>`,
+  w:`<mi>w</mi>`,
+  i:`<mi>i</mi>`,
+  n:(v)=>`<mn>${v}</mn>`,
+  op:(s)=>`<mo>${s}</mo>`,
+  abs:(x)=>`<mrow><mo>|</mo>${x}<mo>|</mo></mrow>`,
+  arg:(x)=>`<mrow><mi>arg</mi><mspace width="0.17em"/>${x}</mrow>`,
+  conj:(n)=>`<mover accent="true"><msub><mi>z</mi><mn>${n}</mn></msub><mo stretchy="true">&#x203E;</mo></mover>`,
+  theta:(n)=>`<msub><mi>&#x3B8;</mi><mn>${n}</mn></msub>`,
+  frac:(a,b)=>`<mfrac>${a}${b}</mfrac>`,
+  row:(...xs)=>`<mrow>${xs.join("")}</mrow>`
+};
+// 画布/按钮/标题等处复用的公式标签（MathML）
+const LBL = {
+  z1: mml(X.z(1)),
+  z2: mml(X.z(2)),
+  w:  mml(X.w),
+  negz2: mml(X.row(X.op("&#x2212;"),X.z(2))),
+  conj1: mml(X.conj(1)),
+  result: (op)=> op==="add" ? mml(X.row(X.z(1),X.op("+"),X.z(2)))
+               : op==="sub" ? mml(X.row(X.z(1),X.op("&#x2212;"),X.z(2)))
+               : op==="mul" ? mml(X.row(X.z(1),X.op("&#x22C5;"),X.z(2)))
+               : op==="div" ? mml(X.row(X.z(1),X.op("&#x00F7;"),X.z(2)))
+               : mml(X.conj(1))
+};
+function mmlComplex(z){
+  let r=Math.round(z.re*100)/100, i=Math.round(z.im*100)/100;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(i===0) return mn(r);
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${ai}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}${X.i}`;
+  return `${mn(r)}<mo>${i<0?"&#x2212;":"+"}</mo>${coef}${X.i}`;
+}
+
+// =======================================================================
+// 绘制
+// =======================================================================
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  clearLabels();
+  if(state.grid) drawGrid();
+  drawAxes();
+  if(state.circle) drawUnitCircle();
+
+  const {z1,z2,op}=state;
+  const C1=getVar("--z1"), C2=getVar("--z2"), CR=getVar("--res"), CM=getVar("--mir");
+  const res = computeRes(op,z1,z2);
+  const ph=anim.phase, t=anim.t;
+  let shown=null;
+
+  if(ph==="idle"){                       // 第1步：只看初始两个向量
+    if(op!=="conj") drawVector(z2,C2,LBL.z2,true);
+    drawVector(z1,C1,LBL.z1,true);
+  } else if(ph==="anim"){                 // 第2步：动态运算过程
+    shown = drawProcess(op,z1,z2,t);
+  } else {                                // 第3步：结果突出，初始向量半透明
+    drawWithAlpha(0.3, ()=>{
+      if(op!=="conj") drawVector(z2,C2,LBL.z2,true);
+      drawVector(z1,C1,LBL.z1,true);
+    });
+    if(state.construct) drawConstruction(op,z1,z2,res);
+    drawVector(res, op==="conj"?CM:CR, LBL.result(op), true);
+    shown = res;
+  }
+  updatePanels(shown, res, ph);
+}
+function computeRes(op,z1,z2){
+  if(op==="add") return C.add(z1,z2);
+  if(op==="sub") return C.sub(z1,z2);
+  if(op==="mul") return C.mul(z1,z2);
+  if(op==="div") return C.div(z1,z2);
+  return C.conj(z1);
+}
+function getVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+function drawGrid(){
+  ctx.lineWidth=1; ctx.strokeStyle=getVar("--grid");
+  const stepPx=state.scale;
+  ctx.beginPath();
+  for(let x=cx%stepPx; x<W; x+=stepPx){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+  for(let y=cy%stepPx; y<H; y+=stepPx){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+  ctx.stroke();
+}
+function drawAxes(){
+  ctx.lineWidth=1.5; ctx.strokeStyle=getVar("--axis");
+  ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(W,cy); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
+  // 箭头
+  arrowHead(W-2,cy, 0); arrowHead(cx,2, -Math.PI/2);
+  // 刻度标注
+  ctx.fillStyle=getVar("--sub"); ctx.font="11px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="top";
+  const n=Math.ceil((W/2)/state.scale);
+  for(let k=-n;k<=n;k++){ if(k===0) continue; const sx=cx+k*state.scale; if(sx>10&&sx<W-10) ctx.fillText(k,sx,cy+4); }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  const m=Math.ceil((H/2)/state.scale);
+  for(let k=-m;k<=m;k++){ if(k===0) continue; const sy=cy-k*state.scale; if(sy>10&&sy<H-10) ctx.fillText(k,cx-6,sy); }
+  ctx.fillStyle=getVar("--ink"); ctx.font="12px sans-serif";
+  ctx.textAlign="right"; ctx.textBaseline="top"; ctx.fillText("Re",W-6,cy+6);
+  ctx.textAlign="left"; ctx.fillText("Im",cx+6,4);
+}
+function arrowHead(x,y,ang){
+  const s=7; ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.fillStyle=getVar("--axis");
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s,-s/2); ctx.lineTo(-s,s/2); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function drawUnitCircle(){
+  ctx.lineWidth=1.2; ctx.strokeStyle=getVar("--circle"); ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.arc(cx,cy,state.scale,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawVector(z,color,label,solid){
+  const s=toScreen(z);
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.4; ctx.setLineDash(solid?[]:[6,5]);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(s.x,s.y); ctx.stroke(); ctx.setLineDash([]);
+  // 向量箭头
+  const ang=Math.atan2(s.y-cy,s.x-cx); arrowAt(s.x,s.y,ang,color);
+  drawPoint(z,color,false);
+  if(label){ addLabel(label, s.x+8, s.y-6, color, {anchor:"lb", size:17, alpha:ctx.globalAlpha}); }
+}
+function arrowAt(x,y,ang,color){
+  const s=9; ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s,-s/2.4); ctx.lineTo(-s,s/2.4); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function drawPoint(z,color,big){
+  const s=toScreen(z); ctx.fillStyle=color; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(s.x,s.y, big?7:5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+}
+
+// 角弧（世界原点处，从 a0 到 a1，逆时针世界角）
+function drawArc(a0,a1,radPx,color,label){
+  ctx.strokeStyle=color; ctx.lineWidth=1.6; ctx.beginPath();
+  const N=40; for(let i=0;i<=N;i++){ const a=a0+(a1-a0)*i/N; const x=cx+Math.cos(a)*radPx, y=cy-Math.sin(a)*radPx;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+  ctx.stroke();
+  if(label){ const am=(a0+a1)/2, lr=radPx+15; addLabel(label, cx+Math.cos(am)*lr, cy-Math.sin(am)*lr, color, {anchor:"c", size:15, alpha:ctx.globalAlpha}); }
+}
+
+function dashSeg(p,q,color){
+  const a=toScreen(p), b=toScreen(q);
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
+}
+// 以原点为心的参照虚线圆（用于凸显模长）
+function dashCircle(rWorld,color){
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.globalAlpha=.65; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.arc(cx,cy,rWorld*state.scale,0,Math.PI*2); ctx.stroke(); ctx.restore();
+}
+// 角弧半径按向量长度自适应，最长不超过向量的 55%
+function arcRadiusFor(rWorld,base){ const len=rWorld*state.scale; return Math.max(15,Math.min(base,len*0.55)); }
+function drawTipLabel(vec,text,color){
+  const s=toScreen(vec); addLabel(text, s.x+10, s.y-9, color, {anchor:"lb", size:13, weight:"600", alpha:ctx.globalAlpha});
+}
+
+function drawWithAlpha(a, fn){ ctx.save(); ctx.globalAlpha=a; fn(); ctx.restore(); }
+
+// ---- 结果阶段(done)的静态几何构造 ----
+function drawConstruction(op,z1,z2,res){
+  const C1=getVar("--z1"),C2=getVar("--z2"),CR=getVar("--res");
+  if(op==="add"){
+    dashSeg(z1,res,C2); dashSeg(z2,res,C1);
+  } else if(op==="sub"){
+    const nz2={re:-z2.re,im:-z2.im};
+    drawVector(nz2,C2,LBL.negz2,false);
+    dashSeg(z1,res,C2); dashSeg(nz2,res,C1);
+  } else if(op==="mul"||op==="div"){
+    const isMul=op==="mul";
+    drawArc(0,C.arg(z1),arcRadiusFor(C.abs(z1),30),C1,mml(X.theta(1)));
+    drawArc(0,C.arg(z2),arcRadiusFor(C.abs(z2),46),C2,mml(X.theta(2)));
+    drawArc(0,C.arg(res),arcRadiusFor(C.abs(res),40),CR,isMul?mml(X.row(X.theta(1),X.op("+"),X.theta(2))):mml(X.row(X.theta(1),X.op("&#x2212;"),X.theta(2))));
+    // 相似三角形：乘法 △(0,1,z₂)~△(0,z₁,w)；除法 △(0,z₂,z₁)~△(0,1,w)
+    ctx.setLineDash([3,4]); ctx.lineWidth=1.3;
+    if(isMul){ triangle({re:0,im:0},{re:1,im:0},z2,C2); triangle({re:0,im:0},z1,res,CR); }
+    else{ triangle({re:0,im:0},z2,z1,C2); triangle({re:0,im:0},{re:1,im:0},res,CR); }
+    ctx.setLineDash([]);
+  } else if(op==="conj"){
+    dashSeg(z1,res,getVar("--mir"));
+  }
+}
+function triangle(a,b,c,color){
+  const A=toScreen(a),B=toScreen(b),Cc=toScreen(c);
+  ctx.strokeStyle=color; ctx.beginPath();
+  ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.lineTo(Cc.x,Cc.y); ctx.closePath(); ctx.stroke();
+}
+
+// ---- 运算过程(anim)动画：t∈[0,1]，返回当前动态向量 ----
+function drawProcess(op,z1,z2,t){
+  const C1=getVar("--z1"),C2=getVar("--z2"),CR=getVar("--res"),CM=getVar("--mir");
+  if(op==="add"||op==="sub"){
+    const v2 = op==="add" ? z2 : {re:-z2.re,im:-z2.im};
+    drawVector(z1,C1,LBL.z1,true);
+    if(op==="add"){ drawVector(z2,C2,LBL.z2,true); }
+    else { drawWithAlpha(0.45,()=>drawVector(z2,C2,LBL.z2,true)); drawVector(v2,C2,LBL.negz2,false); }
+    const e=easeIO(t);
+    const tip={re:z1.re+e*v2.re, im:z1.im+e*v2.im};
+    dashSeg(z1,tip,C2);              // 把 z₂(−z₂) 接到 z₁ 末端
+    drawVector(tip,CR,"",true);      // 逐渐生长的结果向量
+    return tip;
+  }
+  if(op==="mul"||op==="div"){
+    const r1=C.abs(z1), a1=C.arg(z1), r2=C.abs(z2), a2=C.arg(z2);
+    const targetArg = a1 + (op==="mul"? a2 : -a2);
+    const targetR   = op==="mul"? r1*r2 : r1/r2;
+    drawVector(z2,C2,LBL.z2,true);
+    drawWithAlpha(0.5,()=>drawVector(z1,C1,LBL.z1,true));
+    // 两段：先只旋转(t<0.5)，再只伸缩(t≥0.5)，各自单独强调
+    let curArg,curR,stage;
+    if(t<0.5){ const p=easeIO(t/0.5); curArg=a1+(targetArg-a1)*p; curR=r1; stage="rot"; }
+    else { const p=easeIO((t-0.5)/0.5); curArg=targetArg; curR=r1+(targetR-r1)*p; stage="scale"; }
+    const cur={re:curR*Math.cos(curArg), im:curR*Math.sin(curArg)};
+    drawArc(a1,curArg,arcRadiusFor(r1,42),CR,"");          // 辐角旋转（半径按 |z₁|）
+    if(stage==="scale"){                                    // 伸缩阶段：参照圆凸显长度变化
+      dashCircle(r1,C1);                                    // 起始长度 |z₁|
+      dashCircle(curR,CR);                                  // 当前长度
+      drawTipLabel(cur, `${op==="mul"?"&#xD7;":"&#xF7;"} ${mml(X.abs(X.z(2)))}`, CR);
+    } else {
+      drawTipLabel(cur, `旋转 ${op==="mul"?"+":"&#x2212;"}${mml(X.theta(2))}`, CR);
+    }
+    drawVector(cur,CR,"",true);
+    return cur;
+  }
+  // 共轭：沿实轴翻折
+  const e=easeIO(t);
+  const cur={re:z1.re, im:z1.im*(1-2*e)};
+  drawWithAlpha(0.45,()=>drawVector(z1,C1,"z₁",true));
+  dashSeg(z1,cur,CM);
+  drawVector(cur,CM,"",false);
+  return cur;
+}
+
+// =======================================================================
+// 侧栏数据
+// =======================================================================
+function updatePanels(shown,res,ph){
+  const {z1,z2,op}=state;
+  document.getElementById("ro1").innerHTML = roText(z1,1);
+  document.getElementById("ro2").innerHTML = roText(z2,2);
+  document.getElementById("z2block").style.display = (op==="conj")?"none":"block";
+
+  document.getElementById("resTitle").innerHTML = "运算结果： " + (op==="conj" ? ("共轭 "+mml(X.conj(1))) : LBL.result(op));
+
+  const roRes=document.getElementById("roRes"), h=document.getElementById("lawHint");
+  if(ph==="idle"){
+    roRes.innerHTML=`<span style="color:var(--sub)">点击「▶ 运算」查看运算过程与结果</span>`;
+    h.innerHTML=""; return;
+  }
+  const v = shown || res;
+  const tag = ph==="anim" ? ` <span style="color:var(--sub)">（运算中…）</span>` : "";
+  roRes.innerHTML =
+    `${mml(X.w)} = <span class="val-res">${mml(mmlComplex(v))}</span>${tag}<br>` +
+    `模 ${mml(X.abs(X.w))} = <b>${fmt(C.abs(v))}</b>，辐角 ${mml(X.arg(X.w))} = <b>${String(deg(C.arg(v))).replace("-","−")}°</b>（${String(fmt(C.arg(v))).replace("-","−")} rad）`;
+  if(ph!=="done"){ h.innerHTML=""; return; }
+
+  // 运算律提示（仅结果阶段）
+  const r1=fmt(C.abs(z1)), r2=fmt(C.abs(z2)), t1=deg(C.arg(z1)), t2=deg(C.arg(z2)), R=fmt(C.abs(res)), T=deg(C.arg(res));
+  if(op==="mul") h.innerHTML=`<b>几何律：</b>模相乘、辐角相加。<br>`+
+    mml(X.row(X.abs(X.w),X.op("="),X.abs(X.z(1)),X.op("&#x22C5;"),X.abs(X.z(2)),X.op("="),X.n(r1),X.op("&#xD7;"),X.n(r2),X.op("="),X.n(R)))+`<br>`+
+    mml(X.row(X.arg(X.w),X.op("="),X.arg(X.z(1)),X.op("+"),X.arg(X.z(2)),X.op("="),degM(t1),X.op("+"),degM(t2),X.op("="),degM(T)));
+  else if(op==="div") h.innerHTML=`<b>几何律：</b>模相除、辐角相减。<br>`+
+    mml(X.row(X.abs(X.w),X.op("="),X.frac(X.abs(X.z(1)),X.abs(X.z(2))),X.op("="),X.n(r1),X.op("&#xF7;"),X.n(r2),X.op("="),X.n(R)))+`<br>`+
+    mml(X.row(X.arg(X.w),X.op("="),X.arg(X.z(1)),X.op("&#x2212;"),X.arg(X.z(2)),X.op("="),degM(t1),X.op("&#x2212;"),degM(t2),X.op("="),degM(T)));
+  else if(op==="add"||op==="sub") h.innerHTML=`<b>几何律：</b>向量的${op==="add"?"平行四边形":"三角形"}法则。<br>`+
+    mml(X.row(X.w,X.op("="),X.z(1),X.op(op==="add"?"+":"&#x2212;"),X.z(2)));
+  else h.innerHTML=`<b>几何律：</b>关于实轴镜像，模不变、辐角变号。<br>`+
+    mml(X.row(X.abs(X.conj(1)),X.op("="),X.abs(X.z(1))))+`　`+
+    mml(X.row(X.arg(X.conj(1)),X.op("="),X.op("&#x2212;"),X.arg(X.z(1))));
+}
+function roText(z,n){
+  return `模 ${mml(X.abs(X.z(n)))} = <b>${fmt(C.abs(z))}</b>，辐角 ${mml(X.arg(X.z(n)))} = <b>${String(deg(C.arg(z))).replace("-","−")}°</b>（${String(fmt(C.arg(z))).replace("-","−")} rad）`;
+}
+
+// =======================================================================
+// 交互
+// =======================================================================
+function evtPos(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+function near(z,x,y){ const s=toScreen(z); return Math.hypot(s.x-x,s.y-y)<16; }
+function snap(v){ return state.snap ? Math.round(v/0.25)*0.25 : Math.round(v*100)/100; }
+
+function onDown(e){
+  const {x,y}=evtPos(e);
+  if(near(state.z1,x,y)) state.drag="z1";
+  else if(state.op!=="conj" && near(state.z2,x,y)) state.drag="z2";
+  if(state.drag){ e.preventDefault(); if(anim.phase!=="idle") setPhase("idle"); }
+}
+function onMove(e){
+  if(!state.drag) return;
+  const {x,y}=evtPos(e); const w=toWorld(x,y);
+  state[state.drag]={re:snap(w.re), im:snap(w.im)};
+  syncInputs(); draw();
+  EduTelemetry.log("drag_"+state.drag, "", 400);
+  e.preventDefault();
+}
+function onUp(){ if(state.drag){ EduTelemetry.log("drag_end", state.drag); } state.drag=null; }
+
+cv.addEventListener("mousedown",onDown); window.addEventListener("mousemove",onMove); window.addEventListener("mouseup",onUp);
+cv.addEventListener("touchstart",onDown,{passive:false}); cv.addEventListener("touchmove",onMove,{passive:false}); cv.addEventListener("touchend",onUp);
+cv.addEventListener("wheel",e=>{ e.preventDefault(); const f=e.deltaY<0?1.1:0.9;
+  state.scale=Math.max(24,Math.min(160,state.scale*f)); draw(); },{passive:false});
+
+// 运算切换
+document.getElementById("ops").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  [...document.querySelectorAll("#ops button")].forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); state.op=b.dataset.op; setPhase("idle");
+  EduTelemetry.log("op_change", state.op);
+});
+
+// 输入框
+function syncInputs(){
+  z1r.value=fmt(state.z1.re); z1i.value=fmt(state.z1.im);
+  z2r.value=fmt(state.z2.re); z2i.value=fmt(state.z2.im);
+}
+["z1r","z1i","z2r","z2i"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",()=>{
+    state.z1={re:+z1r.value||0, im:+z1i.value||0};
+    state.z2={re:+z2r.value||0, im:+z2i.value||0};
+    setPhase("idle"); EduTelemetry.log("input_change", id, 600);
+  });
+});
+
+// 开关
+function bindToggle(id,key){ document.getElementById(id).addEventListener("change",e=>{
+  state[key]=e.target.checked; draw(); EduTelemetry.log("toggle", key+"="+e.target.checked); }); }
+bindToggle("tGrid","grid"); bindToggle("tCircle","circle"); bindToggle("tConstruct","construct"); bindToggle("tSnap","snap");
+
+// 缩放/重置/导出
+document.getElementById("zin").onclick=()=>{ state.scale=Math.min(160,state.scale*1.15); draw(); };
+document.getElementById("zout").onclick=()=>{ state.scale=Math.max(24,state.scale/1.15); draw(); };
+document.getElementById("btnReset").onclick=()=>{
+  state.z1={re:2,im:1}; state.z2={re:-1,im:1.5}; state.scale=60; syncInputs(); setPhase("idle");
+  EduTelemetry.log("reset");
+};
+document.getElementById("btnExport").onclick=()=>{ EduTelemetry.exportCSV(); EduTelemetry.log("export"); };
+
+// 运算按钮
+document.getElementById("btnPlay").onclick=play;
+
+// 使用说明弹窗
+const helpBg=document.getElementById("helpModal");
+document.getElementById("btnHelp").onclick=()=>{ helpBg.classList.add("show"); EduTelemetry.log("help_open"); };
+document.getElementById("helpClose").onclick=()=>helpBg.classList.remove("show");
+helpBg.addEventListener("click",e=>{ if(e.target===helpBg) helpBg.classList.remove("show"); });
+
+// 用 MathML 渲染运算按钮与输入框标签里的符号（真正的公式格式）
+[...document.querySelectorAll("#ops button")].forEach(b=>{
+  b.innerHTML = b.dataset.op==="conj" ? ("共轭 "+mml(X.conj(1))) : LBL.result(b.dataset.op);
+});
+document.getElementById("lblZ1").innerHTML = mml(X.z(1));
+document.getElementById("lblZ2").innerHTML = mml(X.z(2));
+
+// 使用说明弹窗正文：符号一律用 MathML 公式格式
+(function(){
+  const z1=mml(X.z(1)), z2=mml(X.z(2)), negz2=LBL.negz2, conj1=mml(X.conj(1));
+  const th2=mml(X.theta(2)), negTh2=mml(X.row(X.op("&#x2212;"),X.theta(2)));
+  const absZ=mml(X.abs("<mi>z</mi>")), absZ2=mml(X.abs(X.z(2))), invAbsZ2=mml(X.frac("<mn>1</mn>",X.abs(X.z(2))));
+  document.getElementById("helpBody").innerHTML = `
+    <p>本工具演示<b>复数的四则运算与共轭</b>及其几何意义。界面分为左侧画布与右侧三个面板。</p>
+
+    <h3>① 运算模块（画布上方）</h3>
+    <ul>
+      <li>五个标签切换运算：<b>${LBL.result("add")}</b>、<b>${LBL.result("sub")}</b>、<b>${LBL.result("mul")}</b>、<b>${LBL.result("div")}</b>、<b>共轭 ${conj1}</b>（共轭只用到 ${z1}）。</li>
+      <li><span class="kbd">▶ 运算</span>按钮分三步演示——先看初始向量，点击后播放<b>动态运算过程</b>，最后定格<b>结果向量</b>（此时初始向量转半透明，突出结果）；再点即<b>重放</b>。</li>
+    </ul>
+
+    <h3>② 三步演示的重点</h3>
+    <ul>
+      <li><b>加 / 减</b>：把 ${z2}（或 ${negz2}）从 ${z1} 末端接上，结果向量随之生长 → 平行四边形 / 三角形法则。</li>
+      <li><b>乘 / 除</b>：分两步演示——先<b>旋转 ${th2}</b>（除法 ${negTh2}），再<b>伸缩 ${absZ2} 倍</b>（除法 ${invAbsZ2}，配起始/当前参照圆凸显长度变化），直观呈现"模相乘(除)、辐角相加(减)"。</li>
+      <li><b>共轭</b>：以实轴为镜面翻折，模不变、辐角变号。</li>
+    </ul>
+
+    <h3>③ 输入模块（右上）</h3>
+    <ul>
+      <li>用输入框填 ${z1}、${z2} 的实部 / 虚部；也可<b>直接在图上拖动</b>蓝点 ${z1}、金点 ${z2}。</li>
+      <li>下方实时显示每个数的<b>模 ${absZ} 与辐角</b>（度与弧度）。</li>
+    </ul>
+
+    <h3>④ 结果模块（右中）</h3>
+    <p>运算后显示结果的代数形式、模、辐角，并给出对应的<b>几何律</b>提示。</p>
+
+    <h3>⑤ 显示选项（右下）</h3>
+    <ul>
+      <li>可开关<b>网格 / 单位圆 / 几何构造</b>（构造太满时可关掉，只看向量）。</li>
+      <li><b>吸附到 0.25 网格</b>：拖动时取整齐值，方便板书。</li>
+      <li><b>重置</b>恢复初始；<b>导出使用数据</b>把匿名操作记录存为 CSV。</li>
+    </ul>
+
+    <h3>⑥ 其他操作</h3>
+    <p>滚轮或 <span class="kbd">＋ ／ －</span> 缩放画布。切换运算、修改输入或拖动，都会回到"仅显示初始向量"，再点<b>运算</b>重新演示。</p>`;
+})();
+
+// 启动
+window.addEventListener("resize",resize);
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV，发往自建计数服务；离线/连不上时静默跳过，绝不影响工具使用）──
+(function(){
+  var CNT_ENDPOINT = "https://REPLACE-ME.workers.dev"; // ← 部署 Cloudflare Worker 后，把这里换成你的网址
+  var TOOL = "T1_复平面运算器";                          // ← 本工具的统计名（每个工具改这一行）
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return; // 未配置则不发送
+  try{
+    var seenKey = "fbtool_seen:" + TOOL;
+    var first = localStorage.getItem(seenKey) ? 0 : 1;   // 本浏览器首次打开该工具 → 计一个 UV
+    if(first) localStorage.setItem(seenKey, "1");
+    var url = CNT_ENDPOINT + "/hit?tool=" + encodeURIComponent(TOOL) + "&first=" + first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url, {mode:"no-cors", keepalive:true});
+  }catch(e){}
+})();
+
+syncInputs(); resize(); updatePlayBtn();
+</script>
+</body>
+</html>
