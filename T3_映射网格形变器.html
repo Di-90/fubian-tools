@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T3 映射网格形变器</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:space-between; gap:12px;
+       padding:12px 18px; background:var(--card); border-bottom:1px solid var(--line);}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px;}
+  .top .hint{font-size:12.5px; color:var(--sub);}
+  #helpBtn{border:1px solid var(--line); background:#fff; border-radius:20px; cursor:pointer;
+           font-size:13px; padding:5px 13px; color:var(--blue);}
+  #helpBtn:hover{background:#ebf4ff;}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  .panel{width:316px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .row label{font-size:13px; min-width:52px; color:var(--sub);}
+  .row input[type=number]{width:70px; padding:4px 6px; border:1px solid var(--line);
+       border-radius:6px; font-size:14px;}
+  .fbtns{display:flex; flex-wrap:wrap; gap:6px;}
+  .fbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:14px; padding:5px 10px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .btns button.go{background:var(--purple); color:#fff; border-color:var(--purple);}
+  .btns button.go:hover{filter:brightness(1.08);}
+  #morph{width:100%;}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .corr.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .bar{width:16px; height:3px; border-radius:2px; display:inline-block;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(660px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.16em;}
+  .readout b{color:#1a202c;}
+  .corr math{font-size:1.04em;}
+  .fbtns button math{font-size:1.05em;}
+
+  /* ===== 手机 / 窄屏适配 ===== */
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>T3 · 映射网格形变器</h1>
+    <span class="hint">左图拖动＝移动 <math><mi>z</mi><mn>0</mn></math>；拖动形变滑杆看网格弯曲</span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>映射函数 w = f(z)</h2>
+        <div class="fbtns" id="funcBtns"></div>
+      </div>
+
+      <div class="box" id="linBox" style="display:none;">
+        <h2>线性参数（w = a z + b）</h2>
+        <div class="row"><label>Re a</label><input id="aRe" type="number" step="0.1" value="0.8">
+          <label style="min-width:38px;">Im a</label><input id="aIm" type="number" step="0.1" value="0.6"></div>
+        <div class="row"><label>Re b</label><input id="bRe" type="number" step="0.1" value="0.3">
+          <label style="min-width:38px;">Im b</label><input id="bIm" type="number" step="0.1" value="0"></div>
+      </div>
+
+      <div class="box">
+        <h2>形变过程</h2>
+        <div class="row"><label style="min-width:40px;">t =</label>
+          <input id="morph" type="range" min="0" max="100" value="100">
+          <b id="tVal" style="min-width:34px; text-align:right;">1.00</b></div>
+        <div class="btns" style="margin-top:6px;">
+          <button id="bMorph" class="go">▶ 形变演示</button>
+          <button id="bGrid">切换网格：直角</button>
+        </div>
+        <p style="font-size:12px;color:var(--sub);margin:8px 0 0;">t=0 是原网格（恒等），t=1 是 f 的像；中间是 <math><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>t</mi><mo>)</mo><mi>z</mi><mo>+</mo><mi>t</mi><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></mrow></math>。</p>
+      </div>
+
+      <div class="box">
+        <h2>探针 z<sub>0</sub></h2>
+        <div class="row"><label>实部 Re</label><input id="zRe" type="number" step="0.1" value="0.8"></div>
+        <div class="row"><label>虚部 Im</label><input id="zIm" type="number" step="0.1" value="0.6"></div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tGrid2" checked> 网格</label>
+        <label><input type="checkbox" id="tHi" checked> 高亮过 z<sub>0</sub> 的坐标线</label>
+        <label><input type="checkbox" id="tFrame" checked> 局部标架（看保角）</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="bar" style="background:var(--blue)"></i>实部网格线 / 圆</span>
+          <span><i class="bar" style="background:var(--orange)"></i>虚部网格线 / 射线</span>
+          <span><i class="dot" style="background:var(--gold)"></i><math><mrow><mi>z</mi><mn>0</mn></mrow></math> / 像 <math><mrow><mi>w</mi><mn>0</mn></mrow></math></span>
+        </div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T3"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T3_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*1000)/1000; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+function mn(v){ return v<0 ? `<mo>&#x2212;</mo><mn>${Math.abs(v)}</mn>` : `<mn>${v}</mn>`; }
+function mmlComplex(re,im){
+  let r=Math.round(re*1000)/1000, i=Math.round(im*1000)/1000;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(!isFinite(r)||!isFinite(i)) return `<mi>&#x221E;</mi>`;
+  if(i===0) return `<mn>${fmt(r)}</mn>`;
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${fmt(ai)}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}<mi>i</mi>`;
+  return `<mn>${fmt(r)}</mn><mo>${i<0?"&#x2212;":"+"}</mo>${coef}<mi>i</mi>`;
+}
+
+/* ============ 复数运算 ============ */
+const ONE={x:1,y:0};
+function cadd(a,b){return{x:a.x+b.x,y:a.y+b.y};}
+function csub(a,b){return{x:a.x-b.x,y:a.y-b.y};}
+function cmul(a,b){return{x:a.x*b.x-a.y*b.y,y:a.x*b.y+a.y*b.x};}
+function cdiv(a,b){const d=b.x*b.x+b.y*b.y;return{x:(a.x*b.x+a.y*b.y)/d,y:(a.y*b.x-a.x*b.y)/d};}
+function cscale(a,k){return{x:a.x*k,y:a.y*k};}
+function cconj(a){return{x:a.x,y:-a.y};}
+function cexp(a){const e=Math.exp(a.x);return{x:e*Math.cos(a.y),y:e*Math.sin(a.y)};}
+function csin(a){return{x:Math.sin(a.x)*Math.cosh(a.y),y:Math.cos(a.x)*Math.sinh(a.y)};}
+function cabs(a){return Math.hypot(a.x,a.y);}
+
+/* ============ 参数（线性映射用）============ */
+let A={x:0.8,y:0.6}, B={x:0.3,y:0};
+
+/* ============ 映射函数表 ============ */
+const FUNCS=[
+  {id:"lin",  ml:`<mi>a</mi><mi>z</mi><mo>+</mo><mi>b</mi>`, f:z=>cadd(cmul(A,z),B), analytic:true,
+    note:"线性映射：旋转 arg a、伸缩 |a|、再平移 b。处处保角（角度不变）。"},
+  {id:"sq",   ml:`<msup><mi>z</mi><mn>2</mn></msup>`, f:z=>cmul(z,z), analytic:true,
+    note:"平方映射：把过原点夹角 θ 的两线映成夹角 2θ。z=0 是临界点（f′=0），此处不保角。"},
+  {id:"cube", ml:`<msup><mi>z</mi><mn>3</mn></msup>`, f:z=>cmul(cmul(z,z),z), analytic:true,
+    note:"立方映射：原点处角度变 3 倍；z=0 是临界点。"},
+  {id:"inv",  ml:`<mfrac><mn>1</mn><mi>z</mi></mfrac>`, f:z=>cdiv(ONE,z), analytic:true,
+    note:"反演：把直线与圆互相变换、z=0 映到 ∞。除 z=0 外处处保角。"},
+  {id:"exp",  ml:`<msup><mi>e</mi><mi>z</mi></msup>`, f:z=>cexp(z), analytic:true,
+    note:"指数映射：竖直线→同心圆、水平线→过原点射线；沿虚轴以 2π 为周期。"},
+  {id:"mob",  ml:`<mfrac><mrow><mi>z</mi><mo>&#x2212;</mo><mn>1</mn></mrow><mrow><mi>z</mi><mo>+</mo><mn>1</mn></mrow></mfrac>`,
+    f:z=>cdiv(csub(z,ONE),cadd(z,ONE)), analytic:true,
+    note:"分式线性（Möbius）：把虚轴↔单位圆、右半平面↔单位圆内；保角、且把圆/直线仍变为圆/直线。"},
+  {id:"sin",  ml:`<mi>sin</mi><mo>&#x2061;</mo><mi>z</mi>`, f:z=>csin(z), analytic:true,
+    note:"正弦映射：把水平/竖直网格映成一族共焦椭圆与双曲线；z=±π/2… 为临界点。"},
+  {id:"conj", ml:`<mover accent="true"><mi>z</mi><mo>&#x203E;</mo></mover>`, f:z=>cconj(z), analytic:false,
+    note:"共轭（非解析！）：沿实轴翻折——夹角大小不变，但定向翻转（反保角），与上面解析映射形成对照。"}
+];
+let F=FUNCS[1];  // 默认 z²
+
+/* ============ 场景 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=900,H=480, cxL=225, cxR=675, cyMid=240;
+let viewHalf=2.4;             // 每个视口从中心到边缘表示的单位数
+let s=90;                     // 像素/单位
+let z0={x:0.8,y:0.6};
+let tMorph=1;                 // 形变参数
+let gridPolar=false;          // 直角 / 极坐标
+const show={grid:true, hi:true, frame:true, axis:true};
+let morphAnim=null;
+
+const GRID_MIN=-2.5, GRID_MAX=2.5, STEP=0.5, SAMP=0.05;   // 直角网格
+const PR=[0.5,1,1.5,2], PN=12;                            // 极坐标：半径 & 射线条数
+
+function layout(){
+  s=Math.min(W/4, H/2)/viewHalf * 0.92;
+}
+function toL(z){ return {x:cxL+z.x*s, y:cyMid-z.y*s}; }
+function toR(w){ return {x:cxR+w.x*s, y:cyMid-w.y*s}; }
+function fromL(sx,sy){ return {x:(sx-cxL)/s, y:(cyMid-sy)/s}; }
+
+/* g_t(z) = (1-t) z + t f(z) —— 形变插值 */
+function gmap(z){
+  const w=F.f(z);
+  if(tMorph>=1) return w;
+  if(!isFinite(w.x)||!isFinite(w.y)) return w;
+  return {x:(1-tMorph)*z.x+tMorph*w.x, y:(1-tMorph)*z.y+tMorph*w.y};
+}
+
+/* ============ 叠加层标签 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+
+/* ============ 画一条采样曲线（带断裂：跳过奇点/超界）============ */
+function drawCurve(zpts, mapper, toScreen, color, width, alpha){
+  ctx.strokeStyle=color; ctx.lineWidth=width; ctx.globalAlpha=alpha==null?1:alpha;
+  ctx.beginPath();
+  let pen=false, prev=null;
+  for(const z of zpts){
+    const w=mapper(z);
+    if(!w||!isFinite(w.x)||!isFinite(w.y)||cabs(w)>1e3){ pen=false; prev=null; continue; }
+    const p=toScreen(w);
+    if(!pen){ ctx.moveTo(p.x,p.y); pen=true; }
+    else{
+      // 屏幕跳变过大（穿越奇点等）则断开，避免画出横贯的假线
+      if(prev && Math.hypot(p.x-prev.x,p.y-prev.y) > (viewHalf*s)*1.6){ ctx.moveTo(p.x,p.y); }
+      else ctx.lineTo(p.x,p.y);
+    }
+    prev=p;
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+}
+function lineSamplesV(x){ const a=[]; for(let y=GRID_MIN;y<=GRID_MAX+1e-9;y+=SAMP) a.push({x:x,y:y}); return a; }
+function lineSamplesH(y){ const a=[]; for(let x=GRID_MIN;x<=GRID_MAX+1e-9;x+=SAMP) a.push({x:x,y:y}); return a; }
+function circleSamples(r){ const a=[]; for(let i=0;i<=200;i++){ const t=2*Math.PI*i/200; a.push({x:r*Math.cos(t),y:r*Math.sin(t)}); } return a; }
+function raySamples(th){ const a=[]; for(let r=SAMP;r<=GRID_MAX+1e-9;r+=SAMP) a.push({x:r*Math.cos(th),y:r*Math.sin(th)}); return a; }
+
+/* ============ 画一个视口（网格 + 轴）============ */
+function drawViewport(cx, mapper, toScreen, title, titleML){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(cx-W/4, 0, W/2, H); ctx.clip();
+
+  // 背景
+  ctx.fillStyle = (mapper===gmap? "#fbfcff":"#fdfefb");
+  ctx.fillRect(cx-W/4,0,W/2,H);
+
+  // 坐标轴
+  if(show.axis){
+    ctx.strokeStyle="#b7c2d0"; ctx.lineWidth=1.2;
+    const o=toScreen({x:0,y:0});
+    ctx.beginPath(); ctx.moveTo(cx-W/4,o.y); ctx.lineTo(cx+W/4,o.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(o.x,0); ctx.lineTo(o.x,H); ctx.stroke();
+  }
+
+  // 网格
+  if(show.grid){
+    if(!gridPolar){
+      for(let x=GRID_MIN;x<=GRID_MAX+1e-9;x+=STEP)
+        drawCurve(lineSamplesV(x), mapper, toScreen, "#2b6cb0", 1, 0.42);
+      for(let y=GRID_MIN;y<=GRID_MAX+1e-9;y+=STEP)
+        drawCurve(lineSamplesH(y), mapper, toScreen, "#dd6b20", 1, 0.42);
+      // 精确过探针 z0 的两条坐标线（加粗）
+      if(show.hi){
+        drawCurve(lineSamplesV(z0.x), mapper, toScreen, "#2b6cb0", 2.6, 1);
+        drawCurve(lineSamplesH(z0.y), mapper, toScreen, "#dd6b20", 2.6, 1);
+      }
+    }else{
+      for(const r of PR)
+        drawCurve(circleSamples(r), mapper, toScreen, "#2b6cb0", 1, 0.42);
+      for(let k=0;k<PN;k++)
+        drawCurve(raySamples(2*Math.PI*k/PN), mapper, toScreen, "#dd6b20", 1, 0.42);
+      // 精确过探针的圆 |z|=|z0| 与射线 arg=arg z0（加粗）
+      if(show.hi){
+        const r0=cabs(z0), th0=Math.atan2(z0.y,z0.x);
+        if(r0>0.02) drawCurve(circleSamples(r0), mapper, toScreen, "#2b6cb0", 2.6, 1);
+        drawCurve(raySamples(th0), mapper, toScreen, "#dd6b20", 2.6, 1);
+      }
+    }
+  }
+  ctx.restore();
+
+  // 标题 + 轴标签（叠加层）
+  addLabel(titleML, cx, 22, "#2d3748", 16);
+}
+
+/* ============ 箭头 ============ */
+function arrow(x0,y0,x1,y1,color,width){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const ang=Math.atan2(y1-y0,x1-x0), ah=7.5;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-ah*Math.cos(ang-0.42), y1-ah*Math.sin(ang-0.42));
+  ctx.lineTo(x1-ah*Math.cos(ang+0.42), y1-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill();
+}
+function dot(p,color,r){
+  ctx.globalAlpha=1; ctx.shadowColor="rgba(0,0,0,0.22)"; ctx.shadowBlur=3; ctx.shadowOffsetY=1;
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,7); ctx.fill();
+  ctx.shadowColor="transparent"; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+  ctx.lineWidth=1.4; ctx.strokeStyle="#fff"; ctx.stroke();
+}
+
+/* ============ 数值雅可比 & 保角分析 ============ */
+function analyze(){
+  const h=1e-5;
+  const fx=cscale(csub(F.f({x:z0.x+h,y:z0.y}), F.f({x:z0.x-h,y:z0.y})), 1/(2*h)); // ∂f/∂x
+  const fy=cscale(csub(F.f({x:z0.x,y:z0.y+h}), F.f({x:z0.x,y:z0.y-h})), 1/(2*h)); // ∂f/∂y
+  const ok=isFinite(fx.x)&&isFinite(fx.y)&&isFinite(fy.x)&&isFinite(fy.y);
+  // 解析（Cauchy–Riemann）: ∂f/∂y = i·∂f/∂x
+  const iFx={x:-fx.y,y:fx.x};
+  const analytic = ok && Math.hypot(fy.x-iFx.x, fy.y-iFx.y) < 1e-3*(1+cabs(fx));
+  const anti = ok && Math.hypot(fy.x+iFx.x, fy.y+iFx.y) < 1e-3*(1+cabs(fx));
+  return {fx, fy, ok, analytic, anti, deriv:fx};  // 解析时 f'(z0)=∂f/∂x=fx
+}
+
+/* ============ 局部标架 ============ */
+function drawFrames(an){
+  const L=40;                               // z 平面单位标架的像素长
+  const zp=toL(z0);
+  // z 平面：正交单位叉（横=实方向，竖=虚方向）
+  arrow(zp.x, zp.y, zp.x+L, zp.y, "#2b6cb0", 2.4);
+  arrow(zp.x, zp.y, zp.x, zp.y-L, "#dd6b20", 2.4);
+
+  if(!an.ok) return;
+  const w0=F.f(z0);
+  if(!isFinite(w0.x)||!isFinite(w0.y)||cabs(w0)>1e3) return;
+  const wp=toR(w0);
+  // w 平面：把两个单位切向量经（当前形变的）微分映射后画出
+  //   解析: 像 = f'·v，两臂等长且正交（保角）；共轭: 一臂翻转（反保角）
+  let ex=an.fx, ey=an.fy;                   // ∂f/∂x, ∂f/∂y = 两切向量的像
+  if(tMorph<1){                              // 形变中：微分也随 t 插值 J_t = (1-t)I + tJ
+    ex={x:(1-tMorph)+tMorph*ex.x, y:tMorph*ex.y};
+    ey={x:tMorph*ey.x, y:(1-tMorph)+tMorph*ey.y};
+  }
+  const mag=Math.max(cabs(ex),cabs(ey),1e-9);
+  if(mag<1e-6){ addLabel("退化", wp.x+8, wp.y-8, "#c05621",13); dot(wp,"#b7791f",5.5); return; }
+  const k=L/mag;
+  arrow(wp.x, wp.y, wp.x+ex.x*k, wp.y-ex.y*k, "#2b6cb0", 2.4);
+  arrow(wp.x, wp.y, wp.x+ey.x*k, wp.y-ey.y*k, "#dd6b20", 2.4);
+}
+
+/* ============ 主绘制 ============ */
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels();
+  layout();
+
+  drawViewport(cxL, z=>z, toL, "z", mml("<mi>z</mi>") + " 平面（定义域）");
+  drawViewport(cxR, gmap, toR, "w", mml("<mi>w</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>") + " 平面（像）");
+
+  // 视口分隔线
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(W/2,10); ctx.lineTo(W/2,H-10); ctx.stroke();
+  // 中间箭头提示 f
+  addLabel(mml("<mover><mo>&#x27F6;</mo><mrow><mspace width='2px'/></mrow></mover>")+"&nbsp;f", W/2, 46, "#718096", 15);
+
+  const an=analyze();
+  if(show.frame) drawFrames(an);
+
+  // 关键点
+  const zp=toL(z0); dot(zp,"#b7791f",6);
+  addLabel(mml("<msub><mi>z</mi><mn>0</mn></msub>"), zp.x+14, zp.y+12, "#b7791f",15);
+  const w0=F.f(z0);
+  if(isFinite(w0.x)&&isFinite(w0.y)&&cabs(w0)<1e3){
+    const wp=toR(gmap(z0)); dot(wp,"#b7791f",6);
+    addLabel(mml("<msub><mi>w</mi><mn>0</mn></msub>"), wp.x+14, wp.y+12, "#b7791f",15);
+  }
+
+  updateReadout(an);
+}
+
+function updateReadout(an){
+  const w0=F.f(z0);
+  let deriv, conf;
+  if(an.analytic){
+    const d=an.deriv, m=cabs(d), ang=Math.atan2(d.y,d.x)*180/Math.PI;
+    deriv = `<div><span class="k">导数</span> ${mml("<msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo><mo>=</mo>"+mmlComplex(d.x,d.y))}</div>`+
+            `<div><span class="k">局部伸缩</span> ${mml("<mrow><mo>|</mo><msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>|</mo><mo>=</mo></mrow>")} <b>${fmt(m)}</b> &nbsp; <span class="k">局部转角</span> <b>${fmt(ang)}°</b></div>`;
+    if(m<1e-3) conf=`<div class="corr warn">这里 ${mml("<mrow><msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>=</mo><mn>0</mn></mrow>")}（<b>临界点</b>）：局部标架退化、<b>不保角</b>，角度会成倍变化。</div>`;
+    else conf=`<div class="corr">解析映射：局部＝<b>旋转 ${fmt(ang)}° + 放大 ${fmt(m)} 倍</b>，两坐标方向仍<b>垂直</b>——<b>保角</b>。${F.note}</div>`;
+  }else if(an.anti){
+    deriv = `<div><span class="k">导数</span> 不存在（非解析）</div>`;
+    conf=`<div class="corr warn">非解析（反保角）：局部是一次<b>翻折</b>——夹角大小不变但<b>定向翻转</b>。${F.note}</div>`;
+  }else{
+    deriv = `<div><span class="k">导数</span> 不存在（非解析）</div>`;
+    conf=`<div class="corr warn">该点非解析。${F.note}</div>`;
+  }
+  document.getElementById("readout").innerHTML =
+    `<h2 style="margin-bottom:8px;">读数</h2>`+
+    `<div>${mml("<msub><mi>z</mi><mn>0</mn></msub><mo>=</mo>"+mmlComplex(z0.x,z0.y))}</div>`+
+    `<div>${mml("<msub><mi>w</mi><mn>0</mn></msub><mo>=</mo><mi>f</mi><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo><mo>=</mo>"+mmlComplex(w0.x,w0.y))}</div>`+
+    deriv + conf;
+}
+
+/* ============ 交互 ============ */
+function setZ(x,y,logType,syncInputs){
+  z0.x=x; z0.y=y;
+  if(syncInputs!==false){
+    document.getElementById("zRe").value=Math.round(x*1000)/1000;
+    document.getElementById("zIm").value=Math.round(y*1000)/1000;
+  }
+  if(logType) EduTelemetry.log(logType, x.toFixed(2)+","+y.toFixed(2));
+  draw();
+}
+let dragging=false;
+function screenXY(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+cv.addEventListener("pointerdown",e=>{
+  const m=screenXY(e);
+  if(m.x>W/2) return;                 // 只在左（z）平面拖动探针
+  dragging=true; cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing");
+  const w=fromL(m.x,m.y); setZ(w.x,w.y,"drag");
+});
+cv.addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  const m=screenXY(e); const w=fromL(m.x,m.y); setZ(w.x,w.y,"drag");
+});
+function endPointer(){ dragging=false; cv.classList.remove("grabbing"); }
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+cv.addEventListener("wheel",e=>{
+  e.preventDefault();
+  viewHalf=Math.min(6, Math.max(1.2, viewHalf*(e.deltaY<0?0.92:1.087)));
+  draw();
+},{passive:false});
+
+document.getElementById("zRe").addEventListener("input",e=>{ const v=parseFloat(e.target.value); setZ(isNaN(v)?0:v, z0.y, "input", false); });
+document.getElementById("zIm").addEventListener("input",e=>{ const v=parseFloat(e.target.value); setZ(z0.x, isNaN(v)?0:v, "input", false); });
+document.getElementById("zRe").addEventListener("blur",()=>{ document.getElementById("zRe").value=Math.round(z0.x*1000)/1000; });
+document.getElementById("zIm").addEventListener("blur",()=>{ document.getElementById("zIm").value=Math.round(z0.y*1000)/1000; });
+
+// 线性参数
+function readAB(){
+  A={x:parseFloat(aRe.value)||0, y:parseFloat(aIm.value)||0};
+  B={x:parseFloat(bRe.value)||0, y:parseFloat(bIm.value)||0};
+  draw();
+}
+["aRe","aIm","bRe","bIm"].forEach(id=>document.getElementById(id).addEventListener("input",readAB));
+const aRe=document.getElementById("aRe"),aIm=document.getElementById("aIm"),bRe=document.getElementById("bRe"),bIm=document.getElementById("bIm");
+
+// 函数按钮
+const funcBtns=document.getElementById("funcBtns");
+FUNCS.forEach((fn,i)=>{
+  const b=document.createElement("button");
+  b.innerHTML=mml(fn.ml);
+  if(fn===F) b.classList.add("sel");
+  b.onclick=()=>{
+    F=fn; EduTelemetry.log("func",fn.id);
+    [...funcBtns.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel");
+    document.getElementById("linBox").style.display = (fn.id==="lin"?"block":"none");
+    draw();
+  };
+  funcBtns.appendChild(b);
+});
+
+// 形变滑杆
+const morph=document.getElementById("morph"), tVal=document.getElementById("tVal");
+morph.addEventListener("input",()=>{ tMorph=morph.value/100; tVal.textContent=tMorph.toFixed(2); draw(); });
+function easeIO(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+document.getElementById("bMorph").onclick=()=>{
+  if(morphAnim) return;
+  EduTelemetry.log("morph_demo");
+  morphAnim={start:performance.now(), dur:2200};
+  requestAnimationFrame(stepMorph);
+};
+function stepMorph(now){
+  const raw=Math.min(1,(now-morphAnim.start)/morphAnim.dur);
+  tMorph=easeIO(raw); morph.value=Math.round(tMorph*100); tVal.textContent=tMorph.toFixed(2);
+  draw();
+  if(raw<1) requestAnimationFrame(stepMorph); else morphAnim=null;
+}
+
+// 网格类型
+document.getElementById("bGrid").onclick=()=>{
+  gridPolar=!gridPolar; EduTelemetry.log("grid_type", gridPolar?"polar":"cartesian");
+  document.getElementById("bGrid").textContent="切换网格："+(gridPolar?"极坐标":"直角");
+  draw();
+};
+
+// 显示开关
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); draw(); }); }
+bindToggle("tGrid2","grid"); bindToggle("tHi","hi"); bindToggle("tFrame","frame"); bindToggle("tAxis","axis");
+
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+/* ============ 使用说明 ============ */
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+function openHelp(){ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("helpBtn").onclick=openHelp;
+document.getElementById("modalX").onclick=closeHelp;
+mask.onclick=closeHelp;
+(function(){
+  const z=mml("<mi>z</mi>"), w=mml("<mi>w</mi>"), fp=mml("<msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo>");
+  document.getElementById("helpBody").innerHTML =
+    `<h2>映射网格形变器</h2>`+
+    `<p>复变函数 ${mml("<mrow><mi>w</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></mrow>")} 把 ${z} 平面（左）上的每个点搬到 ${w} 平面（右）。左边一张规则的网格，被 f 搬过去后会被<b>拉伸、旋转、弯曲</b>成什么样，就是这个工具要看的。</p>`+
+    `<h3>① 怎么操作</h3>`+
+    `<ul>`+
+    `<li>上方选<b>映射函数</b>（选"线性"时可调 a、b）；</li>`+
+    `<li>拖动<b>形变滑杆 t</b>（或点 <b>▶ 形变演示</b>）：t 从 0 到 1，右图网格会从原来的直线<b>逐渐弯曲</b>成 f 的像，看清"形变"发生的过程；</li>`+
+    `<li>在<b>左图拖动</b>移动探针 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")}，右图同步显示它的像 ${mml("<msub><mi>w</mi><mn>0</mn></msub>")}；</li>`+
+    `<li><b>切换网格</b>在直角网格与极坐标网格（同心圆＋射线）之间切换——对 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")}、${mml("<msup><mi>e</mi><mi>z</mi></msup>")} 用极坐标更直观；</li>`+
+    `<li>滚轮缩放。</li>`+
+    `</ul>`+
+    `<h3>② 局部标架与"保角"</h3>`+
+    `<p>探针处画了一对<b>互相垂直</b>的小箭头（蓝＝实方向、橙＝虚方向）。经过 f 之后：</p>`+
+    `<ul>`+
+    `<li><b>解析映射</b>（如 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")}、${mml("<mfrac><mn>1</mn><mi>z</mi></mfrac>")}、${mml("<msup><mi>e</mi><mi>z</mi></msup>")}）：两箭头一起<b>旋转 arg ${fp}、放大 |${fp}| 倍</b>，但仍然<b>互相垂直</b>——这就是<b>保角性</b>（角度不变）；</li>`+
+    `<li>在 ${fp} = 0 的<b>临界点</b>（如 ${mml("<msup><mi>z</mi><mn>2</mn></msup>")} 在 ${mml("<mrow><mi>z</mi><mo>=</mo><mn>0</mn></mrow>")}）：标架退化，保角性失效，夹角会成倍变化；</li>`+
+    `<li><b>共轭 ${mml("<mover accent='true'><mi>z</mi><mo>&#x203E;</mo></mover>")}</b>（非解析）：橙箭头被<b>翻转</b>——夹角大小不变但定向反了，叫<b>反保角</b>，正好和解析映射对照。</li>`+
+    `</ul>`+
+    `<h3>③ 颜色约定</h3>`+
+    `<p><b>蓝</b>＝实部坐标线（竖直线 / 极坐标同心圆），<b>橙</b>＝虚部坐标线（水平线 / 极坐标射线）。加粗的两条是过探针 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 的坐标线，方便追踪它们被映成了哪两条曲线。</p>`;
+})();
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+"px"; cv.style.height=H+"px";
+  cxL=W/4; cxR=3*W/4; cyMid=H/2;
+  draw();
+}
+window.addEventListener("resize",resize);
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV，发往自建计数服务；离线/连不上时静默跳过，绝不影响工具使用）──
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter"; // 腾讯云 CloudBase 计数服务（国内可达）
+  var TOOL = "T3_映射网格形变器";                          // ← 本工具的统计名
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+resize();
+</script>
+</body>
+</html>
