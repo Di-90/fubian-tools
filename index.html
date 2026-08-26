@@ -93,7 +93,7 @@
 <script>
 // ── 首页访问统计（PV+UV，与各工具同一套计数服务）──
 (function(){
-  var CNT_ENDPOINT = "https://REPLACE-ME.workers.dev"; // ← 部署 Cloudflare Worker 后换成你的网址
+  var CNT_ENDPOINT = "https://fubian-counter.dihe.workers.dev"; // Cloudflare Worker 计数服务
   var TOOL = "_home";
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{

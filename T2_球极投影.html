@@ -543,7 +543,7 @@ EduTelemetry.log("open");
 
 // ── 访问统计（PV+UV，发往自建计数服务；离线/连不上时静默跳过，绝不影响工具使用）──
 (function(){
-  var CNT_ENDPOINT = "https://REPLACE-ME.workers.dev"; // ← 部署 Cloudflare Worker 后，把这里换成你的网址
+  var CNT_ENDPOINT = "https://fubian-counter.dihe.workers.dev"; // Cloudflare Worker 计数服务
   var TOOL = "T2_球极投影";                              // ← 本工具的统计名（每个工具改这一行）
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{
