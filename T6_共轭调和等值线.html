@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T6 共轭调和等值线</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --teal:#319795; --red:#c53030; --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#5b21b6,#7c3aed); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .hint math{color:#fff;}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  #cvLegend{position:absolute; left:12px; top:12px; background:rgba(255,255,255,.92);
+       border:1px solid var(--line); border-radius:9px; padding:8px 11px; font-size:12.5px;
+       color:var(--ink); line-height:1.9; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,.06);}
+  #cvLegend b{font-weight:700;}
+  #cvLegend .sw{display:inline-block; vertical-align:middle; margin-right:7px;}
+  #cvLegend .pp{margin-top:3px; color:var(--sub); font-size:11.5px;}
+  .panel{width:342px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .modebtns{display:flex; gap:8px;}
+  .modebtns button{flex:1; border:1px solid var(--line); background:#fff; border-radius:9px; cursor:pointer;
+       font-size:13px; padding:9px 8px; color:var(--ink); line-height:1.3;}
+  .modebtns button:hover{background:#f6f2fd; border-color:var(--purple);}
+  .modebtns button.sel{background:#f3ecfe; border-color:var(--purple); color:var(--purple); font-weight:700;}
+  .fbtns{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .fbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 9px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .fbtns button.warn{border-style:dashed;}
+  .fbtns button.warn.sel{background:#fffaf0; border-color:var(--orange); color:#9c4221;}
+  .inprow{display:flex; align-items:center; gap:8px;}
+  .inprow .lab{font-size:14px; color:var(--sub); white-space:nowrap;}
+  .inp{flex:1; min-width:0; font-family:"Consolas","Cambria Math",monospace; font-size:14px;
+       padding:6px 8px; border:1px solid var(--line); border-radius:8px; color:var(--ink);}
+  .inp:focus{outline:none; border-color:var(--purple);}
+  .inp.bad{border-color:#e53e3e; background:#fff5f5;}
+  #err{color:#c53030; font-size:12px; margin-top:6px; min-height:0;}
+  .hintnote{font-size:11.5px; color:var(--sub); margin-top:8px; line-height:1.6;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .scene{margin:2px 0 10px; padding:9px 11px; border-radius:9px; background:#f3ecfe;
+         border:1px solid #d6bcfa; font-size:13px; color:#44337a; line-height:1.7;}
+  .scene .nm{font-weight:700; color:#6b46c1; display:block; margin-bottom:2px; font-size:13.5px;}
+  .scene.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .scene.warn .nm{color:#9c4221;}
+  .val{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin:6px 0;}
+  .val .t{font-size:11.5px; color:var(--sub); display:block; margin-bottom:3px;}
+  .val .big{font-size:15px;}
+  .expr{font-family:"Consolas","Cambria Math",monospace; font-size:14px; color:#2d3748;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .corr.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .bar{width:18px; height:0; border-top-width:3px; border-top-style:solid; display:inline-block;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(760px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--purple);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  #modal code{font-family:"Consolas",monospace; background:#f7fafc; padding:1px 5px; border-radius:4px; font-size:13px;}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.12em;}
+  .steps{font-size:12.5px; color:#2d3748; line-height:1.7; background:#f7fafc;
+         border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px;}
+  .steps math{font-size:1.05em;}
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>共轭调和等值线</h1>
+    <span class="hint">解析函数的实部 <math><mi>u</mi></math>、虚部 <math><mi>v</mi></math> 互为<b>共轭调和</b>，<math><mi>u</mi><mo>=</mo><mi>c</mi></math> 与 <math><mi>v</mi><mo>=</mo><mi>c</mi></math> 处处正交；给定调和的 <math><mi>u</mi></math> 可由 C-R 反求 <math><mi>v</mi></math></span>
+    <span class="tag">T6 · 复变函数与积分变换</span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+      <div id="cvLegend"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>方向</h2>
+        <div class="modebtns" id="modeBtns">
+          <button id="mA">给解析 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math><br><span style="font-size:11.5px;color:var(--sub);">自动拆出 <math><mi>u</mi></math>、<math><mi>v</mi></math></span></button>
+          <button id="mB">给实部 <math><mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo></math><br><span style="font-size:11.5px;color:var(--sub);">反求共轭 <math><mi>v</mi></math></span></button>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>输入</h2>
+        <div id="rowA">
+          <div class="inprow"><span class="lab"><math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo></math></span><input id="fInput" class="inp" spellcheck="false" autocomplete="off"></div>
+          <div class="fbtns" id="libA"></div>
+        </div>
+        <div id="rowB" style="display:none;">
+          <div class="inprow"><span class="lab"><math><mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo></math></span><input id="uInput" class="inp" spellcheck="false" autocomplete="off"></div>
+          <div class="fbtns" id="libB"></div>
+        </div>
+        <div id="err"></div>
+        <div class="hintnote" id="inpNote"></div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tEquip" checked> 等值线 <math><mi>u</mi><mo>=</mo><mi>c</mi></math>（实部）</label>
+        <label><input type="checkbox" id="tField" checked> 正交线 <math><mi>v</mi><mo>=</mo><mi>c</mi></math>（共轭调和）</label>
+        <label><input type="checkbox" id="tLap"> <math><mi>&#x394;</mi><mi>u</mi></math> 热图（验证调和性）</label>
+        <label><input type="checkbox" id="tFrame" checked> 鼠标处局部正交标架</label>
+        <label><input type="checkbox" id="tGrid" checked> 参考网格</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend" id="legend"></div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bReset">复位视图</button>
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T6"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T6_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function sub(a,b){ return `<msub><mi>${a}</mi><mi>${b}</mi></msub>`; }
+const F={
+  uc: mml("<mi>u</mi><mo>=</mo><mi>c</mi>"),
+  vc: mml("<mi>v</mi><mo>=</mo><mi>c</mi>"),
+  lap0: mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo><mn>0</mn>"),
+  du: mml("<mi>&#x394;</mi><mi>u</mi>"),
+  cr: mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mo>,</mo><mspace width='.4em'/>"+sub("v","y")+"<mo>=</mo>"+sub("u","x")),
+  gradperp: mml("<mo>&#x2207;</mo><mi>u</mi><mo>&#x22C5;</mo><mo>&#x2207;</mo><mi>v</mi><mo>=</mo><mn>0</mn>"),
+  vint: mml("<mi>v</mi><mo>=</mo><mo>&#x222B;</mo><mo>(</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mi>d</mi><mi>x</mi><mo>+</mo>"+sub("u","x")+"<mi>d</mi><mi>y</mi><mo>)</mo>")
+};
+
+/* ============ 复数运算 & 表达式求值器 ============
+   一套解析器同时服务两种模式：
+   模式A 变量 z=x+iy（取实部=u、虚部=v）；模式B 变量 x,y 视为实数（取实部=u）。*/
+const C={
+  add:(a,b)=>({re:a.re+b.re, im:a.im+b.im}),
+  sub:(a,b)=>({re:a.re-b.re, im:a.im-b.im}),
+  mul:(a,b)=>({re:a.re*b.re-a.im*b.im, im:a.re*b.im+a.im*b.re}),
+  div:(a,b)=>{const d=b.re*b.re+b.im*b.im; return {re:(a.re*b.re+a.im*b.im)/d, im:(a.im*b.re-a.re*b.im)/d};},
+  neg:(a)=>({re:-a.re, im:-a.im}),
+  exp:(a)=>{const e=Math.exp(a.re); return {re:e*Math.cos(a.im), im:e*Math.sin(a.im)};},
+  ln:(a)=>({re:0.5*Math.log(a.re*a.re+a.im*a.im), im:Math.atan2(a.im,a.re)}),
+  sin:(a)=>({re:Math.sin(a.re)*Math.cosh(a.im), im:Math.cos(a.re)*Math.sinh(a.im)}),
+  cos:(a)=>({re:Math.cos(a.re)*Math.cosh(a.im), im:-Math.sin(a.re)*Math.sinh(a.im)}),
+  sinh:(a)=>({re:Math.sinh(a.re)*Math.cos(a.im), im:Math.cosh(a.re)*Math.sin(a.im)}),
+  cosh:(a)=>({re:Math.cosh(a.re)*Math.cos(a.im), im:Math.sinh(a.re)*Math.sin(a.im)}),
+  sqrt:(a)=>{const r=Math.hypot(a.re,a.im); const re=Math.sqrt(Math.max(0,(r+a.re)/2)); let im=Math.sqrt(Math.max(0,(r-a.re)/2)); if(a.im<0)im=-im; return {re,im};},
+  pow:(a,b)=>{ if(a.re===0&&a.im===0) return {re:0,im:0}; return C.exp(C.mul(b, C.ln(a))); },
+  conj:(a)=>({re:a.re, im:-a.im}),
+  abs:(a)=>({re:Math.hypot(a.re,a.im), im:0})
+};
+const FUNCS={
+  exp:C.exp, ln:C.ln, log:C.ln, sin:C.sin, cos:C.cos,
+  tan:(a)=>C.div(C.sin(a),C.cos(a)), sinh:C.sinh, cosh:C.cosh,
+  tanh:(a)=>C.div(C.sinh(a),C.cosh(a)), sqrt:C.sqrt, conj:C.conj, abs:C.abs,
+  re:(a)=>({re:a.re,im:0}), im:(a)=>({re:a.im,im:0})
+};
+function tokenize(s){
+  const t=[]; let i=0; s=s.replace(/\s+/g,'');
+  const isnum=c=>c>='0'&&c<='9'||c==='.';
+  const isal=c=>/[a-zA-Zπ]/.test(c);
+  while(i<s.length){
+    const c=s[i];
+    if(isnum(c)){ let j=i; while(j<s.length&&isnum(s[j]))j++; t.push({k:'num',v:parseFloat(s.slice(i,j))}); i=j; }
+    else if(isal(c)){ let j=i; while(j<s.length&&isal(s[j]))j++; t.push({k:'id',v:s.slice(i,j)}); i=j; }
+    else if('+-*/^(),'.includes(c)){ t.push({k:c}); i++; }
+    else throw new Error("无法识别的字符 “"+c+"”");
+  }
+  return t;
+}
+// 解析成一个闭包 fn(scope)->complex；scope={z:{re,im}, x, y}
+function parseExpr(str){
+  if(!str || !str.trim()) throw new Error("表达式为空");
+  const t=tokenize(str); let pos=0;
+  const peek=()=>t[pos];
+  function eat(k){ if(t[pos]&&t[pos].k===k){return t[pos++];} throw new Error("缺少 “"+k+"”"); }
+  function expr(){
+    let f=term();
+    while(peek()&&(peek().k==='+'||peek().k==='-')){
+      const op=t[pos++].k, g=term(), a=f,b=g;
+      f = op==='+' ? sc=>C.add(a(sc),b(sc)) : sc=>C.sub(a(sc),b(sc));
+    }
+    return f;
+  }
+  function term(){
+    let f=factor();
+    while(peek()){
+      const k=peek().k;
+      if(k==='*'||k==='/'){ pos++; const g=factor(),a=f,b=g; f = k==='*'?sc=>C.mul(a(sc),b(sc)):sc=>C.div(a(sc),b(sc)); }
+      else if(k==='num'||k==='id'||k==='('){ const g=factor(),a=f,b=g; f=sc=>C.mul(a(sc),b(sc)); } // 隐式乘法 2z、3(z+1)
+      else break;
+    }
+    return f;
+  }
+  function factor(){
+    const b=base();
+    if(peek()&&peek().k==='^'){ pos++; const e=factor(),a=b; return sc=>C.pow(a(sc),e(sc)); }
+    return b;
+  }
+  function base(){
+    const tok=peek();
+    if(!tok) throw new Error("表达式不完整");
+    if(tok.k==='+'){ pos++; return base(); }
+    if(tok.k==='-'){ pos++; const b=base(); return sc=>C.neg(b(sc)); }
+    if(tok.k==='num'){ pos++; const v={re:tok.v,im:0}; return ()=>v; }
+    if(tok.k==='('){ pos++; const e=expr(); eat(')'); return e; }
+    if(tok.k==='id'){
+      pos++; const name=tok.v.toLowerCase();
+      if(peek()&&peek().k==='('){ pos++; const arg=expr(); eat(')'); const fn=FUNCS[name]; if(!fn) throw new Error("未知函数 “"+name+"”"); return sc=>fn(arg(sc)); }
+      if(name==='i'){ const v={re:0,im:1}; return ()=>v; }
+      if(name==='e'){ const v={re:Math.E,im:0}; return ()=>v; }
+      if(name==='pi'||name==='π'){ const v={re:Math.PI,im:0}; return ()=>v; }
+      if(name==='z') return sc=>sc.z;
+      if(name==='x') return sc=>({re:sc.x,im:0});
+      if(name==='y') return sc=>({re:sc.y,im:0});
+      throw new Error("未知符号 “"+name+"”");
+    }
+    throw new Error("语法错误");
+  }
+  const fn=expr();
+  if(pos<t.length) throw new Error("多余的符号");
+  return fn;
+}
+
+/* ============ 函数库 ============ */
+const LIBA=[
+  {ml:mml("<mi>z</mi>"), e:"z"},
+  {ml:mml("<msup><mi>z</mi><mn>2</mn></msup>"), e:"z^2"},
+  {ml:mml("<msup><mi>z</mi><mn>3</mn></msup>"), e:"z^3"},
+  {ml:mml("<mfrac><mn>1</mn><mi>z</mi></mfrac>"), e:"1/z"},
+  {ml:mml("<msup><mi>e</mi><mi>z</mi></msup>"), e:"exp(z)"},
+  {ml:mml("<mi>sin</mi><mo>&#x2061;</mo><mi>z</mi>"), e:"sin(z)"},
+  {ml:mml("<mi>z</mi><mo>+</mo><mfrac><mn>1</mn><mi>z</mi></mfrac>"), e:"z+1/z"},
+  {ml:mml("<mfrac><mrow><mi>z</mi><mo>&#x2212;</mo><mn>1</mn></mrow><mrow><mi>z</mi><mo>+</mo><mn>1</mn></mrow></mfrac>"), e:"(z-1)/(z+1)"}
+];
+const LIBB=[
+  {ml:mml("<mi>x</mi>"), e:"x"},
+  {ml:mml("<msup><mi>x</mi><mn>2</mn></msup><mo>&#x2212;</mo><msup><mi>y</mi><mn>2</mn></msup>"), e:"x^2-y^2"},
+  {ml:mml("<msup><mi>x</mi><mn>3</mn></msup><mo>&#x2212;</mo><mn>3</mn><mi>x</mi><msup><mi>y</mi><mn>2</mn></msup>"), e:"x^3-3*x*y^2"},
+  {ml:mml("<msup><mi>e</mi><mi>x</mi></msup><mi>cos</mi><mo>&#x2061;</mo><mi>y</mi>"), e:"exp(x)*cos(y)"},
+  {ml:mml("<mi>sin</mi><mo>&#x2061;</mo><mi>x</mi><mo>&#x2009;</mo><mi>cosh</mi><mo>&#x2061;</mo><mi>y</mi>"), e:"sin(x)*cosh(y)"},
+  {ml:mml("<mi>x</mi><mi>y</mi>"), e:"x*y"},
+  {ml:mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>"), e:"x^2+y^2", warn:true},
+  {ml:mml("<msup><mi>x</mi><mn>3</mn></msup>"), e:"x^3", warn:true}
+];
+
+/* ============ 状态 ============ */
+let mode="A";
+let exprA="z^2", exprB="x^2-y^2";
+let fnA=null, fnB=null, errMsg=null;
+try{ fnA=parseExpr(exprA); }catch(e){}
+try{ fnB=parseExpr(exprB); }catch(e){}
+
+function SC(x,y){ return {z:{re:x,im:y}, x:x, y:y}; }
+function curFn(){ return mode==="A"?fnA:fnB; }
+function Ufield(x,y){ const fn=curFn(); if(!fn) return NaN; try{ return fn(SC(x,y)).re; }catch(e){ return NaN; } }
+function VfieldA(x,y){ if(!fnA) return NaN; try{ return fnA(SC(x,y)).im; }catch(e){ return NaN; } }
+
+/* ============ 视口与坐标 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=900,H=480, cx=450, cy=240, viewHalf=2.6, s=90;
+const show={equip:true, field:true, lap:false, frame:true, grid:true, axis:true};
+const GRIDN=92, HEATN=58, NLEV=13;
+let probe=null, lastVGrid=null, lapInfo={mx:0,skipped:false};
+let logLevelActive=false;   // 本帧是否有等值线族改用了对数间距 level（供读数区动态提示）
+const BLUE="#2b6cb0", ORANGE="#dd6b20";
+
+function layout(){ s=Math.min(W,H)/2/viewHalf*0.9; }
+function toS(z){ return {x:cx+z.x*s, y:cy-z.y*s}; }
+function fromS(sx,sy){ return {x:(sx-cx)/s, y:(cy-sy)/s}; }
+function bounds(){ const tl=fromS(0,0), br=fromS(W,H); return {xmin:tl.x,xmax:br.x,ymin:br.y,ymax:tl.y}; }
+
+/* ============ 采样网格 + 等值线（marching squares）============ */
+function buildGrid(Fn){
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const N=GRIDN, M=Math.max(24,Math.round(N*(ymax-ymin)/(xmax-xmin)));
+  const xs=new Array(N+1), ys=new Array(M+1), Z=[];
+  for(let i=0;i<=N;i++) xs[i]=xmin+(xmax-xmin)*i/N;
+  for(let j=0;j<=M;j++) ys[j]=ymin+(ymax-ymin)*j/M;
+  for(let i=0;i<=N;i++){ const col=new Array(M+1); for(let j=0;j<=M;j++){ let v=Fn(xs[i],ys[j]); col[j]=(isFinite(v)&&Math.abs(v)<1e4)?v:NaN; } Z.push(col); }
+  return {xs,ys,Z,N,M};
+}
+function pickLevels(g,n){
+  const vals=[]; for(let i=0;i<=g.N;i++)for(let j=0;j<=g.M;j++){const v=g.Z[i][j]; if(isFinite(v))vals.push(v);}
+  if(vals.length<4) return [];
+  vals.sort((a,b)=>a-b);
+  const q=p=>vals[Math.min(vals.length-1,Math.max(0,Math.floor(vals.length*p)))];
+  const lo=q(0.05), hi=q(0.95);
+  if(!(hi>lo)) return [];
+  // 动态范围诊断：指数型场（如 eᶻ、Ln z）数值跨多个量级，线性 level 会被大值区垄断、
+  // 小值区（如 eᶻ 的左半平面）画不出等值线。此时改用按量级的对数间距 level。
+  const mags=vals.map(Math.abs).filter(a=>a>0).sort((a,b)=>a-b);
+  const mHi=mags.length?mags[Math.floor(mags.length*0.95)]:0;
+  const mLoRaw=mags.length?mags[Math.floor(mags.length*0.30)]:0;
+  const mLo=Math.max(mLoRaw, mHi/3000);
+  const wide = mLo>0 && mHi/mLo>120;
+  const out=[];
+  if(!wide){                                   // 温和/多项式场：线性（与原行为一致）
+    for(let k=1;k<=n;k++) out.push(lo+(hi-lo)*k/(n+1));
+    return out;
+  }
+  logLevelActive=true;                          // 本帧至少有一族改走对数间距
+
+  const K=Math.max(3, Math.round(n/2)+1);       // 对数间距的量级数
+  const hasPos=hi>0, hasNeg=lo<0;
+  for(let k=0;k<K;k++){
+    const m=mLo*Math.pow(mHi/mLo, k/(K-1));
+    if(hasPos && m<=hi*1.0001) out.push(m);
+    if(hasNeg && -m>=lo*1.0001) out.push(-m);
+  }
+  return out;
+}
+function contourSegs(g, level){
+  const segs=[]; const {xs,ys,Z,N,M}=g;
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+    const a=Z[i][j], b=Z[i+1][j], c=Z[i+1][j+1], d=Z[i][j+1];
+    if(isNaN(a)||isNaN(b)||isNaN(c)||isNaN(d)) continue;
+    const p=[];
+    if((a-level)*(b-level)<0){ const t=(level-a)/(b-a); p.push({x:xs[i]+(xs[i+1]-xs[i])*t, y:ys[j]}); }
+    if((b-level)*(c-level)<0){ const t=(level-b)/(c-b); p.push({x:xs[i+1], y:ys[j]+(ys[j+1]-ys[j])*t}); }
+    if((c-level)*(d-level)<0){ const t=(level-c)/(d-c); p.push({x:xs[i+1]+(xs[i]-xs[i+1])*t, y:ys[j+1]}); }
+    if((d-level)*(a-level)<0){ const t=(level-d)/(a-d); p.push({x:xs[i], y:ys[j+1]+(ys[j]-ys[j+1])*t}); }
+    if(p.length===2) segs.push([p[0],p[1]]);
+    else if(p.length===4){ segs.push([p[0],p[1]]); segs.push([p[2],p[3]]); }
+  }
+  return segs;
+}
+function drawGridContours(g, nLev, color, dashed, lw){
+  const levels=pickLevels(g,nLev);
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=lw||1.5;
+  if(dashed) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  for(const L of levels){ for(const sg of contourSegs(g,L)){ const A=toS(sg[0]),B=toS(sg[1]); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); } }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+}
+function drawContours(Fn, nLev, color, dashed, lw){ drawGridContours(buildGrid(Fn),nLev,color,dashed,lw); }
+
+/* 由 u 的采样网格，用 C-R（v_x=−u_y, v_y=u_x）在网格上数值重建共轭 v */
+function conjGrid(g){
+  const {xs,ys,Z,N,M}=g;
+  const V=[]; for(let i=0;i<=N;i++) V.push(new Array(M+1).fill(NaN));
+  const ux=(i,j)=>{ const ip=Math.min(N,i+1), im=Math.max(0,i-1); const dd=xs[ip]-xs[im]; return (Z[ip][j]-Z[im][j])/dd; };
+  const uy=(i,j)=>{ const jp=Math.min(M,j+1), jm=Math.max(0,j-1); const dd=ys[jp]-ys[jm]; return (Z[i][jp]-Z[i][jm])/dd; };
+  V[0][0]=0;
+  for(let j=1;j<=M;j++){ const dy=ys[j]-ys[j-1]; V[0][j]=V[0][j-1]+0.5*(ux(0,j)+ux(0,j-1))*dy; }        // 沿最左列：dV/dy = u_x
+  for(let j=0;j<=M;j++) for(let i=1;i<=N;i++){ const dx=xs[i]-xs[i-1]; V[i][j]=V[i-1][j]+0.5*(-uy(i,j)-uy(i-1,j))*dx; } // 沿各行：dV/dx = −u_y
+  for(let i=0;i<=N;i++)for(let j=0;j<=M;j++){ if(isNaN(Z[i][j])) V[i][j]=NaN; }
+  return {xs,ys,Z:V,N,M};
+}
+function interpV(g,x,y){
+  if(!g) return NaN;
+  const {xs,ys,Z,N,M}=g;
+  if(x<xs[0]||x>xs[N]||y<ys[0]||y>ys[M]) return NaN;
+  let i=Math.min(N-1,Math.max(0,Math.floor((x-xs[0])/(xs[N]-xs[0])*N)));
+  let j=Math.min(M-1,Math.max(0,Math.floor((y-ys[0])/(ys[M]-ys[0])*M)));
+  const a=Z[i][j],b=Z[i+1][j],c=Z[i+1][j+1],d=Z[i][j+1];
+  if(![a,b,c,d].every(isFinite)) return NaN;
+  const tx=(x-xs[i])/(xs[i+1]-xs[i]), ty=(y-ys[j])/(ys[j+1]-ys[j]);
+  return (a*(1-tx)+b*tx)*(1-ty)+(d*(1-tx)+c*tx)*ty;
+}
+
+/* ============ Δu 数值拉普拉斯 ============ */
+function gradU(x,y){ const h=1e-3;
+  return { x:(Ufield(x+h,y)-Ufield(x-h,y))/(2*h), y:(Ufield(x,y+h)-Ufield(x,y-h))/(2*h) }; }
+// 单点二阶差分：返回 {lap=u_xx+u_yy, scale=|u_xx|+|u_yy|, singular}，极点附近 scale 极大即判为 singular
+function cellLap(x,y,h){
+  const c=Ufield(x,y);
+  if(!isFinite(c)||Math.abs(c)>800) return null;
+  const uxx=(Ufield(x+h,y)+Ufield(x-h,y)-2*c)/(h*h);
+  const uyy=(Ufield(x,y+h)+Ufield(x,y-h)-2*c)/(h*h);
+  if(!isFinite(uxx)||!isFinite(uyy)) return null;
+  const scale=Math.abs(uxx)+Math.abs(uyy);
+  return {lap:uxx+uyy, scale, singular: scale>400};
+}
+function computeLap(){   // 返回 {mx=最大|Δu|, rel=最大相对残差, skipped, h}
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const N=HEATN, M=Math.max(20,Math.round(N*(ymax-ymin)/(xmax-xmin)));
+  const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h=Math.max(2e-3, Math.min(dw,dh)*0.12);
+  let mx=0, rel=0, skipped=false;
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+    const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
+    const r=cellLap(x,y,h);
+    if(!r||r.singular){ skipped=skipped||!!r; continue; }               // 极点/奇点附近排除
+    const a=Math.abs(r.lap);
+    if(a>mx) mx=a;
+    const rr=a/(r.scale+0.5);   // 相对残差：调和时 u_xx、u_yy 大而相消 ⟹ ≈0；不调和 ⟹ O(1)
+    if(rr>rel) rel=rr;
+  }
+  return {mx, rel, skipped, h};
+}
+function drawLaplacian(info, harmonic){
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const N=HEATN, M=Math.max(20,Math.round(N*(ymax-ymin)/(xmax-xmin)));
+  const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h=info.h, SCALE=2;
+  ctx.save();
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+    const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
+    const r=cellLap(x,y,h);
+    if(!r||r.singular) continue;
+    const a=Math.min(0.72, Math.abs(r.lap)/SCALE);
+    if(a<0.02) continue;
+    ctx.fillStyle=`rgba(197,48,48,${a})`;
+    const A=toS({x:x-dw/2,y:y-dh/2}), B=toS({x:x+dw/2,y:y+dh/2});
+    ctx.fillRect(A.x, B.y, B.x-A.x+1, A.y-B.y+1);
+  }
+  const flat = harmonic;
+  if(flat){
+    const TL=toS({x:xmin,y:ymax}), BR=toS({x:xmax,y:ymin});
+    ctx.fillStyle="rgba(47,133,90,.10)"; ctx.fillRect(TL.x, TL.y, BR.x-TL.x, BR.y-TL.y);
+  }
+  ctx.restore();
+  const mx=mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>");
+  const ex=info.skipped?"，奇点/极点附近已排除":"";
+  let pill;
+  if(flat){
+    pill=`<span style="background:rgba(47,133,90,.14);color:#276749;border:1px solid #9ae6b4;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
+         `调和性验证 ✓　全场 ${F.du} ≈ 0（实测 ${mx} ≈ ${fmt(info.mx)}${ex}）</span>`;
+  }else{
+    pill=`<span style="background:rgba(197,48,48,.13);color:#9b2c2c;border:1px solid #feb2b2;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
+         `调和性验证 ✗　${mx} ≈ ${fmt(info.mx)} ≠ 0（此 ${mml("<mi>u</mi>")} 不调和${ex}）</span>`;
+  }
+  addLabel(pill, W/2, H-20, "#333", 12.5);
+}
+
+/* ============ 叠加层 & 记号 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size,opt){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  if(opt&&opt.anchor==="left") d.style.transform="translate(0,-50%)";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+function arrowHead(x,y,ang,color,len){
+  const ah=len||8; ctx.save(); ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  ctx.lineTo(x-ah*Math.cos(ang-0.42), y-ah*Math.sin(ang-0.42));
+  ctx.lineTo(x-ah*Math.cos(ang+0.42), y-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*100)/100; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+
+/* ============ 是否调和（当前 u）============ */
+// 模式A：f 解析 ⟹ 实部恒调和（奇点除外），不由数值判定；模式B：看相对残差
+function isHarmonicNow(info){ return mode==="A" ? true : info.rel<0.08; }
+
+/* ============ 主绘制 ============ */
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels();
+  layout();
+  ctx.fillStyle="#fdfefe"; ctx.fillRect(0,0,W,H);
+
+  if(show.grid){
+    ctx.strokeStyle="#edf1f6"; ctx.lineWidth=1;
+    const b=bounds();
+    const lo=Math.ceil(b.xmin/0.5)*0.5;
+    for(let g=lo; g<=b.xmax+1e-9; g+=0.5){ let a=toS({x:g,y:b.ymin}), c=toS({x:g,y:b.ymax}); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke(); }
+    const lo2=Math.ceil(b.ymin/0.5)*0.5;
+    for(let g=lo2; g<=b.ymax+1e-9; g+=0.5){ let a=toS({x:b.xmin,y:g}), c=toS({x:b.xmax,y:g}); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke(); }
+  }
+
+  lapInfo = computeLap();
+  const harmonic = isHarmonicNow(lapInfo);
+
+  if(show.lap) drawLaplacian(lapInfo, harmonic);
+
+  const o=toS({x:0,y:0});
+  if(show.axis){
+    ctx.strokeStyle="#5f6b7a"; ctx.fillStyle="#5f6b7a"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(6,o.y); ctx.lineTo(W-8,o.y); ctx.stroke(); arrowHead(W-7,o.y,0,"#5f6b7a");
+    ctx.beginPath(); ctx.moveTo(o.x,H-6); ctx.lineTo(o.x,10); ctx.stroke(); arrowHead(o.x,9,-Math.PI/2,"#5f6b7a");
+    addLabel(mml("<mi>Re</mi>"), W-20, o.y-14, "#4a5568", 13);
+    addLabel(mml("<mi>Im</mi>"), o.x+16, 22, "#4a5568", 13);
+  }
+
+  // 等值线
+  lastVGrid=null; logLevelActive=false;
+  if(mode==="A"){
+    if(show.equip) drawContours(Ufield, NLEV, BLUE, false, 1.7);
+    if(show.field) drawContours(VfieldA, NLEV, ORANGE, true, 1.4);
+  }else{
+    const ug=buildGrid(Ufield);
+    if(show.equip) drawGridContours(ug, NLEV, BLUE, false, 1.7);
+    if(harmonic){ const vg=conjGrid(ug); lastVGrid=vg; if(show.field) drawGridContours(vg, NLEV, ORANGE, true, 1.4); }
+  }
+
+  // 局部正交标架（鼠标处）
+  if(show.frame && probe && (mode==="A"||harmonic)){
+    const g=gradU(probe.x,probe.y), n=Math.hypot(g.x,g.y);
+    if(n>1e-6 && isFinite(n)){
+      const gx=g.x/n, gy=g.y/n;
+      const P=toS(probe), L=26;
+      ctx.save(); ctx.lineWidth=2.4;
+      ctx.strokeStyle=ORANGE; const dvx=gx, dvy=-gy;   // ∇u 方向 = v 等值线切向（沿 ∇u）
+      ctx.beginPath(); ctx.moveTo(P.x-dvx*L,P.y-dvy*L); ctx.lineTo(P.x+dvx*L,P.y+dvy*L); ctx.stroke();
+      ctx.strokeStyle=BLUE; const dux=-gy, duy=-gx;     // 垂直方向 = u 等值线切向
+      ctx.beginPath(); ctx.moveTo(P.x-dux*L,P.y-duy*L); ctx.lineTo(P.x+dux*L,P.y+duy*L); ctx.stroke();
+      const m=8; ctx.strokeStyle="#4a5568"; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.moveTo(P.x+dux*m,P.y+duy*m); ctx.lineTo(P.x+dux*m+dvx*m,P.y+duy*m+dvy*m); ctx.lineTo(P.x+dvx*m,P.y+dvy*m); ctx.stroke();
+      ctx.fillStyle="#2d3748"; ctx.beginPath(); ctx.arc(P.x,P.y,2.6,0,7); ctx.fill();
+      ctx.restore();
+      const uv=Ufield(probe.x,probe.y);
+      const vv=(mode==="A")?VfieldA(probe.x,probe.y):interpV(lastVGrid,probe.x,probe.y);
+      let txt=`<span style="color:${BLUE};">${mml("<mi>u</mi>")}=${fmt(uv)}</span>`;
+      if(isFinite(vv)) txt+=`　<span style="color:${ORANGE};">${mml("<mi>v</mi>")}=${fmt(vv)}</span>`;
+      addLabel(txt, P.x+16, P.y-30, "#2d3748", 13, {anchor:"left"});
+    }
+  }
+
+  updateReadout(harmonic);
+}
+
+/* ============ 读数 ============ */
+function updateReadout(harmonic){
+  const box=document.getElementById("readout");
+  let html=`<h2 style="margin-bottom:8px;">读数</h2>`;
+  if(errMsg){
+    html+=`<div class="scene warn"><span class="nm">输入无法解析</span>${errMsg}。请修正后再看图（下方仍显示上一个有效表达式）。</div>`;
+  }
+  if(mode==="A"){
+    html+=`<div class="scene"><span class="nm">方向：给解析 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}</span>只要 ${mml("<mi>f</mi>")} 解析，实部 ${mml("<mi>u</mi>")}、虚部 ${mml("<mi>v</mi>")} <b>自动</b>互为共轭调和，无需另求。</div>`;
+    html+=`<div class="val"><span class="t">当前解析函数</span><span class="big expr">f(z) = ${escapeHtml(exprA)}</span></div>`;
+    html+=`<div class="val"><span class="t">实部（蓝，${F.uc}）／ 虚部（橙，${F.vc}）</span><span class="big">${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}　${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")}</span></div>`;
+    html+=`<div class="corr"><b>都调和：</b>${mml(sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}，${mml(sub("v","xx")+"<mo>+</mo>"+sub("v","yy")+"<mo>=</mo><mn>0</mn>")}；两者满足 C-R ${F.cr}。</div>`;
+    html+=orientNote();
+  }else{
+    html+=`<div class="scene${harmonic?'':' warn'}"><span class="nm">方向：给实部 ${mml("<mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</span>`+
+          `先验证 ${mml("<mi>u</mi>")} 是否调和（勾"${F.du} 热图"看），再由 C-R 反求 ${mml("<mi>v</mi>")}（大纲难点）。</div>`;
+    html+=`<div class="val"><span class="t">当前实部</span><span class="big expr">u(x,y) = ${escapeHtml(exprB)}</span></div>`;
+    if(harmonic){
+      html+=`<div class="corr"><b>${mml("<mi>u</mi>")} 调和</b>（实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)}）。已按 ${F.cr} 沿路径积分 ${F.vint} <b>数值重建共轭 ${mml("<mi>v</mi>")}</b>，画成橙色 ${F.vc}。</div>`;
+      html+=`<div class="k" style="margin-top:8px;">由 ${mml("<mi>u</mi>")} 求 ${mml("<mi>v</mi>")}（C-R 方程）</div>`;
+      html+=`<div class="steps">① 求偏导 ${mml(sub("u","x")+"<mo>,</mo>&#x2009;"+sub("u","y"))}；② 由 ${mml(sub("v","y")+"<mo>=</mo>"+sub("u","x"))} 对 ${mml("<mi>y</mi>")} 积分得 ${mml("<mi>v</mi>")} 含待定 ${mml("<mi>g</mi><mo>(</mo><mi>x</mi><mo>)</mo>")}；③ 再用 ${mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y"))} 定出 ${mml("<msup><mi>g</mi><mo>&#x2032;</mo></msup>")}。本工具对你输入的 ${mml("<mi>u</mi>")} 直接做数值积分，得到的 ${mml("<mi>v</mi>")} 差一个常数。</div>`;
+      html+=orientNote();
+    }else{
+      html+=`<div class="corr warn"><b>${mml("<mi>u</mi>")} 不调和：</b>实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)} ≠ 0。<b>不存在</b>共轭调和 ${mml("<mi>v</mi>")}，拼不出解析的 ${mml("<mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")}，故不画橙线。</div>`;
+      html+=`<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">试试库里的 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>&#x2212;</mo><msup><mi>y</mi><mn>2</mn></msup>")} 等（调和），对比 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")}（不调和）。</div>`;
+    }
+  }
+  if(logLevelActive){
+    html+=`<div style="color:#553c9a;background:#f5f0ff;border:1px solid #d6bcfa;border-radius:6px;padding:8px 10px;font-size:12.5px;margin-top:8px;">`+
+          `本函数的取值跨多个数量级（如 ${mml("<msup><mi>e</mi><mi>z</mi></msup>")} 在右侧极大、左侧极小），`+
+          `等值线高度已<b>按量级（对数）间距</b>自动选取，好让大、小值区都画得出等值线（否则左半平面会几乎空白）。`+
+          `因此线的疏密不代表场变化快慢，只表示跨越了不同数量级。`+
+          `</div>`;
+  }
+  box.innerHTML=html;
+}
+function orientNote(){
+  return `<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">蓝实线 = <b>${F.uc}</b>（实部等值线）；橙虚线 = <b>${F.vc}</b>（共轭调和等值线）。两族<b>处处正交</b>——这正是 C-R 方程 ${F.gradperp} 的几何含义。把鼠标放到画布上看局部正交小标架。</div>`;
+}
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ============ 交互：探针 ============ */
+function screenXY(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+cv.addEventListener("pointermove",e=>{ if(show.frame){ probe=fromS(...Object.values(screenXY(e))); draw(); } });
+cv.addEventListener("pointerleave",()=>{ if(probe){ probe=null; draw(); } });
+cv.addEventListener("wheel",e=>{ e.preventDefault(); viewHalf=Math.min(9,Math.max(1.2,viewHalf*(e.deltaY<0?0.92:1.087))); draw(); },{passive:false});
+
+/* ============ 输入 & 应用 ============ */
+const fInput=document.getElementById("fInput"), uInput=document.getElementById("uInput");
+const errBox=document.getElementById("err");
+fInput.value=exprA; uInput.value=exprB;
+function applyInput(){
+  const str = mode==="A"?fInput.value:uInput.value;
+  try{
+    const fn=parseExpr(str);
+    // 试算一点，捕获运行期问题
+    fn(SC(0.37,0.51));
+    if(mode==="A"){ fnA=fn; exprA=str; fInput.classList.remove("bad"); }
+    else { fnB=fn; exprB=str; uInput.classList.remove("bad"); }
+    errMsg=null; errBox.textContent="";
+  }catch(e){
+    errMsg=e.message||"表达式有误";
+    errBox.textContent="⚠ "+errMsg;
+    (mode==="A"?fInput:uInput).classList.add("bad");
+  }
+  probe=null; draw();
+}
+function clearLibSel(id){ [...document.getElementById(id).children].forEach(c=>c.classList.remove("sel")); }
+fInput.addEventListener("input", ()=>{ if(mode==="A"){ clearLibSel("libA"); applyInput(); } });
+uInput.addEventListener("input", ()=>{ if(mode==="B"){ clearLibSel("libB"); applyInput(); } });
+
+/* ============ 模式按钮 ============ */
+const mABtn=document.getElementById("mA"), mBBtn=document.getElementById("mB");
+function setMode(m){
+  mode=m; EduTelemetry.log("mode",m);
+  mABtn.classList.toggle("sel", m==="A"); mBBtn.classList.toggle("sel", m==="B");
+  document.getElementById("rowA").style.display = m==="A"?"block":"none";
+  document.getElementById("rowB").style.display = m==="B"?"block":"none";
+  document.getElementById("tField").parentElement.style.opacity="1";
+  fInput.classList.remove("bad"); uInput.classList.remove("bad"); errMsg=null; errBox.textContent="";
+  renderInpNote(); renderCanvasLegend();
+  probe=null; draw();
+}
+mABtn.onclick=()=>setMode("A"); mBBtn.onclick=()=>setMode("B");
+
+/* ============ 库按钮 ============ */
+function buildLib(containerId, lib, targetInput){
+  const box=document.getElementById(containerId);
+  lib.forEach(item=>{
+    const b=document.createElement("button"); b.innerHTML=item.ml;
+    if(item.warn) b.classList.add("warn");
+    b.onclick=()=>{
+      targetInput.value=item.e; EduTelemetry.log("lib",item.e);
+      [...box.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel");
+      applyInput();
+    };
+    box.appendChild(b);
+  });
+}
+buildLib("libA", LIBA, fInput);
+buildLib("libB", LIBB, uInput);
+
+function renderInpNote(){
+  const el=document.getElementById("inpNote");
+  if(mode==="A"){
+    el.innerHTML=`可自由输入解析函数，如 <code>z^3-1</code>、<code>exp(z)</code>、<code>(z-1)/(z+1)</code>、<code>sin(z)</code>。支持 + − × ÷ ^、exp/ln/sin/cos/sinh/cosh/sqrt/conj，常数 i、pi、e。（<code>log</code>、<code>sqrt</code> 有支割线，负实轴附近图形会有跳变。）`;
+  }else{
+    el.innerHTML=`可自由输入实部 <code>u(x,y)</code>，如 <code>x^2-y^2</code>、<code>exp(x)*cos(y)</code>。<b>调和</b>才有共轭 <math><mi>v</mi></math>；带 ⌐ 虚框的 <code>x^2+y^2</code>、<code>x^3</code> 是<b>不调和</b>反例。`;
+  }
+}
+
+/* ============ 显示开关 ============ */
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.checked=show[key];
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); if(key==="frame"&&!el.checked)probe=null; draw(); }); }
+bindToggle("tEquip","equip"); bindToggle("tField","field"); bindToggle("tLap","lap");
+bindToggle("tFrame","frame"); bindToggle("tGrid","grid"); bindToggle("tAxis","axis");
+
+/* ============ 图例 ============ */
+function renderLegend(){
+  document.getElementById("legend").innerHTML=
+    `<span><i class="bar" style="border-top-color:${BLUE}"></i>实部 ${F.uc}</span>`+
+    `<span><i class="bar" style="border-top-color:${ORANGE};border-top-style:dashed"></i>共轭调和 ${F.vc}</span>`;
+}
+function renderCanvasLegend(){
+  const blue=`<svg class="sw" width="24" height="8"><line x1="1" y1="4" x2="23" y2="4" stroke="${BLUE}" stroke-width="2.6"/></svg>`;
+  const orange=`<svg class="sw" width="24" height="8"><line x1="1" y1="4" x2="23" y2="4" stroke="${ORANGE}" stroke-width="2.4" stroke-dasharray="5,4"/></svg>`;
+  let h=`<div>${blue}<b>蓝实线</b>：${F.uc}（实部 ${mml("<mi>u</mi>")}）</div>`+
+        `<div>${orange}<b>橘虚线</b>：${F.vc}（共轭调和 ${mml("<mi>v</mi>")}）</div>`+
+        `<div class="pp">两族处处垂直 · ${F.gradperp}</div>`;
+  document.getElementById("cvLegend").innerHTML=h;
+}
+document.getElementById("bReset").onclick=()=>{ viewHalf=2.6; probe=null; draw(); };
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+/* ============ 使用说明 ============ */
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+document.getElementById("helpBtn").onclick=()=>{ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); };
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("modalX").onclick=closeHelp; mask.onclick=closeHelp;
+document.getElementById("helpBody").innerHTML=
+  `<h2>共轭调和等值线</h2>`+
+  `<p>若 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")} 解析，则 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 都满足拉普拉斯方程（${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}），且由 <b>柯西–黎曼方程</b> ${F.cr} 联系——称 ${mml("<mi>v</mi>")} 是 ${mml("<mi>u</mi>")} 的<b>共轭调和函数</b>。其几何后果：等值线族 ${F.uc} 与 ${F.vc} <b>处处正交</b>（${F.gradperp}）。本工具让你从两个方向亲手验证这件事。</p>`+
+  `<h3>两个方向</h3>`+
+  `<ul>`+
+  `<li><b>给解析 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}</b>：输入任意解析函数，工具自动取 ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")}，画出正交的蓝橙两族。此时 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 天生共轭调和。</li>`+
+  `<li><b>给实部 ${mml("<mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</b>（大纲难点"已知实部求解析函数"）：先勾 ${F.du} 热图判断 ${mml("<mi>u</mi>")} 是否调和；<b>调和</b>时工具按 C-R 沿路径积分 ${F.vint} 数值重建 ${mml("<mi>v</mi>")} 并画出；<b>不调和</b>（如 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")}）时不存在共轭调和，不画橙线。</li>`+
+  `</ul>`+
+  `<h3>怎么输入</h3>`+
+  `<p>点函数库按钮，或在输入框自由键入表达式。支持 <code>+ - * / ^</code>、函数 <code>exp ln log sin cos tan sinh cosh sqrt conj abs</code>、常数 <code>i pi e</code>；模式A 变量是 <code>z</code>，模式B 变量是 <code>x</code>、<code>y</code>。例：<code>z^3-1</code>、<code>(z-1)/(z+1)</code>、<code>exp(x)*cos(y)</code>。</p>`+
+  `<h3>${F.du} 热图（调和性验证）</h3>`+
+  `<p>热图画各点的 ${F.du}。调和 ⟹ 处处 ${mml("<mi>&#x394;</mi><mi>u</mi><mo>&#x2248;</mo><mn>0</mn>")}：画面铺<b>淡绿</b>、底部徽标 ✓；不调和则<b>红</b>、徽标 ✗。奇点/极点（如 ${mml("<mn>1</mn><mo>/</mo><mi>z</mi>")} 在原点）附近数值会失真，已从判定中排除。</p>`+
+  `<p style="color:#553c9a;">说明：本工具是<b>理论概念</b>版，只讲调和 / 共轭调和 / 正交网本身，<b>不涉及物理背景与保角映射</b>。想看它们在静电场 / 温度场 / 理想流体里的具体应用，请用应用案例工具「调和函数与共轭调和 · 物理场应用」。</p>`;
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+"px"; cv.style.height=H+"px";
+  cx=W/2; cy=H/2; draw();
+}
+window.addEventListener("resize",resize);
+// 初始化选中态：默认库项高亮
+(function(){ const la=document.getElementById("libA").children; if(la[1]) la[1].classList.add("sel");
+             const lb=document.getElementById("libB").children; if(lb[1]) lb[1].classList.add("sel"); })();
+setMode("A");
+renderLegend(); renderInpNote(); renderCanvasLegend();
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV；连不上时静默跳过）──
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-conjharm";     // ← 计数键：与工具编号 Tn 解耦的稳定标识，永不改动
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+resize();
+</script>
+</body>
+</html>
