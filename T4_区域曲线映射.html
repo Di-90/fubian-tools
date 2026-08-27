@@ -873,10 +873,12 @@ EduTelemetry.log("open");
 // ── 访问统计（PV+UV；离线/连不上时静默跳过，绝不影响工具使用）──
 (function(){
   var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
-  var TOOL = "T4_区域曲线映射";
+  var TOOL = "fb-region-map";                            // ← 计数键：与工具编号 Tn 解耦的稳定标识，永不改动
+  var TOOL_PREV = "T4_区域曲线映射";                      // ← 曾用计数键，仅用于沿用本浏览器的 UV 去重标记，勿删
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{
     var seenKey="fbtool_seen:"+TOOL;
+    if(!localStorage.getItem(seenKey) && TOOL_PREV && localStorage.getItem("fbtool_seen:"+TOOL_PREV)) localStorage.setItem(seenKey,"1");
     var first=localStorage.getItem(seenKey)?0:1;
     if(first) localStorage.setItem(seenKey,"1");
     var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;

@@ -106,6 +106,8 @@
 // ── 首页访问统计（PV+UV，与各工具同一套计数服务）──
 (function(){
   var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter"; // 腾讯云 CloudBase 计数服务（国内可达）
+  // 计数键约定：一律用与工具编号 Tn 解耦的稳定标识（首页用 _home，各工具用 fb-xxx 语义 slug），
+  // 编号或文件名以后怎么变都不影响计数，历史数据永远连续累加。新增工具沿用此约定，切勿用 Tn 当计数键。
   var TOOL = "_home";
   if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
   try{
