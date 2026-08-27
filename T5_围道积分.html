@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T5 简单闭曲线积分（围道积分）</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --red:#c53030; --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  .panel{width:326px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .row label{font-size:13px; min-width:60px; color:var(--sub);}
+  .row input[type=number]{width:74px; padding:4px 6px; border:1px solid var(--line);
+       border-radius:6px; font-size:14px;}
+  .fbtns,.cbtns{display:flex; flex-wrap:wrap; gap:6px;}
+  .fbtns button,.cbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13.5px; padding:5px 9px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover,.cbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel,.cbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .btns button.go{background:#f0fff4; border-color:#9ae6b4; color:#22643a; font-weight:600;}
+  .btns button.go:hover{background:#c6f6d5;}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout .big{font-size:15px;}
+  .readout div{margin:5px 0;}
+  .val{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin:6px 0;}
+  .val .t{font-size:11.5px; color:var(--sub); display:block; margin-bottom:2px;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .corr.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .plist{margin:4px 0; padding:0; list-style:none; font-size:13px;}
+  .plist li{margin:3px 0; display:flex; align-items:center; gap:6px;}
+  .plist .in{color:var(--green); font-weight:700;}
+  .plist .out{color:#a0aec0;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .bar{width:16px; height:3px; border-radius:2px; display:inline-block;}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block; border:2px solid #2563eb; background:#fff;}
+  .xmk{color:var(--red); font-weight:700; font-size:15px;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(700px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.14em;}
+  .corr math{font-size:1.04em;}
+  .fbtns button math{font-size:1.05em;}
+
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>简单闭曲线积分（围道积分）</h1>
+    <span class="hint">拖动围道或奇点，实时看 <math><mo>&#x222E;</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mi>d</mi><mi>z</mi></math> 如何只由围道内的奇点决定</span>
+    <span class="tag">T5 · 复变函数与积分变换</span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>被积函数 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <div class="fbtns" id="funcBtns"></div>
+      </div>
+
+      <div class="box" id="customBox" style="display:none;">
+        <h2>自定义 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <input id="customIn" type="text" spellcheck="false" autocomplete="off"
+               style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+                      font-size:15px; font-family:Consolas,'Courier New',monospace;" value="1/(z^2+1)">
+        <div id="customPrev" style="margin:9px 0 2px; font-size:16px; min-height:24px; color:var(--ink);"></div>
+        <div id="customErr" style="font-size:12px; color:#c53030; min-height:0;"></div>
+        <div id="customNote" style="font-size:12px; color:#b7791f; line-height:1.5;"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:6px 0 0;line-height:1.55;">
+          可用 <b>z　i　e　pi</b>，运算 <b>+ − * / ^</b>，函数
+          <b>exp　ln　sin　cos　tan　sqrt　conj</b> 等；支持隐式乘法。<br>
+          例：<code>1/z</code>　<code>1/(z^2+1)</code>　<code>exp(z)/z</code>　<code>1/(z^3-1)</code>
+        </p>
+      </div>
+
+      <div class="box" id="dpBox" style="display:none;">
+        <h2>可拖动的简单极点（各留数 = 1）</h2>
+        <p style="font-size:12px;color:var(--sub);margin:2px 0 8px;">红点即极点，拖动它们进出围道，看积分随之改变。此处
+          <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo><mo>&#x2211;</mo><mfrac><mn>1</mn><mrow><mi>z</mi><mo>&#x2212;</mo><msub><mi>p</mi><mi>k</mi></msub></mrow></mfrac></math>。</p>
+        <div class="btns">
+          <button id="addPole">＋ 加一个极点</button>
+          <button id="delPole">− 删一个极点</button>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>围道 <math><mi>C</mi></math>（简单闭曲线）</h2>
+        <div class="cbtns" id="ctBtns"></div>
+        <div class="btns" style="margin-top:9px;">
+          <button id="orientBtn">方向：逆时针（+）</button>
+        </div>
+        <div id="ctParams" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="box">
+        <div class="btns">
+          <button id="bAnim" class="go">▶ 沿围道积分动画</button>
+          <button id="bReset">复位视图</button>
+        </div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tFill" checked> 填充围道内部</label>
+        <label><input type="checkbox" id="tPole" checked> 标注奇点与留数</label>
+        <label><input type="checkbox" id="tGrid" checked> 参考网格</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="bar" style="background:#7c3aed"></i>围道 C（含方向箭头）</span>
+          <span><i class="xmk">✕</i>奇点（极点）</span>
+          <span><i class="dot"></i>可拖动控制点</span>
+        </div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T5"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T5_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*1000)/1000; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+function mmlComplex(re,im){
+  let r=Math.round(re*1000)/1000, i=Math.round(im*1000)/1000;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(!isFinite(r)||!isFinite(i)) return `<mi>&#x221E;</mi>`;
+  if(i===0) return `<mn>${fmt(r)}</mn>`;
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${fmt(ai)}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}<mi>i</mi>`;
+  return `<mn>${fmt(r)}</mn><mo>${i<0?"&#x2212;":"+"}</mo>${coef}<mi>i</mi>`;
+}
+function round3(v){ return Math.round(v*1000)/1000; }
+const OINT = "<mo>&#x222E;</mo><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mspace width='1px'/><mi>d</mi><mi>z</mi>";
+const TWOPII = "<mn>2</mn><mi>&#x3C0;</mi><mi>i</mi>";
+
+/* ============ 复数运算 ============ */
+const ONE={x:1,y:0};
+function cadd(a,b){return{x:a.x+b.x,y:a.y+b.y};}
+function csub(a,b){return{x:a.x-b.x,y:a.y-b.y};}
+function cmul(a,b){return{x:a.x*b.x-a.y*b.y,y:a.x*b.y+a.y*b.x};}
+function cdiv(a,b){const d=b.x*b.x+b.y*b.y;return{x:(a.x*b.x+a.y*b.y)/d,y:(a.y*b.x-a.x*b.y)/d};}
+function cscale(a,k){return{x:a.x*k,y:a.y*k};}
+function cconj(a){return{x:a.x,y:-a.y};}
+function cexp(a){const e=Math.exp(a.x);return{x:e*Math.cos(a.y),y:e*Math.sin(a.y)};}
+function csin(a){return{x:Math.sin(a.x)*Math.cosh(a.y),y:Math.cos(a.x)*Math.sinh(a.y)};}
+function ccos(a){return{x:Math.cos(a.x)*Math.cosh(a.y),y:-Math.sin(a.x)*Math.sinh(a.y)};}
+function ctan(a){return cdiv(csin(a),ccos(a));}
+function csinh(a){return{x:Math.sinh(a.x)*Math.cos(a.y),y:Math.cosh(a.x)*Math.sin(a.y)};}
+function ccosh(a){return{x:Math.cosh(a.x)*Math.cos(a.y),y:Math.sinh(a.x)*Math.sin(a.y)};}
+function ctanh(a){return cdiv(csinh(a),ccosh(a));}
+function clog(a){return{x:Math.log(Math.hypot(a.x,a.y)),y:Math.atan2(a.y,a.x)};}
+function csqrt(a){const r=Math.hypot(a.x,a.y),t=Math.atan2(a.y,a.x),sr=Math.sqrt(r);return{x:sr*Math.cos(t/2),y:sr*Math.sin(t/2)};}
+function cpow(a,b){
+  if(Math.abs(b.y)<1e-12 && Math.abs(b.x-Math.round(b.x))<1e-12){
+    let n=Math.round(b.x); if(n===0) return {x:1,y:0};
+    const neg=n<0; n=Math.abs(n); let r={x:1,y:0};
+    for(let k=0;k<n;k++) r=cmul(r,a);
+    return neg?cdiv(ONE,r):r;
+  }
+  if(a.x===0&&a.y===0) return {x:0,y:0};
+  return cexp(cmul(b,clog(a)));
+}
+function cabs(a){return Math.hypot(a.x,a.y);}
+
+/* ============ 复数表达式解析器（自定义 f(z)，不用 eval）============ */
+const CFUNCS={ exp:cexp, ln:clog, log:clog, sin:csin, cos:ccos, tan:ctan,
+  sinh:csinh, cosh:ccosh, tanh:ctanh, sqrt:csqrt, conj:cconj,
+  abs:a=>({x:cabs(a),y:0}), re:a=>({x:a.x,y:0}), im:a=>({x:a.y,y:0}) };
+const CFUNC_ML={ sqrt:1 };
+function parseCFunc(src, varName){
+  varName = varName || "z";
+  const s=String(src||""); let i=0, multivalued=false;
+  const toks=[];
+  while(i<s.length){
+    const c=s[i];
+    if(c===" "||c==="\t"){ i++; continue; }
+    if(/[0-9.]/.test(c)){ let j=i+1; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num",v:s.slice(i,j)}); i=j; continue; }
+    if(/[a-zA-Zπ]/.test(c)){ let j=i+1; while(j<s.length&&/[a-zA-Z]/.test(s[j])) j++; toks.push({t:"id",v:s.slice(i,j)}); i=j; continue; }
+    if("+-*/^(),".indexOf(c)>=0){ toks.push({t:c}); i++; continue; }
+    if(c==="×"){ toks.push({t:"*"}); i++; continue; }
+    if(c==="÷"){ toks.push({t:"/"}); i++; continue; }
+    if(c==="−"){ toks.push({t:"-"}); i++; continue; }
+    throw new Error("无法识别的字符：“"+c+"”");
+  }
+  let p=0;
+  const peek=()=>toks[p], next=()=>toks[p++];
+  const startsPrimary=tk=>tk&&(tk.t==="num"||tk.t==="id"||tk.t==="(");
+  function wrap(node,need){ return node.prec<need ? `<mrow><mo>(</mo>${node.ml}<mo>)</mo></mrow>` : node.ml; }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    let L=parseMul();
+    while(peek()&&(peek().t==="+"||peek().t==="-")){
+      const op=next().t, R=parseMul(), Lml=wrap(L,1), Rml=wrap(R,op==="-"?2:1), lev=L.ev, rev=R.ev;
+      L={ prec:1, ev: op==="+" ? z=>cadd(lev(z),rev(z)) : z=>csub(lev(z),rev(z)),
+          ml: Lml+`<mo>${op==="+"?"+":"&#x2212;"}</mo>`+Rml };
+    }
+    return L;
+  }
+  function parseMul(){
+    let L=parseUnary();
+    while(true){
+      const tk=peek();
+      let op=null;
+      if(tk&&(tk.t==="*"||tk.t==="/")){ op=next().t; }
+      else if(startsPrimary(tk)){ op="*"; }
+      else break;
+      const R=parseUnary(), lev=L.ev, rev=R.ev;
+      if(op==="/"){
+        L={ prec:2, ev:z=>cdiv(lev(z),rev(z)), ml:`<mfrac><mrow>${L.ml}</mrow><mrow>${R.ml}</mrow></mfrac>` };
+      }else{
+        L={ prec:2, ev:z=>cmul(lev(z),rev(z)), ml: wrap(L,2)+wrap(R,2) };
+      }
+    }
+    return L;
+  }
+  function parseUnary(){
+    const tk=peek();
+    if(tk&&tk.t==="-"){ next(); const R=parseUnary(); const rev=R.ev;
+      return { prec:3, isIntConst:R.isIntConst, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
+    if(tk&&tk.t==="+"){ next(); return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    const base=parsePrimary();
+    if(peek()&&peek().t==="^"){
+      next(); const ex=parseUnary(), bev=base.ev, eev=ex.ev;
+      if(!ex.isIntConst) multivalued=true;
+      return { prec:4, ev:z=>cpow(bev(z),eev(z)), ml:`<msup><mrow>${wrap(base,4)}</mrow><mrow>${ex.ml}</mrow></msup>` };
+    }
+    return base;
+  }
+  function parsePrimary(){
+    const tk=next();
+    if(!tk) throw new Error("表达式不完整");
+    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:5,isIntConst:e.isIntConst,ev:e.ev,ml:e.ml}; }
+    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,isIntConst:Number.isInteger(v),ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
+    if(tk.t==="id"){
+      const nm=tk.v;
+      if(nm===varName) return {prec:5,ev:z=>z,ml:`<mi>${varName}</mi>`};
+      if(nm==="i") return {prec:5,ev:()=>({x:0,y:1}),ml:`<mi>i</mi>`};
+      if(nm==="e") return {prec:5,ev:()=>({x:Math.E,y:0}),ml:`<mi>e</mi>`};
+      if(nm==="pi"||nm==="π") return {prec:5,ev:()=>({x:Math.PI,y:0}),ml:`<mi>&#x3C0;</mi>`};
+      const fn=CFUNCS[nm];
+      if(!fn) throw new Error("未知的名称：“"+nm+"”");
+      if(nm==="sqrt"||nm==="ln"||nm==="log") multivalued=true;
+      if(!peek()||next().t!=="(") throw new Error("函数 "+nm+" 后要跟括号，如 "+nm+"("+varName+")");
+      const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("函数 "+nm+" 缺少右括号 )");
+      const aev=arg.ev;
+      const ml = CFUNC_ML[nm]==1 ? `<msqrt>${arg.ml}</msqrt>`
+                : `<mi>${nm}</mi><mo>&#x2061;</mo><mrow><mo>(</mo>${arg.ml}<mo>)</mo></mrow>`;
+      return {prec:5, ev:z=>fn(aev(z)), ml};
+    }
+    throw new Error("无法解析：附近有多余符号");
+  }
+  const root=parseExpr();
+  if(p<toks.length) throw new Error("表达式末尾有多余内容");
+  root.ev({x:0.3,y:0.4});
+  return { fn: z=>root.ev(z), ml: root.ml, multivalued };
+}
+
+/* ============ 被积函数表（预设含精确极点与留数）============
+   每项：id/ml/f/poles=[{x,y,resX,resY,resML,ordML}]/note/kind('preset'|'custom'|'dpoles') */
+const FUNCS=[
+  {id:"inv", kind:"preset", ml:`<mfrac><mn>1</mn><mi>z</mi></mfrac>`,
+    f:z=>cdiv(ONE,z),
+    poles:[{x:0,y:0,resX:1,resY:0,resML:`<mn>1</mn>`,ordML:"一阶"}],
+    note:"最基本的例子：一阶极点 z=0，留数 1。围道绕它一圈就得 2πi。"},
+  {id:"inv2", kind:"preset", ml:`<mfrac><mn>1</mn><msup><mi>z</mi><mn>2</mn></msup></mfrac>`,
+    f:z=>cdiv(ONE,cmul(z,z)),
+    poles:[{x:0,y:0,resX:0,resY:0,resML:`<mn>0</mn>`,ordML:"二阶"}],
+    note:"二阶极点 z=0，但留数为 0！即便围道套住它，积分仍为 0——极点被套住 ≠ 积分非零。"},
+  {id:"r1", kind:"preset", ml:`<mfrac><mn>1</mn><mrow><msup><mi>z</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow></mfrac>`,
+    f:z=>cdiv(ONE,cadd(cmul(z,z),ONE)),
+    poles:[{x:0,y:1,resX:0,resY:-0.5,resML:`<mo>&#x2212;</mo><mfrac><mi>i</mi><mn>2</mn></mfrac>`,ordML:"一阶"},
+           {x:0,y:-1,resX:0,resY:0.5,resML:`<mfrac><mi>i</mi><mn>2</mn></mfrac>`,ordML:"一阶"}],
+    note:"两个一阶极点 z=±i，留数互为相反数。同时套住两个时留数抵消，积分为 0。"},
+  {id:"r2", kind:"preset", ml:`<mfrac><mi>z</mi><mrow><msup><mi>z</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow></mfrac>`,
+    f:z=>cdiv(z,cadd(cmul(z,z),ONE)),
+    poles:[{x:0,y:1,resX:0.5,resY:0,resML:`<mfrac><mn>1</mn><mn>2</mn></mfrac>`,ordML:"一阶"},
+           {x:0,y:-1,resX:0.5,resY:0,resML:`<mfrac><mn>1</mn><mn>2</mn></mfrac>`,ordML:"一阶"}],
+    note:"极点 z=±i，留数都是 1/2。两个都套住时和为 1，积分 = 2πi。"},
+  {id:"ez", kind:"preset", ml:`<mfrac><msup><mi>e</mi><mi>z</mi></msup><mi>z</mi></mfrac>`,
+    f:z=>cdiv(cexp(z),z),
+    poles:[{x:0,y:0,resX:1,resY:0,resML:`<mn>1</mn>`,ordML:"一阶"}],
+    note:"eᶻ/z：z=0 处一阶极点，留数 = e⁰ = 1（柯西积分公式）。"},
+  {id:"r3", kind:"preset", ml:`<mfrac><mn>1</mn><mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>(</mo><mi>z</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>`,
+    f:z=>cdiv(ONE,cmul(csub(z,ONE),cadd(z,ONE))),
+    poles:[{x:1,y:0,resX:0.5,resY:0,resML:`<mfrac><mn>1</mn><mn>2</mn></mfrac>`,ordML:"一阶"},
+           {x:-1,y:0,resX:-0.5,resY:0,resML:`<mo>&#x2212;</mo><mfrac><mn>1</mn><mn>2</mn></mfrac>`,ordML:"一阶"}],
+    note:"极点 z=±1（实轴上）。只套一个 → ±πi；两个都套 → 留数抵消为 0。"}
+];
+let F=FUNCS[0];
+
+/* 自定义与可拖动极点两种伪函数 */
+const Fcustom={id:"custom", kind:"custom", ml:`<mfrac><mn>1</mn><mrow><msup><mi>z</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn></mrow></mfrac>`,
+  f:z=>cdiv(ONE,cadd(cmul(z,z),ONE)), poles:[], note:"自定义函数：积分为数值计算；奇点由程序自动探测（近似）。", multivalued:false};
+let dpoles=[{x:-0.8,y:0.2},{x:0.9,y:-0.3}];
+const Fdpoles={id:"dpoles", kind:"dpoles",
+  ml:`<mo>&#x2211;</mo><mfrac><mn>1</mn><mrow><mi>z</mi><mo>&#x2212;</mo><msub><mi>p</mi><mi>k</mi></msub></mrow></mfrac>`,
+  f:z=>{ let s={x:0,y:0}; for(const p of dpoles) s=cadd(s,cdiv(ONE,csub(z,p))); return s; },
+  get poles(){ return dpoles.map(p=>({x:p.x,y:p.y,resX:1,resY:0,resML:`<mn>1</mn>`,ordML:"一阶"})); },
+  note:"把简单极点拖进/拖出围道：积分 = 2πi ×（围道内极点个数）。"};
+
+/* ============ 视口与坐标 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=900,H=480, cx=450, cy=240, viewHalf=2.6, s=90;
+const show={fill:true, pole:true, grid:true, axis:true};
+let orient=1;                 // +1 逆时针 / −1 顺时针
+const NINT=3000;              // 数值积分/描线采样数
+
+function layout(){ s=Math.min(W,H)/2/viewHalf*0.9; }
+function toS(z){ return {x:cx+z.x*s, y:cy-z.y*s}; }
+function fromS(sx,sy){ return {x:(sx-cx)/s, y:(cy-sy)/s}; }
+
+/* ============ 围道定义 ============ */
+let ctType="circle";
+const CONTOURS={
+  circle:{ label:"圆", def:()=>({c:{x:0,y:0}, r:1.3}),
+    handles:c=>[{id:"c",x:c.c.x,y:c.c.y,kind:"ct"},{id:"e",x:c.c.x+c.r,y:c.c.y,kind:"ct"}],
+    drag:(c,id,x,y)=>{ if(id==="c")c.c={x,y}; else c.r=Math.max(0.1,Math.hypot(x-c.c.x,y-c.c.y)); },
+    pts:(c,N)=>{ const a=[]; for(let k=0;k<N;k++){ const t=2*Math.PI*k/N; a.push({x:c.c.x+c.r*Math.cos(t),y:c.c.y+c.r*Math.sin(t)}); } return a; },
+    inputs:c=>[ {label:"圆心 Re",val:c.c.x,on:v=>c.c.x=v},{label:"圆心 Im",val:c.c.y,on:v=>c.c.y=v},
+                {label:"半径 r",val:c.r,on:v=>c.r=Math.max(0.1,v)} ] },
+  ellipse:{ label:"椭圆", def:()=>({c:{x:0,y:0}, a:1.7, b:1}),
+    handles:c=>[{id:"c",x:c.c.x,y:c.c.y,kind:"ct"},{id:"a",x:c.c.x+c.a,y:c.c.y,kind:"ct"},{id:"b",x:c.c.x,y:c.c.y+c.b,kind:"ct"}],
+    drag:(c,id,x,y)=>{ if(id==="c")c.c={x,y}; else if(id==="a")c.a=Math.max(0.1,Math.abs(x-c.c.x)); else c.b=Math.max(0.1,Math.abs(y-c.c.y)); },
+    pts:(c,N)=>{ const a=[]; for(let k=0;k<N;k++){ const t=2*Math.PI*k/N; a.push({x:c.c.x+c.a*Math.cos(t),y:c.c.y+c.b*Math.sin(t)}); } return a; },
+    inputs:c=>[ {label:"圆心 Re",val:c.c.x,on:v=>c.c.x=v},{label:"圆心 Im",val:c.c.y,on:v=>c.c.y=v},
+                {label:"半轴 a",val:c.a,on:v=>c.a=Math.max(0.1,v)},{label:"半轴 b",val:c.b,on:v=>c.b=Math.max(0.1,v)} ] },
+  rect:{ label:"矩形", def:()=>({P1:{x:-1.4,y:-1.1}, P2:{x:1.4,y:1.1}}),
+    handles:c=>[{id:"P1",x:c.P1.x,y:c.P1.y,kind:"ct"},{id:"P2",x:c.P2.x,y:c.P2.y,kind:"ct"}],
+    drag:(c,id,x,y)=>{ c[id]={x,y}; },
+    pts:(c,N)=>{ const x0=Math.min(c.P1.x,c.P2.x),x1=Math.max(c.P1.x,c.P2.x),y0=Math.min(c.P1.y,c.P2.y),y1=Math.max(c.P1.y,c.P2.y);
+      const corners=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
+      const per=2*((x1-x0)+(y1-y0)); const a=[];
+      for(let e=0;e<4;e++){ const A=corners[e],B=corners[(e+1)%4];
+        const len=Math.hypot(B.x-A.x,B.y-A.y); const m=Math.max(2,Math.round(N*len/per));
+        for(let k=0;k<m;k++){ const t=k/m; a.push({x:A.x+(B.x-A.x)*t,y:A.y+(B.y-A.y)*t}); } }
+      return a; },
+    inputs:c=>[ {label:"角 Re₁",val:c.P1.x,on:v=>c.P1.x=v},{label:"角 Im₁",val:c.P1.y,on:v=>c.P1.y=v},
+                {label:"角 Re₂",val:c.P2.x,on:v=>c.P2.x=v},{label:"角 Im₂",val:c.P2.y,on:v=>c.P2.y=v} ] }
+};
+let contour=CONTOURS[ctType].def();
+
+/* 生成沿方向排列的围道采样点 */
+function contourPts(N){
+  let p=CONTOURS[ctType].pts(contour, N||NINT);
+  if(orient<0) p=p.slice().reverse();
+  return p;
+}
+
+/* ============ 点在多边形内（射线法）============ */
+function pointInPoly(pt, poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    if(((yi>pt.y)!==(yj>pt.y)) && (pt.x < (xj-xi)*(pt.y-yi)/((yj-yi)||1e-12)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
+/* ============ 数值围道积分：∮ f dz ≈ Σ f(zmid)·Δz（中点法）============ */
+function contourIntegral(fn, pts){
+  let sx=0, sy=0; const n=pts.length;
+  for(let k=0;k<n;k++){
+    const a=pts[k], b=pts[(k+1)%n];
+    const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const dx=b.x-a.x, dy=b.y-a.y;
+    const fz=fn(mid);
+    if(!isFinite(fz.x)||!isFinite(fz.y)) continue;
+    sx += fz.x*dx - fz.y*dy;
+    sy += fz.x*dy + fz.y*dx;
+  }
+  return {x:sx,y:sy};
+}
+/* 累积前缀（动画用）：prefix[k]=前 k 段的积分 */
+function prefixIntegral(fn, pts){
+  const n=pts.length, pre=[{x:0,y:0}]; let sx=0, sy=0;
+  for(let k=0;k<n;k++){
+    const a=pts[k], b=pts[(k+1)%n];
+    const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const dx=b.x-a.x, dy=b.y-a.y;
+    const fz=fn(mid);
+    if(isFinite(fz.x)&&isFinite(fz.y)){ sx += fz.x*dx-fz.y*dy; sy += fz.x*dy+fz.y*dx; }
+    pre.push({x:sx,y:sy});
+  }
+  return pre;
+}
+
+/* ============ 自定义函数的数值极点探测 ============ */
+function detectPoles(fn){
+  const out=[]; const span=viewHalf*1.1, N=64, step=2*span/N;
+  for(let i=0;i<=N;i++)for(let j=0;j<=N;j++){
+    const z0={x:-span+i*step, y:-span+j*step};
+    let v; try{ v=cabs(fn(z0)); }catch(e){ continue; }
+    if(!(v>3)) continue;   // 阈值低，只作候选；靠下面爬坡逼近极点、再用 |f|>300 确认
+    // 爬坡到 |f| 局部极大
+    let p={x:z0.x,y:z0.y}, h=step*0.6;
+    for(let it=0;it<28;it++){
+      let bx=p.x,by=p.y,bv=cabs(fn(p)),moved=false;
+      const dirs=[[h,0],[-h,0],[0,h],[0,-h],[h,h],[h,-h],[-h,h],[-h,-h]];
+      for(const d of dirs){ const q={x:p.x+d[0],y:p.y+d[1]}; const qv=cabs(fn(q)); if(qv>bv){bv=qv;bx=q.x;by=q.y;moved=true;} }
+      if(moved){ p={x:bx,y:by}; } else { h*=0.5; }
+      if(h<1e-4) break;
+    }
+    if(out.some(o=>Math.hypot(o.x-p.x,o.y-p.y)<0.06)) continue;
+    if(cabs(fn(p))<300) continue;
+    // 数值留数：绕 p 的小圆积分 /(2πi)
+    let rx=0,ry=0; const eps=0.03, M=240;
+    for(let k=0;k<M;k++){
+      const t0=2*Math.PI*k/M, t1=2*Math.PI*(k+1)/M;
+      const za={x:p.x+eps*Math.cos(t0),y:p.y+eps*Math.sin(t0)};
+      const zb={x:p.x+eps*Math.cos(t1),y:p.y+eps*Math.sin(t1)};
+      const mid={x:(za.x+zb.x)/2,y:(za.y+zb.y)/2};
+      const dx=zb.x-za.x, dy=zb.y-za.y;
+      const fz=fn(mid); if(!isFinite(fz.x)||!isFinite(fz.y)) continue;
+      rx += fz.x*dx-fz.y*dy; ry += fz.x*dy+fz.y*dx;
+    }
+    const res=cdiv({x:rx,y:ry},{x:0,y:2*Math.PI});
+    out.push({x:round3(p.x),y:round3(p.y), resX:res.x, resY:res.y,
+              resML:mmlComplex(res.x,res.y), ordML:"", approx:true});
+    if(out.length>=8) return out;
+  }
+  return out;
+}
+
+/* 取当前函数的极点列表 */
+function getPoles(){
+  if(F.kind==="dpoles") return F.poles;
+  if(F.kind==="custom") return Fcustom._poles||[];
+  return F.poles;
+}
+
+/* ============ 叠加层标签 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size,opt){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  if(opt&&opt.anchor==="left") d.style.transform="translate(0,-50%)";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+
+/* ============ 绘制助手 ============ */
+function arrowHead(x,y,ang,color,len){
+  const ah=len||8; ctx.save(); ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  ctx.lineTo(x-ah*Math.cos(ang-0.42), y-ah*Math.sin(ang-0.42));
+  ctx.lineTo(x-ah*Math.cos(ang+0.42), y-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function handleDot(q,color){
+  ctx.save(); ctx.fillStyle="#fff"; ctx.strokeStyle=color||"#2563eb"; ctx.lineWidth=2.2;
+  ctx.beginPath(); ctx.arc(q.x,q.y,5.5,0,7); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+function poleMark(q, enclosed){
+  ctx.save();
+  if(enclosed){ ctx.fillStyle="rgba(197,48,48,.14)"; ctx.beginPath(); ctx.arc(q.x,q.y,10,0,7); ctx.fill(); }
+  ctx.strokeStyle=enclosed?"#c53030":"#a0aec0"; ctx.lineWidth=enclosed?2.6:2; const r=6.5;
+  ctx.beginPath(); ctx.moveTo(q.x-r,q.y-r); ctx.lineTo(q.x+r,q.y+r);
+  ctx.moveTo(q.x+r,q.y-r); ctx.lineTo(q.x-r,q.y+r); ctx.stroke();
+  ctx.restore();
+}
+
+/* ============ 主绘制 ============ */
+let animOn=false, animP=0, animPrefix=null, animPts=null;
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels();
+  layout();
+
+  // 背景 + 网格 + 轴
+  ctx.fillStyle="#fdfefe"; ctx.fillRect(0,0,W,H);
+  if(show.grid){
+    ctx.strokeStyle="#edf1f6"; ctx.lineWidth=1;
+    const lo=Math.ceil(-viewHalf/0.5)*0.5;
+    for(let g=lo; g<=viewHalf+1e-9; g+=0.5){
+      let a=toS({x:g,y:-viewHalf}), b=toS({x:g,y:viewHalf});
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      let c=toS({x:-viewHalf,y:g}), d=toS({x:viewHalf,y:g});
+      ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
+    }
+  }
+  const o=toS({x:0,y:0});
+  if(show.axis){
+    ctx.strokeStyle="#5f6b7a"; ctx.fillStyle="#5f6b7a"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(6,o.y); ctx.lineTo(W-8,o.y); ctx.stroke(); arrowHead(W-7,o.y,0,"#5f6b7a");
+    ctx.beginPath(); ctx.moveTo(o.x,H-6); ctx.lineTo(o.x,10); ctx.stroke(); arrowHead(o.x,9,-Math.PI/2,"#5f6b7a");
+    addLabel(mml("<mi>Re</mi>"), W-20, o.y-14, "#4a5568", 13);
+    addLabel(mml("<mi>Im</mi>"), o.x+16, 22, "#4a5568", 13);
+  }
+
+  const pts=contourPts();
+  const poly=pts;
+
+  // 围道内部填充
+  if(show.fill){
+    ctx.save(); ctx.fillStyle="rgba(124,58,237,0.09)"; ctx.beginPath();
+    pts.forEach((z,k)=>{ const q=toS(z); if(k===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); });
+    ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+
+  // 围道曲线
+  ctx.save(); ctx.strokeStyle="#7c3aed"; ctx.lineWidth=2.8; ctx.beginPath();
+  pts.forEach((z,k)=>{ const q=toS(z); if(k===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); });
+  ctx.closePath(); ctx.stroke(); ctx.restore();
+
+  // 方向箭头（沿围道均布几个）
+  const nA=6;
+  for(let a=0;a<nA;a++){
+    const idx=Math.floor(pts.length*(a+0.5)/nA);
+    const A=toS(pts[idx]), B=toS(pts[(idx+3)%pts.length]);
+    const ang=Math.atan2(B.y-A.y, B.x-A.x);
+    arrowHead(A.x,A.y,ang,"#7c3aed",9);
+  }
+
+  // 动画：高亮已走过的弧 + 移动点
+  if(animOn && animPts){
+    const m=Math.max(1,Math.floor(animP*animPts.length));
+    ctx.save(); ctx.strokeStyle="#dd6b20"; ctx.lineWidth=4; ctx.beginPath();
+    for(let k=0;k<=m;k++){ const q=toS(animPts[k%animPts.length]); if(k===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }
+    ctx.stroke(); ctx.restore();
+    const head=toS(animPts[m%animPts.length]);
+    ctx.save(); ctx.fillStyle="#dd6b20"; ctx.beginPath(); ctx.arc(head.x,head.y,6,0,7); ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+  }
+
+  // 奇点标注
+  const poles=getPoles();
+  poles.forEach((pl,idx)=>{
+    const enclosed=pointInPoly(pl, poly);
+    const q=toS(pl);
+    poleMark(q, enclosed);
+    if(show.pole){
+      let lbl="";
+      if(F.kind==="dpoles"){ lbl=mml("<msub><mi>p</mi><mn>"+(idx+1)+"</mn></msub>"); }
+      else { lbl=mml("<mi>Res</mi><mo>=</mo>"+pl.resML) + (pl.approx?"<span style='font-size:11px;color:#a0aec0;'> ≈</span>":""); }
+      addLabel(lbl, q.x+12, q.y-14, enclosed?"#c53030":"#a0aec0", 13, {anchor:"left"});
+    }
+  });
+
+  // 围道控制点
+  for(const h of CONTOURS[ctType].handles(contour)){ handleDot(toS(h), "#7c3aed"); }
+  // 可拖动极点即控制点
+  if(F.kind==="dpoles"){ for(const p of dpoles) handleDot(toS(p), "#c53030"); }
+
+  updateReadout(pts, poly);
+}
+
+/* ============ 读数 ============ */
+function famousNote(){
+  if(F.id==="inv2") return "留数为 0 的极点：即使把它套在里面，"+mml(OINT)+" 仍等于 0。";
+  if(F.id==="r1"){ return "两个极点留数相反：同时套住时 "+mml(OINT)+" = 0，只套一个才非零。"; }
+  return "";
+}
+function updateReadout(pts, poly){
+  const poles=getPoles();
+  const enclosed=poles.filter(pl=>pointInPoly(pl,poly));
+  const I=contourIntegral(F.f, pts);           // 数值积分
+  // 最近奇点距离（判断围道是否贴着奇点，数值不可靠）
+  let minD=Infinity;
+  for(const pl of poles){ for(const z of pts){ const d=Math.hypot(z.x-pl.x,z.y-pl.y); if(d<minD)minD=d; } }
+  const nearPole = minD<0.05;
+
+  let sumR={x:0,y:0}; enclosed.forEach(pl=>{ sumR=cadd(sumR,{x:pl.resX,y:pl.resY}); });
+  const theory=cscale(cmul({x:0,y:2*Math.PI}, sumR), orient);  // orient·2πi·ΣRes
+
+  const dirTxt = orient>0?"逆时针（+）":"顺时针（−）";
+  let html = `<h2 style="margin-bottom:8px;">结果</h2>`+
+    `<div><span class="k">被积函数</span> ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+F.ml)}</div>`+
+    `<div><span class="k">围道方向</span> ${dirTxt}</div>`;
+
+  html += `<div class="val"><span class="t">数值积分（沿围道直接计算）</span>`+
+    `<span class="big">${mml(OINT+"<mo>&#x2248;</mo>"+mmlComplex(I.x,I.y))}</span></div>`;
+
+  if(F.kind==="custom"){
+    const est=cdiv(I,{x:0,y:2*Math.PI});
+    html += `<div class="val"><span class="t">除以 2πi = 围道内留数之和</span>`+
+      `<span class="big">${mml("<mfrac><mrow>"+OINT+"</mrow><mrow>"+TWOPII+"</mrow></mfrac><mo>&#x2248;</mo>"+mmlComplex(est.x,est.y))}</span></div>`;
+  } else {
+    html += `<div class="val"><span class="t">留数定理 ${orient<0?"（顺时针取负）":""}</span>`+
+      `<span class="big">${mml((orient<0?"<mo>&#x2212;</mo>":"")+TWOPII+"<mo>&#x22C5;</mo><mo>&#x2211;</mo><mi>Res</mi><mo>=</mo>"+mmlComplex(theory.x,theory.y))}</span></div>`;
+  }
+
+  // 围道内奇点列表
+  if(poles.length){
+    html += `<div class="k" style="margin-top:8px;">围道内的奇点</div>`;
+    if(!enclosed.length){
+      html += `<div class="corr">围道内<b>没有奇点</b> → 由<b>柯西积分定理</b>，${mml(OINT)} = 0。</div>`;
+    } else {
+      html += `<ul class="plist">`;
+      poles.forEach((pl,idx)=>{
+        const inC=pointInPoly(pl,poly);
+        const zml = F.kind==="dpoles" ? mml("<msub><mi>p</mi><mn>"+(idx+1)+"</mn></msub><mo>=</mo>"+mmlComplex(pl.x,pl.y))
+                                      : mml("<mi>z</mi><mo>=</mo>"+mmlComplex(pl.x,pl.y));
+        const resPart = (F.kind==="dpoles") ? "，Res = 1"
+                      : "，"+mml("<mi>Res</mi><mo>=</mo>"+pl.resML)+(pl.approx?" (≈)":"");
+        html += `<li><span class="${inC?'in':'out'}">${inC?'● 内':'○ 外'}</span> ${zml}${inC?resPart:""}</li>`;
+      });
+      html += `</ul>`;
+    }
+  } else if(F.kind==="custom"){
+    html += `<div class="corr warn" style="font-size:12px;">未探测到奇点（或都在视野外）。数值积分仍然有效。</div>`;
+  }
+
+  const fn=famousNote();
+  if(fn) html += `<div class="corr">${fn}</div>`;
+  if(nearPole) html += `<div class="corr warn">⚠ 围道离奇点太近（甚至穿过），数值积分会失真——请把围道挪开一点。</div>`;
+  html += `<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">${F.note}</div>`;
+
+  document.getElementById("readout").innerHTML=html;
+}
+
+/* ============ 交互：拖控制点 / 拖极点 ============ */
+let drag=null;   // {kind:'ct'|'pole', id/idx}
+function screenXY(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+function pickHandle(m){
+  let best=null, bd=16;
+  // 可拖动极点优先
+  if(F.kind==="dpoles"){
+    dpoles.forEach((p,idx)=>{ const q=toS(p); const d=Math.hypot(m.x-q.x,m.y-q.y); if(d<bd){bd=d;best={kind:"pole",idx};} });
+  }
+  for(const h of CONTOURS[ctType].handles(contour)){
+    const q=toS(h); const d=Math.hypot(m.x-q.x,m.y-q.y);
+    if(d<bd){ bd=d; best={kind:"ct",id:h.id}; }
+  }
+  return best;
+}
+cv.addEventListener("pointerdown",e=>{
+  if(animOn) return;
+  const m=screenXY(e); const h=pickHandle(m);
+  if(!h) return;
+  drag=h; cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing");
+});
+cv.addEventListener("pointermove",e=>{
+  if(!drag) return;
+  const m=screenXY(e), w=fromS(m.x,m.y);
+  if(drag.kind==="ct") CONTOURS[ctType].drag(contour, drag.id, w.x, w.y);
+  else dpoles[drag.idx]={x:w.x,y:w.y};
+  syncCtInputs(); draw();
+});
+function endPointer(){ if(drag){ EduTelemetry.log("drag", drag.kind+":"+(drag.id||drag.idx)); } drag=null; cv.classList.remove("grabbing"); }
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+cv.addEventListener("wheel",e=>{
+  e.preventDefault();
+  viewHalf=Math.min(9, Math.max(1.2, viewHalf*(e.deltaY<0?0.92:1.087)));
+  if(F.kind==="custom") Fcustom._poles=detectPoles(Fcustom.f);
+  draw();
+},{passive:false});
+
+/* ============ 被积函数按钮 ============ */
+const funcBtns=document.getElementById("funcBtns");
+function selectFunc(fn, btn){
+  F=fn; EduTelemetry.log("func",fn.id);
+  [...funcBtns.children].forEach(c=>c.classList.remove("sel")); btn.classList.add("sel");
+  document.getElementById("customBox").style.display = (fn.kind==="custom"?"block":"none");
+  document.getElementById("dpBox").style.display = (fn.kind==="dpoles"?"block":"none");
+  if(fn.kind==="custom"){ compileCustom(false); }
+  draw();
+}
+FUNCS.forEach(fn=>{
+  const b=document.createElement("button"); b.innerHTML=mml(fn.ml);
+  if(fn===F) b.classList.add("sel");
+  b.onclick=()=>selectFunc(fn,b);
+  funcBtns.appendChild(b);
+});
+const dpBtn=document.createElement("button");
+dpBtn.innerHTML='<span style="color:#c53030;">●</span> 可拖动极点';
+dpBtn.onclick=()=>selectFunc(Fdpoles,dpBtn);
+funcBtns.appendChild(dpBtn);
+const customBtn=document.createElement("button");
+customBtn.innerHTML='<span style="font-size:12px;">&#x270E;</span> '+mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>");
+customBtn.title="自定义被积函数";
+customBtn.onclick=()=>selectFunc(Fcustom,customBtn);
+funcBtns.appendChild(customBtn);
+
+document.getElementById("addPole").onclick=()=>{ if(dpoles.length<8){ dpoles.push({x:(dpoles.length*0.6-1),y:0.6}); EduTelemetry.log("add_pole"); draw(); } };
+document.getElementById("delPole").onclick=()=>{ if(dpoles.length>1){ dpoles.pop(); EduTelemetry.log("del_pole"); draw(); } };
+
+function compileCustom(doDraw){
+  const src=document.getElementById("customIn").value;
+  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev"), noteEl=document.getElementById("customNote");
+  try{
+    const r=parseCFunc(src,"z");
+    Fcustom.f=r.fn; Fcustom.ml=r.ml; Fcustom.multivalued=r.multivalued;
+    Fcustom._poles=detectPoles(r.fn);
+    prevEl.innerHTML=mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+r.ml);
+    errEl.textContent="";
+    noteEl.innerHTML = r.multivalued
+      ? "⚠ 含<b>多值函数</b>（sqrt / ln / 非整数次幂）：取<b>主值支</b>（分支切割在负实轴），围道跨负实轴时数值积分不适用。"
+      : "奇点由程序数值探测（留数标 ≈ 为近似值）；数值积分本身始终有效。";
+    if(doDraw && F===Fcustom){ EduTelemetry.log("custom", src.slice(0,40)); draw(); }
+    return true;
+  }catch(e){ errEl.textContent="⚠ "+e.message; noteEl.innerHTML=""; return false; }
+}
+document.getElementById("customIn").addEventListener("input",()=>compileCustom(true));
+
+/* ============ 围道按钮 + 参数 ============ */
+const ctBtns=document.getElementById("ctBtns");
+let ctInputEls=[];
+function buildCtBtns(){
+  ctBtns.innerHTML="";
+  Object.keys(CONTOURS).forEach(key=>{
+    const b=document.createElement("button"); b.textContent=CONTOURS[key].label;
+    if(key===ctType) b.classList.add("sel");
+    b.dataset.key=key;
+    b.onclick=()=>{ ctType=key; contour=CONTOURS[key].def();
+      [...ctBtns.children].forEach(c=>c.classList.toggle("sel",c.dataset.key===key));
+      EduTelemetry.log("contour",key); renderCtInputs(); draw(); };
+    ctBtns.appendChild(b);
+  });
+}
+function renderCtInputs(){
+  const box=document.getElementById("ctParams"); box.innerHTML=""; ctInputEls=[];
+  const specs=CONTOURS[ctType].inputs(contour);
+  specs.forEach(sp=>{
+    const row=document.createElement("div"); row.className="row";
+    const lab=document.createElement("label"); lab.textContent=sp.label;
+    const inp=document.createElement("input"); inp.type="number"; inp.step=sp.step||0.1; inp.value=round3(sp.val);
+    inp.addEventListener("input",()=>{ const v=parseFloat(inp.value); if(!isNaN(v)){ sp.on(v); draw(); } });
+    row.appendChild(lab); row.appendChild(inp); box.appendChild(row);
+    ctInputEls.push({inp,sp});
+  });
+}
+function syncCtInputs(){
+  const specs=CONTOURS[ctType].inputs(contour);
+  ctInputEls.forEach((it,k)=>{ if(specs[k] && document.activeElement!==it.inp) it.inp.value=round3(specs[k].val); });
+}
+document.getElementById("orientBtn").onclick=function(){
+  orient=-orient; this.textContent = orient>0?"方向：逆时针（+）":"方向：顺时针（−）";
+  EduTelemetry.log("orient", orient); draw();
+};
+
+/* ============ 动画：沿围道积分 ============ */
+function startAnim(){
+  if(animOn) return;
+  animPts=contourPts(NINT);
+  animPrefix=prefixIntegral(F.f, animPts);
+  animOn=true; animP=0; EduTelemetry.log("anim");
+  const dur=3200, t0=performance.now();
+  function step(now){
+    animP=Math.min(1,(now-t0)/dur);
+    draw();
+    // 动画进行中，显示累积值
+    const m=Math.max(1,Math.floor(animP*animPts.length));
+    const part=animPrefix[m];
+    const box=document.getElementById("readout");
+    const extra=`<div class="val" style="border-color:#fbd38d;background:#fffaf0;"><span class="t">已积到 ${Math.round(animP*100)}%（累积值）</span>`+
+      `<span class="big">${mml("<msubsup><mo>&#x222B;</mo><mn>0</mn><mi>t</mi></msubsup><mi>f</mi><mspace width='1px'/><mi>d</mi><mi>z</mi><mo>&#x2248;</mo>"+mmlComplex(part.x,part.y))}</span></div>`;
+    box.insertAdjacentHTML("afterbegin", extra);
+    if(animP<1) requestAnimationFrame(step);
+    else { animOn=false; setTimeout(draw,400); }
+  }
+  requestAnimationFrame(step);
+}
+document.getElementById("bAnim").onclick=startAnim;
+document.getElementById("bReset").onclick=()=>{ viewHalf=2.6; if(F.kind==="custom") Fcustom._poles=detectPoles(Fcustom.f); draw(); };
+
+/* ============ 显示开关 ============ */
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); draw(); }); }
+bindToggle("tFill","fill"); bindToggle("tPole","pole"); bindToggle("tGrid","grid"); bindToggle("tAxis","axis");
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+/* ============ 使用说明 ============ */
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+function openHelp(){ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("helpBtn").onclick=openHelp;
+document.getElementById("modalX").onclick=closeHelp;
+mask.onclick=closeHelp;
+(function(){
+  const z=mml("<mi>z</mi>");
+  document.getElementById("helpBody").innerHTML =
+    `<h2>简单闭曲线积分（围道积分）</h2>`+
+    `<p>这个工具把复变里最核心的两个定理"看得见"：给一个被积函数 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}，再画一条<b>简单闭曲线</b> ${mml("<mi>C</mi>")}（围道），实时算出 ${mml(OINT)}。</p>`+
+    `<h3>① 选被积函数</h3>`+
+    `<ul>`+
+    `<li>预设几个常见函数，红色 <span class="xmk">✕</span> 标出它们的<b>奇点（极点）</b>，旁边给出精确<b>留数</b>；</li>`+
+    `<li><b>● 可拖动极点</b>：函数是若干 ${mml("<mfrac><mn>1</mn><mrow><mi>z</mi><mo>&#x2212;</mo><msub><mi>p</mi><mi>k</mi></msub></mrow></mfrac>")} 之和（各留数 1），可直接<b>拖动极点</b>进出围道；</li>`+
+    `<li><b>&#x270E; f(z)</b>：自定义任意函数（数值积分始终有效，奇点由程序数值探测，留数为近似值）。</li>`+
+    `</ul>`+
+    `<h3>② 画围道 · 调形状与方向</h3>`+
+    `<p>选圆 / 椭圆 / 矩形，拖动蓝紫色<b>控制点</b>或在参数框里输入数值；可切换积分<b>方向</b>（逆时针为正）；滚轮缩放。</p>`+
+    `<h3>③ 看两个数值对上</h3>`+
+    `<ul>`+
+    `<li><b>数值积分</b>：直接沿围道把 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mi>d</mi><mi>z</mi>")} 累加（中点法，${NINT} 个采样点）；</li>`+
+    `<li><b>留数定理</b>：${mml(TWOPII+"<mo>&#x22C5;</mo><mo>&#x2211;</mo><mi>Res</mi>")}，只对<b>围道内</b>的极点求和。两者应当一致。</li>`+
+    `</ul>`+
+    `<h3>④ 三个要亲手试的现象</h3>`+
+    `<ul>`+
+    `<li><b>柯西积分定理</b>：把围道挪到不含任何奇点处 → ${mml(OINT)} = 0；</li>`+
+    `<li><b>路径无关（形状无关）</b>：只要围住的奇点不变，把圆换成矩形、或放大缩小 → 积分值<b>不变</b>；</li>`+
+    `<li><b>奇点进出</b>：拖围道或拖极点，让某个极点跨过围道边界 → 积分值<b>跳变</b> ${mml(TWOPII+"<mo>&#x22C5;</mo><mi>Res</mi>")}。</li>`+
+    `</ul>`+
+    `<p style="color:#7b341e;">注意：数值积分要求围道<b>不能穿过或紧贴</b>奇点，否则结果失真（工具会给出提示）。二阶极点 ${mml("<mfrac><mn>1</mn><msup><mi>z</mi><mn>2</mn></msup></mfrac>")} 的留数为 0——套住它积分仍为 0，说明"套住极点"不等于"积分非零"。</p>`;
+})();
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+"px"; cv.style.height=H+"px";
+  cx=W/2; cy=H/2;
+  draw();
+}
+window.addEventListener("resize",resize);
+buildCtBtns(); renderCtInputs();
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV；离线/连不上时静默跳过，绝不影响工具使用）──
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "T5_围道积分";
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+resize();
+</script>
+</body>
+</html>
