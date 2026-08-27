@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T8 调和函数与共轭调和（物理场应用）</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --teal:#319795; --red:#c53030; --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .hint math{color:#fff;}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  #cvLegend{position:absolute; left:12px; top:12px; background:rgba(255,255,255,.92);
+       border:1px solid var(--line); border-radius:9px; padding:8px 11px; font-size:12.5px;
+       color:var(--ink); line-height:1.9; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,.06);}
+  #cvLegend b{font-weight:700;}
+  #cvLegend .sw{display:inline-block; vertical-align:middle; margin-right:7px;}
+  #cvLegend .pp{margin-top:3px; color:var(--sub); font-size:11.5px;}
+  .panel{width:342px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .fbtns,.cbtns{display:flex; flex-wrap:wrap; gap:6px;}
+  .fbtns button,.cbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover,.cbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel,.cbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .fbtns button.warn{border-style:dashed;}
+  .fbtns button.warn.sel{background:#fffaf0; border-color:var(--orange); color:#9c4221;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .btns button.pos{color:#c53030; border-color:#feb2b2;}
+  .btns button.neg{color:#2b6cb0; border-color:#bee3f8;}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .scene{margin:2px 0 10px; padding:9px 11px; border-radius:9px; background:#ebf8ff;
+         border:1px solid #bee3f8; font-size:13px; color:#22485f; line-height:1.7;}
+  .scene .nm{font-weight:700; color:#2b6cb0; display:block; margin-bottom:2px; font-size:13.5px;}
+  .scene.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .scene.warn .nm{color:#9c4221;}
+  .val{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin:6px 0;}
+  .val .t{font-size:11.5px; color:var(--sub); display:block; margin-bottom:3px;}
+  .val .big{font-size:15px;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .corr.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .bar{width:18px; height:0; border-top-width:3px; border-top-style:solid; display:inline-block;}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(760px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  #modal table{border-collapse:collapse; margin:8px 0; font-size:13px; width:100%;}
+  #modal th,#modal td{border:1px solid var(--line); padding:5px 8px; text-align:left;}
+  #modal th{background:#f7fafc; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.12em;}
+  .steps{font-size:12.5px; color:#2d3748; line-height:1.7; background:#f7fafc;
+         border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px;}
+  .steps math{font-size:1.05em;}
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>调和函数与共轭调和 · 物理场应用</h1>
+    <span class="hint">解析函数 <math><mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi></math> 里 <math><mi>u</mi></math>、<math><mi>v</mi></math> 都调和，<math><mi>u</mi><mo>=</mo><mi>c</mi></math> 与 <math><mi>v</mi><mo>=</mo><mi>c</mi></math> 处处正交——这就是各种物理场的骨架</span>
+    <span class="tag">T8 · 复变函数与积分变换</span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+      <div id="cvLegend"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>物理身份（皮肤）</h2>
+        <div class="cbtns" id="idBtns"></div>
+        <div id="idNote" style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.65;"></div>
+      </div>
+
+      <div class="box">
+        <h2>物理场景</h2>
+        <div class="fbtns" id="sceneBtns"></div>
+      </div>
+
+      <div class="box" id="srcBox" style="display:none;">
+        <h2>点源（可拖动）</h2>
+        <p style="font-size:12px;color:var(--sub);margin:2px 0 8px;">势
+          <math><mi>u</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub></math>，每个
+          <math><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub></math> 除源点外处处调和，叠加仍调和。拖圆点移动源。</p>
+        <div class="btns">
+          <button id="addPos" class="pos">＋ 加正源</button>
+          <button id="addNeg" class="neg">－ 加负源</button>
+          <button id="delSrc">删一个</button>
+        </div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tEquip" checked> 等值线 <math><mi>u</mi><mo>=</mo><mi>c</mi></math>（实部）</label>
+        <label><input type="checkbox" id="tField" checked> 正交线 <math><mi>v</mi><mo>=</mo><mi>c</mi></math>（虚部）</label>
+        <label><input type="checkbox" id="tLap"> <math><mi>&#x394;</mi><mi>u</mi></math> 热图（验证调和性）</label>
+        <label><input type="checkbox" id="tFrame" checked> 鼠标处局部正交标架</label>
+        <label><input type="checkbox" id="tGrid" checked> 参考网格</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend" id="legend"></div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bReset">复位视图</button>
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T8"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T8_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function sub(a,b){ return `<msub><mi>${a}</mi><mi>${b}</mi></msub>`; }   // 如 u_x
+/* 常用公式片段（全部走 MathML，避免纯字母）*/
+const F={
+  uc:  mml("<mi>u</mi><mo>=</mo><mi>c</mi>"),
+  vc:  mml("<mi>v</mi><mo>=</mo><mi>c</mi>"),
+  x2y2c: mml("<msup><mi>x</mi><mn>2</mn></msup><mo>&#x2212;</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><mi>c</mi>"),
+  xyc: mml("<mn>2</mn><mi>x</mi><mi>y</mi><mo>=</mo><mi>c</mi>"),
+  lnzc: mml("<mi>ln</mi><mo>&#x2061;</mo><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow><mo>=</mo><mi>c</mi>"),
+  z1: mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>=</mo><mn>1</mn></mrow>"),
+  fcylN: mml("<mi>z</mi><mo>&#x2212;</mo><mfrac><mn>1</mn><mi>z</mi></mfrac>"),
+  ux2y2: mml("<mi>u</mi><mo>=</mo><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>"),
+  lap4: mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo><mn>4</mn><mo>&#x2260;</mo><mn>0</mn>"),
+  lap0: mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo><mn>0</mn>")
+};
+
+/* ============ 物理身份（皮肤）============ */
+const IDENTS={
+  electro:{ id:"electro", label:"静电场",
+    uWord:"电势", uSym:"<mi>&#x3C6;</mi>", uLine:"等势线", vLine:"电场线",
+    posWord:"正电荷", posSym:"<mo>+</mo><mi>q</mi>", negWord:"负电荷", negSym:"<mo>&#x2212;</mo><mi>q</mi>",
+    note:`实部 ${mml("<mi>u</mi>")} = 电势 ${mml("<mi>&#x3C6;</mi>")}（满足 ${mml("<mi>&#x394;</mi><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn>")}）；等势线 ${F.uc} 与电场线 ${F.vc} 处处正交，电场 ${mml("<mi mathvariant=\"bold\">E</mi><mo>=</mo><mo>&#x2212;</mo><mo>&#x2207;</mo><mi>&#x3C6;</mi>")} 沿电场线。` },
+  heat:{ id:"heat", label:"稳态温度场",
+    uWord:"温度", uSym:"<mi>T</mi>", uLine:"等温线", vLine:"热流线",
+    posWord:"热源", posSym:"<mo>+</mo>", negWord:"冷汇", negSym:"<mo>&#x2212;</mo>",
+    note:`实部 ${mml("<mi>u</mi>")} = 温度 ${mml("<mi>T</mi>")}（${mml("<mi>&#x394;</mi><mi>T</mi><mo>=</mo><mn>0</mn>")}）；等温线 ${F.uc} 与热流线 ${F.vc} 处处正交，热流 ${mml("<mi mathvariant=\"bold\">q</mi><mo>=</mo><mo>&#x2212;</mo><mi>k</mi><mo>&#x2207;</mo><mi>T</mi>")} 沿热流线。` },
+  fluid:{ id:"fluid", label:"理想流体",
+    uWord:"速度势", uSym:"<mi>&#x3C6;</mi>", uLine:"等势线", vLine:"流线",
+    posWord:"源", posSym:"<mo>+</mo>", negWord:"汇", negSym:"<mo>&#x2212;</mo>",
+    note:`实部 ${mml("<mi>u</mi>")} = 速度势 ${mml("<mi>&#x3C6;</mi>")}（${mml("<mi>&#x394;</mi><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn>")}）；等势线 ${F.uc} 与流线 ${F.vc} 处处正交，流速 ${mml("<mi mathvariant=\"bold\">v</mi><mo>=</mo><mo>&#x2207;</mo><mi>&#x3C6;</mi>")} 沿流线。` }
+};
+let IDEN=IDENTS.electro;
+function uNameHTML(){ return IDEN.uWord+" "+mml(IDEN.uSym); }
+
+/* ============ 物理场景库 ============
+   kind:"analytic" 给定解析 f(z)，u、v 已知；kind:"sources" 可拖动点源叠加
+   harmonic:false 非物理反例；fieldByStream:true 表示 v 含 arg（多值），场线用流线画
+   phys[skin]：该场景在此皮肤下的具体物理身份（本工具的重点：让背景一目了然）*/
+const SCENES=[
+  { id:"uniform", name:"匀强场", btn:mml("<mi>f</mi><mo>=</mo><mi>z</mi>")+" 匀强场", kind:"analytic", harmonic:true,
+    u:(x,y)=>x, v:(x,y)=>y,
+    fML:"<mi>z</mi>", uML:"<mi>x</mi>", vML:"<mi>y</mi>",
+    steps:()=>`${mml(sub("u","x")+"<mo>=</mo><mn>1</mn><mo>,</mo>&#x2009;"+sub("u","y")+"<mo>=</mo><mn>0</mn>")}
+       ⟹ ${mml(sub("v","y")+"<mo>=</mo>"+sub("u","x")+"<mo>=</mo><mn>1</mn><mo>,</mo>&#x2009;"+sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mo>=</mo><mn>0</mn>")}
+       ⟹ ${mml("<mi>v</mi><mo>=</mo><mi>y</mi>")}（+C）`,
+    phys:{
+      electro:`平行板电容器内部的<b>匀强电场</b>。等势线 ${F.uc} 是竖直线，电场线 ${F.vc} 水平。`,
+      heat:`两侧恒温壁之间的<b>一维稳态温度场</b>。等温线 ${F.uc} 竖直，热流线 ${F.vc} 水平。`,
+      fluid:`<b>匀速平行流</b>。等势线 ${F.uc} 竖直，流线 ${F.vc} 水平，流速沿 ${mml("<mo>+</mo><mi>x</mi>")}。` } },
+
+  { id:"corner", name:"直角角流", btn:mml("<mi>f</mi><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup>")+" 直角", kind:"analytic", harmonic:true,
+    u:(x,y)=>x*x-y*y, v:(x,y)=>2*x*y,
+    fML:"<msup><mi>z</mi><mn>2</mn></msup>",
+    uML:"<msup><mi>x</mi><mn>2</mn></msup><mo>&#x2212;</mo><msup><mi>y</mi><mn>2</mn></msup>",
+    vML:"<mn>2</mn><mi>x</mi><mi>y</mi>",
+    steps:()=>`${mml(sub("u","x")+"<mo>=</mo><mn>2</mn><mi>x</mi><mo>,</mo>&#x2009;"+sub("u","y")+"<mo>=</mo><mo>&#x2212;</mo><mn>2</mn><mi>y</mi>")}
+       ⟹ ${mml(sub("v","y")+"<mo>=</mo>"+sub("u","x")+"<mo>=</mo><mn>2</mn><mi>x</mi>")}
+       ⟹ ${mml("<mi>v</mi><mo>=</mo><mn>2</mn><mi>x</mi><mi>y</mi><mo>+</mo><mi>g</mi><mo>(</mo><mi>x</mi><mo>)</mo>")}；
+       再由 ${mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mo>=</mo><mn>2</mn><mi>y</mi>")}
+       得 ${mml("<msup><mi>g</mi><mo>&#x2032;</mo></msup><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mn>0</mn>")}
+       ⟹ ${mml("<mi>v</mi><mo>=</mo><mn>2</mn><mi>x</mi><mi>y</mi>")}（+C）`,
+    phys:{
+      electro:`两块成<b>直角的导体板</b>夹角处的电场。等势线 ${F.x2y2c}，电场线 ${F.xyc} 是双曲线。`,
+      heat:`<b>直角楔形</b>导热块的稳态温度。等温线 ${F.x2y2c}，热流线 ${F.xyc}。`,
+      fluid:`理想流体<b>绕直角壁</b>（正 ${mml("<mi>x</mi>")}、正 ${mml("<mi>y</mi>")} 轴）的流动；流线 ${F.xyc} 贴着直角拐弯。` } },
+
+  { id:"source", name:"点源", btn:mml("<mi>f</mi><mo>=</mo><mi>Ln</mi>&#x2009;<mi>z</mi>")+" 点源", kind:"analytic",
+    harmonic:true, fieldByStream:true, singular:{x:0,y:0}, srcs:[{x:0,y:0,q:1}],
+    u:(x,y)=>0.5*Math.log(x*x+y*y), v:(x,y)=>Math.atan2(y,x),
+    fML:"<mi>Ln</mi>&#x2009;<mi>z</mi>",
+    uML:"<mi>ln</mi><mo>&#x2061;</mo><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow>",
+    vML:"<mi>arg</mi>&#x2009;<mi>z</mi>",
+    steps:()=>`${mml("<mi>u</mi><mo>=</mo><mi>ln</mi><mo>&#x2061;</mo><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow>")} 除原点外调和；
+       共轭 ${mml("<mi>v</mi><mo>=</mo><mi>arg</mi>&#x2009;<mi>z</mi>")}。
+       等值线 ${F.uc} 是<b>同心圆</b>，正交的 ${F.vc} 是<b>放射线</b>。`,
+    phys:{
+      electro:`无限长均匀<b>带电直线</b>（线电荷）。等势线 ${F.lnzc} 是同心圆，电场线沿半径放射。`,
+      heat:`无限长<b>线热源</b>。等温线是同心圆，热流线沿半径放射。`,
+      fluid:`平面<b>点源（泉）/ 汇</b>。等势线是同心圆，流线沿半径放射。` } },
+
+  { id:"multi", name:"多点源叠加", btn:"多点源叠加（可拖）", kind:"sources",
+    phys:{
+      electro:`多条<b>线电荷</b>叠加。拖动 ± 源，看等势线与电场线随电荷分布变化（默认为一对正负电荷 = 偶极）。`,
+      heat:`多个<b>线热源 / 冷汇</b>叠加。`,
+      fluid:`多个<b>源 / 汇</b>叠加，可组合出偶极、绕流等图样。` } },
+
+  { id:"dipole", name:"偶极子", btn:mml("<mi>f</mi><mo>=</mo><mfrac><mn>1</mn><mi>z</mi></mfrac>")+" 偶极", kind:"analytic",
+    harmonic:true, singular:{x:0,y:0},
+    u:(x,y)=>{const d=x*x+y*y; return d<1e-9?NaN:x/d;},
+    v:(x,y)=>{const d=x*x+y*y; return d<1e-9?NaN:-y/d;},
+    fML:"<mfrac><mn>1</mn><mi>z</mi></mfrac>",
+    uML:"<mfrac><mrow><mi>x</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac>",
+    vML:"<mo>&#x2212;</mo><mfrac><mrow><mi>y</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac>",
+    steps:()=>`${mml("<mi>f</mi><mo>=</mo><mn>1</mn><mo>/</mo><mi>z</mi>")} 除 ${mml("<mi>z</mi><mo>=</mo><mn>0</mn>")} 外解析
+       ⟹ ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")} 自动共轭调和。
+       等值线是两族相互内切的正交圆。`,
+    phys:{
+      electro:`二维<b>电偶极子</b>（一对靠得很近的正负线电荷）。等值线是相互内切的圆族。`,
+      heat:`<b>热偶极</b>（相邻的线热源与线冷汇）。`,
+      fluid:`<b>偶极流</b>（doublet），是绕圆柱流的组成部分。` } },
+
+  { id:"cylinder", name:"绕圆柱", btn:mml("<mi>f</mi><mo>=</mo><mi>z</mi><mo>+</mo><mfrac><mn>1</mn><mi>z</mi></mfrac>")+" 绕圆柱", kind:"analytic",
+    harmonic:true, singular:{x:0,y:0}, circle:1,
+    u:(x,y)=>{const d=x*x+y*y; return d<1e-9?NaN:x+x/d;},
+    v:(x,y)=>{const d=x*x+y*y; return d<1e-9?NaN:y-y/d;},
+    fML:"<mi>z</mi><mo>+</mo><mfrac><mn>1</mn><mi>z</mi></mfrac>",
+    uML:"<mi>x</mi><mo>+</mo><mfrac><mrow><mi>x</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac>",
+    vML:"<mi>y</mi><mo>&#x2212;</mo><mfrac><mrow><mi>y</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac>",
+    steps:()=>`匀流 ${mml("<mi>z</mi>")} 叠加偶极 ${mml("<mn>1</mn><mo>/</mo><mi>z</mi>")}，${mml("<mi>f</mi><mo>=</mo><mi>z</mi><mo>+</mo><mn>1</mn><mo>/</mo><mi>z</mi>")} 解析
+       ⟹ ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")} 共轭调和。
+       在 ${F.z1} 上 ${mml("<mi>v</mi><mo>=</mo><mn>0</mn>")}——圆恰是一条 ${F.vc}。`,
+    phys:{
+      electro:`此处 ${F.z1} 是电场线；要表示匀强外场中的<b>导体圆柱</b>（柱面须为等势面），应改取 ${F.fcylN}。`,
+      heat:`<b>绝热圆柱</b>置于均匀热流中：柱面不导热，故 ${F.z1} 是一条热流线。`,
+      fluid:`匀流<b>绕圆柱</b>的流动。圆 ${F.z1} 恰是一条流线（流体不穿过柱面），外部流线绕过圆柱。` } },
+
+  { id:"nonh", name:"非物理反例", btn:mml("<mi>u</mi><mo>=</mo><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")+" 反例",
+    kind:"analytic", harmonic:false, cls:"warn",
+    u:(x,y)=>x*x+y*y, v:null,
+    fML:null, uML:"<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>", vML:null,
+    steps:()=>`${mml(sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>2</mn><mo>+</mo><mn>2</mn><mo>=</mo><mn>4</mn><mo>&#x2260;</mo><mn>0</mn>")}
+       ⟹ <b>u 不调和</b> ⟹ <b>不存在</b>共轭调和 v，拼不出解析的 ${mml("<mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")}。`,
+    phys:{
+      electro:`若说某无电荷区的电势是 ${F.ux2y2}——不可能：${F.lap4} 违反 ${mml("<msup><mo>&#x2207;</mo><mn>2</mn></msup><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn>")}。`,
+      heat:`若说某稳态温度场是 ${F.ux2y2}——不可能：${F.lap4} 违反 ${mml("<msup><mo>&#x2207;</mo><mn>2</mn></msup><mi>T</mi><mo>=</mo><mn>0</mn>")}。`,
+      fluid:`若说某速度势是 ${F.ux2y2}——不可能：${F.lap4} 违反 ${mml("<msup><mo>&#x2207;</mo><mn>2</mn></msup><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn>")}。` } }
+];
+let scene=SCENES[1];      // 默认「直角角流」（大纲难点：已知 u=x²−y² 求 v）
+
+/* ============ 场 ============ */
+let srcs=[{x:-0.9,y:0,q:1},{x:0.9,y:0,q:-1}];   // 多点源叠加：默认偶极子
+
+function Ufield(x,y){
+  if(scene.kind==="sources"){
+    let s=0; for(const p of srcs){ const d=(x-p.x)*(x-p.x)+(y-p.y)*(y-p.y); if(d<1e-9) return NaN; s+=0.5*p.q*Math.log(d); }
+    return s;
+  }
+  return scene.u(x,y);
+}
+function Vfield(x,y){
+  if(scene.kind==="sources"){ let s=0; for(const p of srcs) s+=p.q*Math.atan2(y-p.y,x-p.x); return s; }
+  if(scene.v) return scene.v(x,y);
+  return NaN;
+}
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*100)/100; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+/* 是否用流线画场线（含 arg 的多值虚部：点源 / 多点源叠加）*/
+function useStream(){ return scene.kind==="sources" || (scene.kind==="analytic" && scene.fieldByStream); }
+function seedSources(){
+  if(scene.kind==="sources") return srcs;
+  if(scene.srcs) return scene.srcs;
+  return [];
+}
+function isHarmonic(){ return scene.kind==="sources" ? true : scene.harmonic; }
+
+/* ============ 视口与坐标 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=900,H=480, cx=450, cy=240, viewHalf=2.6, s=90;
+const show={equip:true, field:true, lap:false, frame:true, grid:true, axis:true};
+const GRIDN=92, HEATN=58, NLEV=13;
+let probe=null;
+
+function layout(){ s=Math.min(W,H)/2/viewHalf*0.9; }
+function toS(z){ return {x:cx+z.x*s, y:cy-z.y*s}; }
+function fromS(sx,sy){ return {x:(sx-cx)/s, y:(cy-sy)/s}; }
+function bounds(){ const tl=fromS(0,0), br=fromS(W,H); return {xmin:tl.x,xmax:br.x,ymin:br.y,ymax:tl.y}; }
+
+/* ============ 采样网格 + 等值线（marching squares）============ */
+function buildGrid(Fn){
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const N=GRIDN, M=Math.max(24,Math.round(N*(ymax-ymin)/(xmax-xmin)));
+  const xs=new Array(N+1), ys=new Array(M+1), Z=[];
+  for(let i=0;i<=N;i++) xs[i]=xmin+(xmax-xmin)*i/N;
+  for(let j=0;j<=M;j++) ys[j]=ymin+(ymax-ymin)*j/M;
+  for(let i=0;i<=N;i++){ const col=new Array(M+1); for(let j=0;j<=M;j++){ let v=Fn(xs[i],ys[j]); col[j]=isFinite(v)?v:NaN; } Z.push(col); }
+  return {xs,ys,Z,N,M};
+}
+function pickLevels(g,n){
+  const vals=[]; for(let i=0;i<=g.N;i++)for(let j=0;j<=g.M;j++){const v=g.Z[i][j]; if(isFinite(v))vals.push(v);}
+  if(vals.length<4) return [];
+  vals.sort((a,b)=>a-b);
+  const lo=vals[Math.floor(vals.length*0.05)], hi=vals[Math.floor(vals.length*0.95)];
+  if(!(hi>lo)) return [];
+  const out=[]; for(let k=1;k<=n;k++) out.push(lo+(hi-lo)*k/(n+1));
+  return out;
+}
+function contourSegs(g, level){
+  const segs=[]; const {xs,ys,Z,N,M}=g;
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+    const a=Z[i][j], b=Z[i+1][j], c=Z[i+1][j+1], d=Z[i][j+1];
+    if(isNaN(a)||isNaN(b)||isNaN(c)||isNaN(d)) continue;
+    const p=[];
+    if((a-level)*(b-level)<0){ const t=(level-a)/(b-a); p.push({x:xs[i]+(xs[i+1]-xs[i])*t, y:ys[j]}); }
+    if((b-level)*(c-level)<0){ const t=(level-b)/(c-b); p.push({x:xs[i+1], y:ys[j]+(ys[j+1]-ys[j])*t}); }
+    if((c-level)*(d-level)<0){ const t=(level-c)/(d-c); p.push({x:xs[i+1]+(xs[i]-xs[i+1])*t, y:ys[j+1]}); }
+    if((d-level)*(a-level)<0){ const t=(level-d)/(a-d); p.push({x:xs[i], y:ys[j+1]+(ys[j]-ys[j+1])*t}); }
+    if(p.length===2) segs.push([p[0],p[1]]);
+    else if(p.length===4){ segs.push([p[0],p[1]]); segs.push([p[2],p[3]]); }
+  }
+  return segs;
+}
+function drawContours(Fn, nLev, color, dashed, lw){
+  const g=buildGrid(Fn);
+  const levels=pickLevels(g,nLev);
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=lw||1.5;
+  if(dashed) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+  ctx.beginPath();
+  for(const L of levels){
+    for(const sg of contourSegs(g,L)){
+      const A=toS(sg[0]), B=toS(sg[1]);
+      ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
+    }
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+}
+
+/* ============ 场线：沿 ∇u 的流线（点源 / 多点源）============ */
+function gradU(x,y){ const h=1e-3;
+  return { x:(Ufield(x+h,y)-Ufield(x-h,y))/(2*h), y:(Ufield(x,y+h)-Ufield(x,y-h))/(2*h) }; }
+function nearAnySource(x,y,list,r){ for(const p of list){ if(Math.hypot(x-p.x,y-p.y)<r) return true; } return false; }
+function traceStream(x0,y0,dir,list){
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const ds=Math.max(xmax-xmin,ymax-ymin)/380;
+  const pts=[{x:x0,y:y0}]; let x=x0,y=y0;
+  for(let k=0;k<1600;k++){
+    let g=gradU(x,y), n=Math.hypot(g.x,g.y); if(!(n>1e-9)) break;
+    let mx=x+g.x/n*dir*ds*0.5, my=y+g.y/n*dir*ds*0.5;
+    let g2=gradU(mx,my), n2=Math.hypot(g2.x,g2.y); if(!(n2>1e-9)) break;
+    x+=g2.x/n2*dir*ds; y+=g2.y/n2*dir*ds;
+    pts.push({x,y});
+    if(x<xmin-0.5||x>xmax+0.5||y<ymin-0.5||y>ymax+0.5) break;
+    if(nearAnySource(x,y,list,ds*1.2)) break;
+  }
+  return pts;
+}
+function drawFieldLines(color){
+  const list=seedSources();
+  if(!list.length) return;
+  const pos=list.filter(p=>p.q>0), neg=list.filter(p=>p.q<0);
+  const seedFrom = pos.length?pos:neg;
+  const dir = pos.length?1:-1;
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  for(const p of seedFrom){
+    const K=Math.min(28, Math.max(8, Math.round(12*Math.abs(p.q))));
+    const r0=0.12;
+    for(let a=0;a<K;a++){
+      const th=2*Math.PI*(a+0.5)/K;
+      const line=traceStream(p.x+r0*Math.cos(th), p.y+r0*Math.sin(th), dir, list);
+      line.forEach((z,idx)=>{ const q=toS(z); if(idx===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); });
+    }
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+}
+
+/* ============ Δu 热图（数值拉普拉斯）============ */
+// 奇点附近数值拉普拉斯会发散，判定调和性时要排除
+function nearSingular(x,y){
+  if(scene.kind==="sources"){ for(const p of srcs){ if(Math.hypot(x-p.x,y-p.y)<0.2) return true; } return false; }
+  if(scene.singular){ return Math.hypot(x-scene.singular.x,y-scene.singular.y)<0.2; }
+  return false;
+}
+function drawLaplacian(){
+  const {xmin,xmax,ymin,ymax}=bounds();
+  const N=HEATN, M=Math.max(20,Math.round(N*(ymax-ymin)/(xmax-xmin)));
+  const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h=Math.min(dw,dh)*0.6, SCALE=2;
+  ctx.save();
+  let maxAbs=0;
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){
+    const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
+    const c=Ufield(x,y);
+    if(!isFinite(c)) continue;
+    const lap=(Ufield(x+h,y)+Ufield(x-h,y)+Ufield(x,y+h)+Ufield(x,y-h)-4*c)/(h*h);
+    if(!isFinite(lap)) continue;
+    if(!nearSingular(x,y) && Math.abs(lap)>maxAbs) maxAbs=Math.abs(lap);
+    const a=Math.min(0.72, Math.abs(lap)/SCALE);
+    if(a<0.02) continue;
+    ctx.fillStyle=`rgba(197,48,48,${a})`;
+    const A=toS({x:x-dw/2,y:y-dh/2}), B=toS({x:x+dw/2,y:y+dh/2});
+    ctx.fillRect(A.x, B.y, B.x-A.x+1, A.y-B.y+1);
+  }
+  // 调和场景 Δu≈0 处处不画红 —— 铺一层淡绿背景，让"处处为零"看得见，而不是"勾了没反应"
+  const flat = maxAbs<0.05;
+  if(flat){
+    const TL=toS({x:xmin,y:ymax}), BR=toS({x:xmax,y:ymin});
+    ctx.fillStyle="rgba(47,133,90,.10)";
+    ctx.fillRect(TL.x, TL.y, BR.x-TL.x, BR.y-TL.y);
+  }
+  ctx.restore();
+  // 底部结论徽标：实测 max|Δu| + 判定，把"看不见的零"说清楚
+  const du=mml("<mi>&#x394;</mi><mi>u</mi>"), mx=mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>");
+  let pill;
+  if(flat){
+    pill=`<span style="background:rgba(47,133,90,.14);color:#276749;border:1px solid #9ae6b4;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
+         `调和性验证 ✓　全场 ${du} ≈ 0（实测 ${mx} ≈ ${fmt(maxAbs)}）`+(scene.singular||scene.kind==="sources"?"，奇点除外":"")+`</span>`;
+  }else{
+    pill=`<span style="background:rgba(197,48,48,.13);color:#9b2c2c;border:1px solid #feb2b2;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
+         `调和性验证 ✗　${mx} ≈ ${fmt(maxAbs)} ≠ 0（不是调和函数）</span>`;
+  }
+  addLabel(pill, W/2, H-20, "#333", 12.5);
+}
+
+/* ============ 叠加层标签 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size,opt){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  if(opt&&opt.anchor==="left") d.style.transform="translate(0,-50%)";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+function arrowHead(x,y,ang,color,len){
+  const ah=len||8; ctx.save(); ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  ctx.lineTo(x-ah*Math.cos(ang-0.42), y-ah*Math.sin(ang-0.42));
+  ctx.lineTo(x-ah*Math.cos(ang+0.42), y-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function sourceDot(p){
+  const q=toS(p), pos=p.q>0;
+  ctx.save();
+  ctx.fillStyle=pos?"#c53030":"#2b6cb0"; ctx.strokeStyle="#fff"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(q.x,q.y,8,0,7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#fff"; ctx.lineWidth=2.2; ctx.strokeStyle="#fff"; ctx.beginPath();
+  ctx.moveTo(q.x-4,q.y); ctx.lineTo(q.x+4,q.y);
+  if(pos){ ctx.moveTo(q.x,q.y-4); ctx.lineTo(q.x,q.y+4); }
+  ctx.stroke(); ctx.restore();
+}
+
+/* ============ 主绘制 ============ */
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels();
+  layout();
+  ctx.fillStyle="#fdfefe"; ctx.fillRect(0,0,W,H);
+
+  if(show.grid){
+    ctx.strokeStyle="#edf1f6"; ctx.lineWidth=1;
+    const b=bounds();
+    const lo=Math.ceil(b.xmin/0.5)*0.5;
+    for(let g=lo; g<=b.xmax+1e-9; g+=0.5){ let a=toS({x:g,y:b.ymin}), c=toS({x:g,y:b.ymax}); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke(); }
+    const lo2=Math.ceil(b.ymin/0.5)*0.5;
+    for(let g=lo2; g<=b.ymax+1e-9; g+=0.5){ let a=toS({x:b.xmin,y:g}), c=toS({x:b.xmax,y:g}); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(c.x,c.y); ctx.stroke(); }
+  }
+
+  if(show.lap) drawLaplacian();
+
+  const o=toS({x:0,y:0});
+  if(show.axis){
+    ctx.strokeStyle="#5f6b7a"; ctx.fillStyle="#5f6b7a"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(6,o.y); ctx.lineTo(W-8,o.y); ctx.stroke(); arrowHead(W-7,o.y,0,"#5f6b7a");
+    ctx.beginPath(); ctx.moveTo(o.x,H-6); ctx.lineTo(o.x,10); ctx.stroke(); arrowHead(o.x,9,-Math.PI/2,"#5f6b7a");
+    addLabel(mml("<mi>Re</mi>"), W-20, o.y-14, "#4a5568", 13);
+    addLabel(mml("<mi>Im</mi>"), o.x+16, 22, "#4a5568", 13);
+  }
+
+  const harmonic=isHarmonic();
+
+  if(show.field && harmonic){
+    if(useStream()) drawFieldLines("#dd6b20");
+    else if(scene.v) drawContours(scene.v, NLEV, "#dd6b20", true, 1.4);
+  }
+  if(show.equip) drawContours(Ufield, NLEV, "#2b6cb0", false, 1.7);
+
+  // 绕圆柱：突出柱面 |z|=1
+  if(scene.circle){
+    const C=toS({x:0,y:0}), R=scene.circle*s;
+    ctx.save();
+    // 柱内是实心障碍物（非物理区）：填成近不透明，遮掉内部数学延拓的杂线
+    ctx.beginPath(); ctx.arc(C.x,C.y,R,0,7);
+    ctx.fillStyle="rgba(209,232,229,.94)"; ctx.fill();
+    ctx.strokeStyle="#319795"; ctx.lineWidth=2.6; ctx.setLineDash([]); ctx.stroke();
+    ctx.restore();
+    addLabel("柱面 "+mml("<mrow><mo>|</mo><mi>z</mi><mo>|</mo><mo>=</mo><mn>1</mn></mrow>"), C.x, C.y-R-12, "#2c7a7b", 12.5);
+  }
+
+  // 点源 / 奇点
+  if(scene.kind==="sources"){ for(const p of srcs) sourceDot(p); }
+  else if(scene.singular && !scene.circle){
+    const q=toS(scene.singular);
+    ctx.save(); ctx.strokeStyle="#a0aec0"; ctx.lineWidth=2; const r=6;
+    ctx.beginPath(); ctx.moveTo(q.x-r,q.y-r); ctx.lineTo(q.x+r,q.y+r); ctx.moveTo(q.x+r,q.y-r); ctx.lineTo(q.x-r,q.y+r); ctx.stroke(); ctx.restore();
+    addLabel(mml("<mi>z</mi><mo>=</mo><mn>0</mn>")+"（奇点）", q.x+11, q.y-13, "#a0aec0", 12, {anchor:"left"});
+  }
+
+  // 局部正交标架（鼠标处）
+  if(show.frame && probe && harmonic){
+    const g=gradU(probe.x,probe.y), n=Math.hypot(g.x,g.y);
+    if(n>1e-6){
+      const gx=g.x/n, gy=g.y/n;
+      const P=toS(probe), L=26;
+      ctx.save(); ctx.lineWidth=2.4; ctx.strokeStyle="#dd6b20";
+      const dvx=gx, dvy=-gy;
+      ctx.beginPath(); ctx.moveTo(P.x-dvx*L,P.y-dvy*L); ctx.lineTo(P.x+dvx*L,P.y+dvy*L); ctx.stroke();
+      const dux=-gy, duy=-gx;
+      ctx.strokeStyle="#2b6cb0";
+      ctx.beginPath(); ctx.moveTo(P.x-dux*L,P.y-duy*L); ctx.lineTo(P.x+dux*L,P.y+duy*L); ctx.stroke();
+      const m=8; ctx.strokeStyle="#4a5568"; ctx.lineWidth=1.3;
+      ctx.beginPath();
+      ctx.moveTo(P.x+dux*m,P.y+duy*m); ctx.lineTo(P.x+dux*m+dvx*m,P.y+duy*m+dvy*m);
+      ctx.lineTo(P.x+dvx*m,P.y+dvy*m); ctx.stroke();
+      ctx.fillStyle="#2d3748"; ctx.beginPath(); ctx.arc(P.x,P.y,2.6,0,7); ctx.fill();
+      ctx.restore();
+      const uv=Ufield(probe.x,probe.y), vv=Vfield(probe.x,probe.y);
+      let txt=`<span style="color:#2b6cb0;">${mml("<mi>u</mi>")}=${fmt(uv)}</span>`;
+      if(isFinite(vv)) txt+=`　<span style="color:#dd6b20;">${mml("<mi>v</mi>")}=${fmt(vv)}</span>`;
+      addLabel(txt, P.x+16, P.y-30, "#2d3748", 13, {anchor:"left"});
+    }
+  }
+
+  updateReadout();
+}
+
+/* ============ 读数 ============ */
+function updateReadout(){
+  const box=document.getElementById("readout");
+  const uL=IDEN.uLine, vL=IDEN.vLine;
+  const phys=scene.phys[IDEN.id];
+  let html=`<h2 style="margin-bottom:8px;">读数</h2>`;
+  html+=`<div class="scene${scene.harmonic===false?' warn':''}"><span class="nm">场景：${scene.name}（${IDEN.label}）</span>${phys}</div>`;
+
+  if(scene.kind==="sources"){
+    const np=srcs.filter(p=>p.q>0).length, nn=srcs.filter(p=>p.q<0).length, tot=srcs.reduce((a,p)=>a+p.q,0);
+    html+=`<div><span class="k">势</span> ${mml("<mi>u</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub>")}</div>`;
+    html+=`<div class="val"><span class="t">${IDEN.posWord}×${np}，${IDEN.negWord}×${nn}，净强度 ${tot>0?'+':''}${tot}</span>`+
+          `<span class="big">${mml("<mi>u</mi>")} = ${uNameHTML()}</span></div>`;
+    html+=`<div class="corr">每个 ${mml("<mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub>")} 除源点外满足 ${F.lap0}，叠加仍<b>调和</b>；`+
+          `其共轭 ${mml("<mi>v</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><msub><mi>&#x3B8;</mi><mi>k</mi></msub>")} 的等值线就是<b>${vL}</b>。</div>`;
+    html+=orientNote(uL,vL);
+    box.innerHTML=html; return;
+  }
+
+  // 解析场景
+  html+=`<div><span class="k">解析函数</span> ${scene.fML?mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+scene.fML):"—（反例，非解析）"}</div>`;
+  if(scene.fML){
+    const fq=mml("<mi>f</mi>");
+    const sameF = scene.circle
+      ? `切物理身份时只有此例例外：静电场里导体圆柱须改用 ${F.fcylN}`
+      : `切物理身份时 ${fq} 表达式不变，只改 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 的物理叫法`;
+    html+=`<div style="color:var(--sub);font-size:12px;margin:3px 0 2px;line-height:1.55;">`+
+      `${fq} 是<b>复势</b>，本身不是可测量：实部 ${mml("<mi>u</mi>")} 是${IDEN.uWord}${mml(IDEN.uSym)}（满足 ${F.lap0} 的势），`+
+      `虚部 ${mml("<mi>v</mi>")} 是它的<b>共轭调和</b>（配套的流/通量函数，其等值线即${IDEN.vLine}）。`+
+      `真正的场矢量是导数 ${mml("<msup><mi>f</mi><mo>&#x2032;</mo></msup>")}。${sameF}。</div>`;
+  }
+  html+=`<div class="val"><span class="t">实部 ${mml("<mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")} = ${IDEN.uWord} ${mml(IDEN.uSym)}</span><span class="big">${mml("<mi>u</mi><mo>=</mo>"+scene.uML)}</span></div>`;
+
+  if(scene.harmonic){
+    html+=`<div class="val"><span class="t">虚部 ${mml("<mi>v</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")}（共轭调和）</span><span class="big">${mml("<mi>v</mi><mo>=</mo>"+scene.vML)}</span></div>`;
+    html+=`<div class="corr"><b>调和验证：</b>${mml(sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}（u 调和），同理 v 调和。</div>`;
+    html+=`<div class="k" style="margin-top:8px;">由 ${mml("<mi>u</mi>")} 求 ${mml("<mi>v</mi>")}（C-R 方程，大纲难点）</div>`;
+    html+=`<div class="steps">${scene.steps()}</div>`;
+    html+=orientNote(uL,vL);
+  }else{
+    html+=`<div class="corr warn"><b>非物理反例：</b><div class="steps" style="background:transparent;border:none;padding:4px 0;">${scene.steps()}</div></div>`;
+    html+=`<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">打开 <b>${mml("<mi>&#x394;</mi><mi>u</mi>")} 热图</b>：本例整片变红、底部徽标显示 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≠ 0 ✗。切到上面的调和场景对照——画面铺淡绿、徽标显示 ${mml("<mi>&#x394;</mi><mi>u</mi><mo>&#x2248;</mo><mn>0</mn>")} ✓。</div>`;
+  }
+  box.innerHTML=html;
+}
+function orientNote(uL,vL){
+  return `<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">蓝实线 = <b>${uL}</b>（${F.uc}）；橙虚线 = <b>${vL}</b>（${F.vc}）。两族<b>处处正交</b>——这正是 C-R 方程 ${mml("<mo>&#x2207;</mo><mi>u</mi><mo>&#x22C5;</mo><mo>&#x2207;</mo><mi>v</mi><mo>=</mo><mn>0</mn>")} 的几何含义。</div>`;
+}
+
+/* ============ 交互：拖源 / 探针 ============ */
+let drag=null;
+function screenXY(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+function pickSrc(m){ let best=null,bd=18; srcs.forEach((p,idx)=>{ const q=toS(p); const d=Math.hypot(m.x-q.x,m.y-q.y); if(d<bd){bd=d;best=idx;} }); return best; }
+cv.addEventListener("pointerdown",e=>{
+  const m=screenXY(e);
+  if(scene.kind==="sources"){ const i=pickSrc(m); if(i!=null){ drag=i; cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing"); } }
+});
+cv.addEventListener("pointermove",e=>{
+  const m=screenXY(e), w=fromS(m.x,m.y);
+  if(drag!=null){ srcs[drag]={x:w.x,y:w.y,q:srcs[drag].q}; probe=null; draw(); return; }
+  if(show.frame){ probe=w; draw(); }
+});
+function endPointer(){ if(drag!=null){ EduTelemetry.log("drag_src", drag); } drag=null; cv.classList.remove("grabbing"); }
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+cv.addEventListener("pointerleave",()=>{ if(drag==null && probe){ probe=null; draw(); } });
+cv.addEventListener("wheel",e=>{ e.preventDefault(); viewHalf=Math.min(9,Math.max(1.2,viewHalf*(e.deltaY<0?0.92:1.087))); draw(); },{passive:false});
+
+/* ============ 场景按钮 ============ */
+const sceneBtns=document.getElementById("sceneBtns");
+SCENES.forEach(sc=>{
+  const b=document.createElement("button"); b.innerHTML=sc.btn;
+  if(sc.cls) b.classList.add(sc.cls);
+  if(sc===scene) b.classList.add("sel");
+  b.onclick=()=>{ scene=sc; EduTelemetry.log("scene",sc.id);
+    [...sceneBtns.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel");
+    document.getElementById("srcBox").style.display = sc.kind==="sources"?"block":"none";
+    if(sc.harmonic===false && !show.lap){ show.lap=true; document.getElementById("tLap").checked=true; }
+    probe=null; renderLegend(); renderCanvasLegend(); draw(); };
+  sceneBtns.appendChild(b);
+});
+
+/* ============ 物理身份按钮 ============ */
+const idBtns=document.getElementById("idBtns");
+function renderIdNote(){ document.getElementById("idNote").innerHTML=IDEN.note; }
+Object.values(IDENTS).forEach(id=>{
+  const b=document.createElement("button"); b.textContent=id.label;
+  if(id===IDEN) b.classList.add("sel");
+  b.onclick=()=>{ IDEN=id; EduTelemetry.log("ident",id.id);
+    [...idBtns.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel");
+    renderIdNote(); renderLegend(); renderCanvasLegend(); draw(); };
+  idBtns.appendChild(b);
+});
+
+/* ============ 点源增删 ============ */
+document.getElementById("addPos").onclick=()=>{ if(srcs.length<8){ srcs.push({x:(srcs.length*0.5-1),y:0.7,q:1}); EduTelemetry.log("add_pos"); draw(); } };
+document.getElementById("addNeg").onclick=()=>{ if(srcs.length<8){ srcs.push({x:(srcs.length*0.5-1),y:-0.7,q:-1}); EduTelemetry.log("add_neg"); draw(); } };
+document.getElementById("delSrc").onclick=()=>{ if(srcs.length>1){ srcs.pop(); EduTelemetry.log("del_src"); draw(); } };
+
+/* ============ 显示开关 ============ */
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.checked=show[key];
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); if(key==="frame"&&!el.checked)probe=null; draw(); }); }
+bindToggle("tEquip","equip"); bindToggle("tField","field"); bindToggle("tLap","lap");
+bindToggle("tFrame","frame"); bindToggle("tGrid","grid"); bindToggle("tAxis","axis");
+
+/* ============ 右栏图例 ============ */
+function renderLegend(){
+  let h=`<span><i class="bar" style="border-top-color:#2b6cb0"></i>${IDEN.uLine}（${F.uc}）</span>`+
+        `<span><i class="bar" style="border-top-color:#dd6b20;border-top-style:dashed"></i>${IDEN.vLine}（${F.vc}）</span>`;
+  if(scene.kind==="sources"){
+    h+=`<span><i class="dot" style="background:#c53030"></i>${IDEN.posWord}</span>`+
+       `<span><i class="dot" style="background:#2b6cb0"></i>${IDEN.negWord}</span>`;
+  }
+  if(scene.circle){ h+=`<span><i class="bar" style="border-top-color:#319795"></i>柱面 ${F.z1}</span>`; }
+  document.getElementById("legend").innerHTML=h;
+}
+
+/* 画面左上角常驻图例：直接说明蓝线/橘虚线是什么 */
+function renderCanvasLegend(){
+  const blue=`<svg class="sw" width="24" height="8"><line x1="1" y1="4" x2="23" y2="4" stroke="#2b6cb0" stroke-width="2.6"/></svg>`;
+  const orange=`<svg class="sw" width="24" height="8"><line x1="1" y1="4" x2="23" y2="4" stroke="#dd6b20" stroke-width="2.4" stroke-dasharray="5,4"/></svg>`;
+  let h=`<div>${blue}<b>蓝实线</b>：${F.uc}（${IDEN.uLine}）</div>`;
+  if(scene.kind==="analytic" && !scene.harmonic){
+    h+=`<div style="color:#9c4221;">— <b>橘虚线</b>：此例 ${mml("<mi>u</mi>")} 不调和，无共轭调和 ${mml("<mi>v</mi>")}</div>`;
+    h+=`<div class="pp">${mml("<mi>&#x394;</mi><mi>u</mi><mo>&#x2260;</mo><mn>0</mn>")}，拼不出解析的 ${mml("<mi>f</mi>")}</div>`;
+  }else{
+    h+=`<div>${orange}<b>橘虚线</b>：${F.vc}（${IDEN.vLine}）</div>`;
+    h+=`<div class="pp">${mml("<mi>v</mi>")} 是 ${mml("<mi>u</mi>")} 的共轭调和 · 两族处处垂直</div>`;
+  }
+  document.getElementById("cvLegend").innerHTML=h;
+}
+document.getElementById("bReset").onclick=()=>{ viewHalf=2.6; probe=null; draw(); };
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+/* ============ 使用说明 ============ */
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+function openHelp(){ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("helpBtn").onclick=openHelp;
+document.getElementById("modalX").onclick=closeHelp;
+mask.onclick=closeHelp;
+document.getElementById("helpBody").innerHTML=
+  `<h2>调和函数与共轭调和 · 物理场应用</h2>`+
+  `<p>解析函数 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo><mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>+</mo><mi>i</mi><mi>v</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")} 的实部 ${mml("<mi>u</mi>")}、虚部 ${mml("<mi>v</mi>")} <b>都是调和函数</b>（${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}），且 ${mml("<mi>v</mi>")} 是 ${mml("<mi>u</mi>")} 的<b>共轭调和函数</b>。而<b>物理里的势场</b>（电势、稳态温度、速度势）在无源区都满足拉普拉斯方程——所以它们天然就是某个解析函数的实部。这个工具把这层关系"看得见"。</p>`+
+  `<p><b>${mml("<mi>f</mi>")} 到底是什么？</b> ${mml("<mi>f</mi>")} 是<b>"复势"</b>，它本身不是能直接测量的量，而是把两个物理量打包在一起：实部 ${mml("<mi>u</mi>")} 是那个满足 ${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo><mn>0</mn>")} 的<b>势</b>（静电场里是电势、温度场里是温度、流体里是速度势），虚部 ${mml("<mi>v</mi>")} 是它的<b>共轭调和</b>（配套的通量 / 热流 / 流函数）。<b>三种物理身份下 ${mml("<mi>f</mi>")} 的数学表达式相同、只是 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 的叫法不同</b>（唯一例外是绕圆柱：静电场的导体圆柱要改用 ${F.fcylN}）。真正能测的场矢量（电场强度 / 热流密度 / 流速）是 ${mml("<mi>f</mi>")} 的<b>导数</b> ${mml("<msup><mi>f</mi><mo>&#x2032;</mo></msup>")}，不是 ${mml("<mi>f</mi>")} 本身。</p>`+
+  `<h3>怎么用</h3>`+
+  `<ul>`+
+  `<li>先选<b>物理身份</b>（静电场 / 稳态温度场 / 理想流体）——决定 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 读作什么物理量、蓝橙两族线叫什么；</li>`+
+  `<li>再选<b>物理场景</b>——每个场景就是一个有明确背景的实际问题，读数区会写出它对应的解析函数、由 ${mml("<mi>u</mi>")} 求 ${mml("<mi>v</mi>")} 的 C-R 推导（大纲难点"已知实部求解析函数"）；</li>`+
+  `<li>蓝实线 = ${F.uc}（等势线 / 等温线 / 流的等势线），橙虚线 = ${F.vc}（电场线 / 热流线 / 流线），两族<b>处处正交</b>；</li>`+
+  `<li>勾选 ${mml("<mi>&#x394;</mi><mi>u</mi>")} <b>热图</b>验证调和性：热图算的是各点的 ${mml("<mi>&#x394;</mi><mi>u</mi>")}，红色越深表示越偏离 0。调和场景处处 ${mml("<mi>&#x394;</mi><mi>u</mi><mo>&#x2248;</mo><mn>0</mn>")}——画面铺一层<b>淡绿</b>、底部徽标显示 ✓；<b>非物理反例</b> ${F.ux2y2} 会红成一片（${F.lap4}），徽标显示 ✗，说明它不可能是任何真实的势。</li>`+
+  `</ul>`+
+  `<h3>各场景的物理身份</h3>`+
+  `<table><tr><th>场景 / 解析函数</th><th>它是什么</th></tr>`+
+  `<tr><td>匀强场 ${mml("<mi>f</mi><mo>=</mo><mi>z</mi>")}</td><td>匀强电场 / 线性温度梯度 / 匀速平行流</td></tr>`+
+  `<tr><td>直角角流 ${mml("<mi>f</mi><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup>")}</td><td>直角导体夹角处的电场 / 直角楔形温度 / 绕直角壁的理想流动</td></tr>`+
+  `<tr><td>点源 ${mml("<mi>f</mi><mo>=</mo><mi>Ln</mi>&#x2009;<mi>z</mi>")}</td><td>带电直线（线电荷）/ 线热源 / 平面源汇（等势线同心圆、场线放射）</td></tr>`+
+  `<tr><td>偶极子 ${mml("<mi>f</mi><mo>=</mo><mn>1</mn><mo>/</mo><mi>z</mi>")}</td><td>电偶极子 / 热偶极 / 偶极流</td></tr>`+
+  `<tr><td>绕圆柱 ${mml("<mi>f</mi><mo>=</mo><mi>z</mi><mo>+</mo><mn>1</mn><mo>/</mo><mi>z</mi>")}</td><td>匀流绕圆柱（${F.z1} 是一条流线）/ 绝热圆柱在均匀热流中</td></tr>`+
+  `<tr><td>多点源叠加</td><td>任意 ± 源叠加，可拖动，自己拼出偶极、绕流等图样</td></tr>`+
+  `</table>`+
+  `<p style="color:#7b341e;">注：本工具<b>不涉及"保角映射"</b>，只用调和函数与拉普拉斯方程本身。想自由输入任意 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")} 探索共轭调和，请用理论工具「共轭调和等值线」。</p>`;
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+"px"; cv.style.height=H+"px";
+  cx=W/2; cy=H/2; draw();
+}
+window.addEventListener("resize",resize);
+renderIdNote(); renderLegend(); renderCanvasLegend();
+EduTelemetry.log("open");
+
+// ── 访问统计（PV+UV；连不上时静默跳过）──
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-harmonic";      // ← 计数键：与工具编号 Tn 解耦的稳定标识，永不改动
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+resize();
+</script>
+</body>
+</html>
