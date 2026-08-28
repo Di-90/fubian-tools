@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T8 调和函数与共轭调和（物理场应用）</title>
+<title>T9 调和函数与共轭调和（物理场应用）</title>
 <style>
   :root{
     --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
@@ -107,7 +107,7 @@
   <div class="top">
     <h1>调和函数与共轭调和 · 物理场应用</h1>
     <span class="hint">解析函数 <math><mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi></math> 里 <math><mi>u</mi></math>、<math><mi>v</mi></math> 都调和，<math><mi>u</mi><mo>=</mo><mi>c</mi></math> 与 <math><mi>v</mi><mo>=</mo><mi>c</mi></math> 处处正交——这就是各种物理场的骨架</span>
-    <span class="tag">T8 · 复变函数与积分变换</span>
+    <span class="tag">T9 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -176,7 +176,7 @@
 <script>
 /* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
 const EduTelemetry = (function(){
-  const KEY="edu_telemetry_T8"; let buf=[];
+  const KEY="edu_telemetry_T9"; let buf=[];
   try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
   function log(type,detail){
     buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
@@ -188,7 +188,7 @@ const EduTelemetry = (function(){
     const csv=rows.map(r=>r.join(",")).join("\n");
     const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download="T8_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+    a.download="T9_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   return {log, exportCSV};
 })();

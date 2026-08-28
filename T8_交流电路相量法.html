@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交流电路的相量法 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .reson{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:13px;}
+  .reson.on{background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .reson.off{background:#f7fafc; border:1px solid var(--line); color:var(--sub);}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  /* help modal */
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>交流电路的相量法</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T8 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">串联 <b>RLC 电路</b>（电阻 <math><mi>R</mi></math>–电感 <math><mi>L</mi></math>–电容 <math><mi>C</mi></math> 首尾相接串在一起，接一个正弦交流电源）：把电压、电流和阻抗都写成<b>复数</b>——旋转相量的投影就是时域正弦波，阻抗 <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>X</mi></mrow></math> 的模是幅值之比、辐角是相位差。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>先看电路：要求的是什么？</h2>
+    <p>与其直接抛公式，不如看一个<b>真实的串联电路</b>：一个正弦交流电源，串上电阻 <math><mi>R</mi></math>、电感 <math><mi>L</mi></math>、电容 <math><mi>C</mi></math>，问<b>电路里的电流 <math><mi>i</mi></math> 是多少</b>？</p>
+    <svg viewBox="0 0 560 200" style="display:block;width:100%;max-width:520px;height:auto;margin:8px auto 2px;font-family:'Cambria Math','STIX Two Math',serif;">
+      <!-- 回路导线（上/右/下 + 左侧接线柱），元件处留缺口 -->
+      <path d="M60 60 H110 M165 60 H240 M296 60 H398 M408 60 H500 M500 60 V175 M60 175 H500 M60 60 V93 M60 137 V175" fill="none" stroke="#2b6cb0" stroke-width="2" stroke-linecap="round"/>
+      <!-- 交流电源 -->
+      <circle cx="60" cy="115" r="22" fill="#fff" stroke="#2b6cb0" stroke-width="2"/>
+      <path d="M49 115 q5.5 -11 11 0 q5.5 11 11 0" fill="none" stroke="#2b6cb0" stroke-width="1.6"/>
+      <!-- 电阻 R（锯齿） -->
+      <polyline points="110,60 118,51 130,69 142,51 154,69 165,60" fill="none" stroke="#2b6cb0" stroke-width="2" stroke-linejoin="round"/>
+      <!-- 电感 L（线圈） -->
+      <path d="M240 60 q7 -15 14 0 q7 -15 14 0 q7 -15 14 0 q7 -15 14 0" fill="none" stroke="#2b6cb0" stroke-width="2"/>
+      <!-- 电容 C（两板） -->
+      <path d="M398 46 V74 M408 46 V74" stroke="#2b6cb0" stroke-width="2.4" stroke-linecap="round"/>
+      <!-- 电流方向箭头 i -->
+      <path d="M196 44 H222" stroke="#2f855a" stroke-width="1.8" fill="none"/>
+      <polygon points="222,44 214,40 214,48" fill="#2f855a"/>
+      <!-- 文字标注 -->
+      <text x="60" y="150" text-anchor="middle" font-size="13" fill="#2b6cb0"><tspan font-style="italic">v</tspan>(t)</text>
+      <text x="205" y="37" font-style="italic" font-size="14" fill="#2f855a">i</text>
+      <text x="132" y="42" font-style="italic" font-size="16" fill="#1a202c">R</text>
+      <text x="262" y="38" font-style="italic" font-size="16" fill="#1a202c">L</text>
+      <text x="397" y="40" font-style="italic" font-size="16" fill="#1a202c">C</text>
+    </svg>
+    <p class="lg" style="text-align:center;margin:0 0 4px;">串联 RLC 电路　电源 <math><mrow><mi>v</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mi>V</mi><mi>m</mi></msub><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>)</mo></mrow></math></p>
+  </div>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>为什么要用复数？两种算法对比</h2>
+    <p><b>举个具体数字</b>：设 <math><mrow><mi>R</mi><mo>=</mo><mn>6</mn></mrow></math> Ω、电抗 <math><mrow><msub><mi>X</mi><mi>L</mi></msub><mo>&#x2212;</mo><msub><mi>X</mi><mi>C</mi></msub><mo>=</mo><mn>8</mn></mrow></math> Ω、电源 <math><mrow><mi>v</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>10</mn><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>)</mo></mrow></math> V，求电流 <math><mrow><mi>i</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>。同一道题，两种算法：</p>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 6px;">
+      <div style="flex:1;min-width:250px;background:#fff5f5;border:1px solid #fc8181;border-radius:8px;padding:11px 15px;">
+        <div style="font-weight:700;color:#c53030;margin-bottom:6px;">不用复数（时域 · 解微分方程）</div>
+        <p style="margin:0 0 6px;">① 待求电流设为 <math><mrow><mi>i</mi><mo>=</mo><msub><mi>I</mi><mi>m</mi></msub><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C6;</mi><mo>)</mo></mrow></math>，代入电路方程<br><math><mrow><mi>L</mi><mfrac><mrow><mi>d</mi><mi>i</mi></mrow><mrow><mi>d</mi><mi>t</mi></mrow></mfrac><mo>+</mo><mi>R</mi><mi>i</mi><mo>+</mo><mfrac><mn>1</mn><mi>C</mi></mfrac><mo>&#x222B;</mo><mi>i</mi><mspace width="0.12em"></mspace><mi>d</mi><mi>t</mi><mo>=</mo><mn>10</mn><mi>sin</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></math></p>
+        <p style="margin:0 0 6px;">② 求导、积分后整理成<br><math><mrow><mn>6</mn><msub><mi>I</mi><mi>m</mi></msub><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C6;</mi><mo>)</mo><mo>+</mo><mn>8</mn><msub><mi>I</mi><mi>m</mi></msub><mi>cos</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C6;</mi><mo>)</mo><mo>=</mo><mn>10</mn><mi>sin</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></math></p>
+        <p style="margin:0 0 6px;">③ 用三角恒等式展开，按 <math><mrow><mi>sin</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></math>、<math><mrow><mi>cos</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></math> 配平，得<b>两个联立方程</b>：<br><math><mrow><mn>6</mn><msub><mi>I</mi><mi>m</mi></msub><mi>cos</mi><mi>&#x3C6;</mi><mo>+</mo><mn>8</mn><msub><mi>I</mi><mi>m</mi></msub><mi>sin</mi><mi>&#x3C6;</mi><mo>=</mo><mn>10</mn></mrow></math><br><math><mrow><mo>&#x2212;</mo><mn>6</mn><msub><mi>I</mi><mi>m</mi></msub><mi>sin</mi><mi>&#x3C6;</mi><mo>+</mo><mn>8</mn><msub><mi>I</mi><mi>m</mi></msub><mi>cos</mi><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn></mrow></math></p>
+        <p style="margin:0;">④ 解得 <math><mrow><mi>tan</mi><mi>&#x3C6;</mi><mo>=</mo><mn>8</mn><mo>/</mo><mn>6</mn><mo>&#x21D2;</mo><mi>&#x3C6;</mi><mo>&#x2248;</mo><mn>53.1</mn><mo>&#xB0;</mo></mrow></math>，<math><mrow><msub><mi>I</mi><mi>m</mi></msub><mo>=</mo><mn>1</mn></mrow></math> A<br>&#x21D2; <math><mrow><mi>i</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>&#x2212;</mo><mn>53.1</mn><mo>&#xB0;</mo><mo>)</mo></mrow></math> A</p>
+      </div>
+      <div style="flex:1;min-width:250px;background:#f0fff4;border:1px solid #68d391;border-radius:8px;padding:11px 15px;">
+        <div style="font-weight:700;color:#276749;margin-bottom:6px;">用复数（相量法 · 一次除法）</div>
+        <p style="margin:0 0 6px;">① 电源写成相量 <math><mrow><mi>V</mi><mo>=</mo><mn>10</mn><mo>&#x2220;</mo><mn>0</mn><mo>&#xB0;</mo></mrow></math></p>
+        <p style="margin:0 0 6px;">② 阻抗直接写成复数（实部 <math><mi>R</mi></math> + 虚部电抗）：<br><math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mo>(</mo><msub><mi>X</mi><mi>L</mi></msub><mo>&#x2212;</mo><msub><mi>X</mi><mi>C</mi></msub><mo>)</mo><mo>=</mo><mn>6</mn><mo>+</mo><mi>j</mi><mn>8</mn><mo>=</mo><mn>10</mn><mo>&#x2220;</mo><mn>53.1</mn><mo>&#xB0;</mo></mrow></math> Ω</p>
+        <p style="margin:0 0 6px;">③ 欧姆定律，一次<b>复数除法</b>（模相除、角相减）：<br><math><mrow><mi>I</mi><mo>=</mo><mfrac><mi>V</mi><mi>Z</mi></mfrac><mo>=</mo><mfrac><mrow><mn>10</mn><mo>&#x2220;</mo><mn>0</mn><mo>&#xB0;</mo></mrow><mrow><mn>10</mn><mo>&#x2220;</mo><mn>53.1</mn><mo>&#xB0;</mo></mrow></mfrac><mo>=</mo><mn>1</mn><mo>&#x2220;</mo><mo>&#x2212;</mo><mn>53.1</mn><mo>&#xB0;</mo></mrow></math> A</p>
+        <p style="margin:0;">④ 直接读出结果：<br>&#x21D2; <math><mrow><mi>i</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>&#x2212;</mo><mn>53.1</mn><mo>&#xB0;</mo><mo>)</mo></mrow></math> A</p>
+        <p class="lg" style="margin:8px 0 0;font-size:11.8px;line-height:1.55;border-top:1px dashed #9ae6b4;padding-top:6px;">记号 <math><mrow><mi>r</mi><mo>&#x2220;</mo><mi>&#x3B8;</mi></mrow></math> ＝ 模为 <math><mi>r</mi></math>、辐角为 <math><mi>&#x3B8;</mi></math> 的复数（即 <math><mrow><mi>r</mi><msup><mi>e</mi><mrow><mi>j</mi><mi>&#x3B8;</mi></mrow></msup></mrow></math>），所以 <math><mrow><mn>10</mn><mo>&#x2220;</mo><mn>0</mn><mo>&#xB0;</mo></mrow></math> 就是 <math><mn>10</mn></math>。极坐标下<b>复数除法＝模相除、辐角相减</b>（乘法＝模相乘、角相加），恰好对应"幅值之比"与"相位差"，所以相量法特别爱用它。</p>
+      </div>
+    </div>
+    <p style="margin:2px 0 10px;"><b>结果一模一样</b>，但左边要"设解 → 求导积分 → 三角展开 → 配平 → 联立解方程"一大串；右边把它压成<b>一次复数除法</b>。这就是为什么要引入复数：<b>把微积分和三角运算，变成复数的加减乘除。</b></p>
+
+    <p><b>背后的规律：</b>只要把"幅值 + 相位"打包成一个复数（<b>相量</b>），就有一套简单对应——正弦<b>相加</b>变复数相加、<b>求导</b> <math><mrow><mi>d</mi><mo>/</mo><mi>d</mi><mi>t</mi></mrow></math> 变<b>乘</b> <math><mrow><mi>j</mi><mi>&#x3C9;</mi></mrow></math>、<b>积分</b>变<b>除以</b> <math><mrow><mi>j</mi><mi>&#x3C9;</mi></mrow></math>。那条微分方程于是变成复数代数方程 <math><mrow><mo>(</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>&#x3C9;</mi><mi>L</mi><mo>+</mo><mfrac><mn>1</mn><mrow><mi>j</mi><mi>&#x3C9;</mi><mi>C</mi></mrow></mfrac><mo>)</mo><mi>I</mi><mo>=</mo><mi>V</mi></mrow></math>，两边一除即得 <math><mrow><mi>I</mi><mo>=</mo><mi>V</mi><mo>/</mo><mi>Z</mi></mrow></math>。下面把这套<b>旋转相量</b>动起来看。</p>
+  </div>
+
+  <div class="main">
+    <canvas id="cv"></canvas>
+    <p class="lg" style="font-size:12.3px;margin:8px 2px 0;padding:8px 12px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;color:var(--sub);">
+      <b>符号约定：</b>小写 <math><mi>v</mi></math>、<math><mi>i</mi></math> = 随时间变化的<b>瞬时值</b>（右图正弦波，纵轴就是这一刻的实际数值）；大写 <math><mi>V</mi></math>、<math><mi>I</mi></math> = 对应的<b>相量</b>（左图旋转的复矢量），相量在虚轴上的投影正好就是此刻的 <math><mi>v</mi></math>、<math><mi>i</mi></math>；带下标 <math><mi>m</mi></math> 的 <math><msub><mi>V</mi><mi>m</mi></msub></math>、<math><msub><mi>I</mi><mi>m</mi></msub></math> = <b>幅值</b>（正弦的最大值，也就是相量的长度）。
+    </p>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>电路参数</h2>
+        <div class="ctrl"><label>电阻 <math><mi>R</mi></math>：<span class="v" id="vR">30 Ω</span></label>
+          <input type="range" id="sR" min="1" max="200" step="1" value="30"></div>
+        <div class="ctrl"><label>电感 <math><mi>L</mi></math>：<span class="v" id="vL">10 mH</span></label>
+          <input type="range" id="sL" min="1" max="50" step="0.5" value="10"></div>
+        <div class="ctrl"><label>电容 <math><mi>C</mi></math>：<span class="v" id="vC">1.0 μF</span></label>
+          <input type="range" id="sC" min="0.1" max="10" step="0.1" value="1"></div>
+        <div class="ctrl"><label>电源频率 <math><mi>f</mi></math>：<span class="v" id="vF">1000 Hz</span></label>
+          <input type="range" id="sF" min="50" max="3000" step="10" value="1000"></div>
+        <div class="ctrl"><label>电源电压幅值 <math><msub><mi>V</mi><mi>m</mi></msub></math>：<span class="v" id="vVm">10 V</span></label>
+          <input type="range" id="sVm" min="1" max="20" step="0.5" value="10"></div>
+        <div class="row">
+          <button class="btn" id="btnPlay">⏸ 暂停旋转</button>
+          <label class="chk"><input type="checkbox" id="chkComp"> 显示分电压 <math><msub><mi>V</mi><mi>R</mi></msub></math>/<math><msub><mi>V</mi><mi>L</mi></msub></math>/<math><msub><mi>V</mi><mi>C</mi></msub></math>（首尾相接＝KVL 矢量和）</label>
+        </div>
+        <div class="ctrl" id="phaseWrap" style="display:none;margin-top:10px;">
+          <label>相位 <math><mrow><mi>&#x3C9;</mi><mi>t</mi></mrow></math>（暂停时可手动转）：<span class="v" id="vPh">0°</span></label>
+          <input type="range" id="sPh" min="0" max="360" step="1" value="0"></div>
+      </div>
+
+      <div class="readout">
+        <h2>读数（都是复数）</h2>
+        <p><math><mrow><mi>&#x3C9;</mi><mo>=</mo><mn>2</mn><mi>&#x3C0;</mi><mi>f</mi></mrow></math> = <b id="oOmega">—</b> rad/s</p>
+        <p>感抗 <math><mrow><msub><mi>X</mi><mi>L</mi></msub><mo>=</mo><mi>&#x3C9;</mi><mi>L</mi></mrow></math> = <b id="oXL">—</b> Ω　容抗 <math><mrow><msub><mi>X</mi><mi>C</mi></msub><mo>=</mo><mn>1</mn><mo>/</mo><mo>(</mo><mi>&#x3C9;</mi><mi>C</mi><mo>)</mo></mrow></math> = <b id="oXC">—</b> Ω</p>
+        <p>阻抗 <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mo>(</mo><msub><mi>X</mi><mi>L</mi></msub><mo>&#x2212;</mo><msub><mi>X</mi><mi>C</mi></msub><mo>)</mo></mrow></math> = <b id="oZ">—</b> Ω</p>
+        <canvas id="cvZ" style="display:block; width:100%; max-width:300px; height:auto; margin:2px auto 4px; background:#fbfdff; border:1px solid var(--line); border-radius:8px;"></canvas>
+        <p class="lg" style="font-size:12.3px;margin:2px 0 8px;">这张图说明:电阻 <math><mi>R</mi></math>（同相、耗能）与电抗 <math><mi>X</mi></math>（<math><mrow><mo>&#xB1;</mo><mn>90</mn><mo>&#xB0;</mo></mrow></math>、储能）作为一个复数 <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>X</mi></mrow></math> 的两条直角边合成斜边 <math><mrow><mo stretchy="false">|</mo><mi>Z</mi><mo stretchy="false">|</mo></mrow></math>；斜边与实轴的夹角 <math><mi>&#x3C6;</mi></math> 就是电压超前电流的相位。<math><mi>X</mi></math> 越大越"抗性"（<math><mrow><mi>&#x3C6;</mi><mo>&#x2192;</mo><mo>&#xB1;</mo><mn>90</mn><mo>&#xB0;</mo></mrow></math>），谐振时 <math><mrow><mi>X</mi><mo>=</mo><mn>0</mn></mrow></math>、<math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi></mrow></math> 纯阻、<math><mrow><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn></mrow></math>。</p>
+        <p class="lg" style="font-size:12.3px;margin:2px 0 8px;"><b>和相量图的关系：</b>欧姆定律 <math><mrow><mi>V</mi><mo>=</mo><mi>Z</mi><mo>&#x22C5;</mo><mi>I</mi></mrow></math>——把电流相量 <math><mi>I</mi></math> 乘以复数 <math><mi>Z</mi></math>，就是把它<b>转过 <math><mi>&#x3C6;</mi></math> 角、再放大 <math><mrow><mo stretchy="false">|</mo><mi>Z</mi><mo stretchy="false">|</mo></mrow></math> 倍</b>得到电压相量 <math><mi>V</mi></math>。所以这个三角形的倾角 <math><mi>&#x3C6;</mi></math>，正是相量图里 <math><mi>V</mi></math> 与 <math><mi>I</mi></math> 的夹角、也等于右边两条波形错开的相位差——<b>三张图里的 <math><mi>&#x3C6;</mi></math> 是同一个</b>。</p>
+        <p class="lg" style="font-size:12.3px;margin:2px 0 8px;"><b><math><mi>&#x3C6;</mi></math> 的物理含义（功率因数）：</b>它决定 <math><mrow><mi>cos</mi><mi>&#x3C6;</mi></mrow></math>——真正被电阻消耗、变成热的有功功率 <math><mo>&#x221D;</mo></math> <math><mrow><mi>cos</mi><mi>&#x3C6;</mi></mrow></math>。<math><mrow><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn></mrow></math>（谐振/纯阻）时 <math><mrow><mi>cos</mi><mi>&#x3C6;</mi><mo>=</mo><mn>1</mn></mrow></math>，能量全部做功；<math><mrow><mi>&#x3C6;</mi><mo>=</mo><mo>&#xB1;</mo><mn>90</mn><mo>&#xB0;</mo></mrow></math>（纯电抗）时 <math><mrow><mi>cos</mi><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn></mrow></math>，能量只在电源与 <math><mi>L</mi></math>/<math><mi>C</mi></math> 之间来回倒腾、不做净功。<math><mi>&#x3C6;</mi></math> 越接近 0，电流越"有效"。</p>
+        <p>模 <math><mrow><mo stretchy="false">|</mo><mi>Z</mi><mo stretchy="false">|</mo></mrow></math> = <b id="oAbsZ">—</b> Ω　辐角 <math><mrow><mi>arg</mi><mi>Z</mi><mo>=</mo><mi>&#x3C6;</mi></mrow></math> = <b id="oArgZ">—</b></p>
+        <p>电流幅值 <math><mrow><msub><mi>I</mi><mi>m</mi></msub><mo>=</mo><msub><mi>V</mi><mi>m</mi></msub><mo>/</mo><mo stretchy="false">|</mo><mi>Z</mi><mo stretchy="false">|</mo></mrow></math> = <b id="oIm">—</b> A</p>
+        <p id="oPhase" class="lg">—</p>
+        <div class="reson off" id="oReson">谐振频率 <math><mrow><msub><mi>f</mi><mn>0</mn></msub><mo>=</mo><mn>1</mn><mo>/</mo><mo>(</mo><mn>2</mn><mi>&#x3C0;</mi><msqrt><mrow><mi>L</mi><mi>C</mi></mrow></msqrt><mo>)</mo></mrow></math> = <b id="oF0">—</b> Hz</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>为什么要让相量转起来？</h2>
+    <p>上面那张图里，电压相量、电流相量都在<b>匀速旋转</b>。为什么要转？</p>
+    <p><b>因为：</b>真正的物理量是随时间振荡的<b>实正弦</b> <math><mrow><mi>v</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mi>V</mi><mi>m</mi></msub><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>)</mo></mrow></math>。复数相量 <math><mrow><msub><mi>V</mi><mi>m</mi></msub><msup><mi>e</mi><mrow><mi>j</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></msup></mrow></math> 正是一个以角速度 <math><mi>&#x3C9;</mi></math> <b>匀速旋转</b>的矢量，它在坐标轴上的<b>投影</b>恰好扫出这条正弦波。让它转，就能看清“相量图”和“波形”本是<b>同一件事的两种画法</b>：静止的相量图只是某一瞬间的定格，转起来才看得到投影怎样随时间画出正弦、两个相量间<b>固定的夹角</b>怎样变成两条波形<b>恒定的相位差</b>。</p>
+    <p class="lg">（小提示：真正做题时只需 <math><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow></math> 的<b>静止相量</b>——旋转因子 <math><msup><mi>e</mi><mrow><mi>j</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></msup></math> 每个量都一样，可以约掉。转起来是为了“看懂”，计算时可以不转。）</p>
+  </div>
+
+  <div class="know">
+    <h2>这体现了复数的哪些概念？</h2>
+    <p><b>① 复数的模与辐角 = 幅值与相位。</b> 把阻抗写成复数 <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>X</mi></mrow></math>（见右侧读数区的阻抗三角形）：它的<b>模</b> <math><mrow><mo stretchy="false">|</mo><mi>Z</mi><mo stretchy="false">|</mo><mo>=</mo><msqrt><mrow><msup><mi>R</mi><mn>2</mn></msup><mo>+</mo><msup><mi>X</mi><mn>2</mn></msup></mrow></msqrt></mrow></math> 就是电压电流的<b>幅值之比</b> <math><mrow><msub><mi>V</mi><mi>m</mi></msub><mo>/</mo><msub><mi>I</mi><mi>m</mi></msub></mrow></math>，<b>辐角</b> <math><mrow><mi>arg</mi><mi>Z</mi></mrow></math> 就是电压<b>超前</b>电流的相位——右图两条正弦波的错开量。</p>
+    <p><b>② 复数加法 = 阻抗串联。</b> 串联电路总阻抗 <math><mrow><mi>Z</mi><mo>=</mo><msub><mi>Z</mi><mi>R</mi></msub><mo>+</mo><msub><mi>Z</mi><mi>L</mi></msub><mo>+</mo><msub><mi>Z</mi><mi>C</mi></msub><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>&#x3C9;</mi><mi>L</mi><mo>+</mo><mfrac><mn>1</mn><mrow><mi>j</mi><mi>&#x3C9;</mi><mi>C</mi></mrow></mfrac></mrow></math>，就是三个复数相加。勾上“显示分电压”能看到 <math><msub><mi>V</mi><mi>R</mi></msub></math>、<math><msub><mi>V</mi><mi>L</mi></msub></math>、<math><msub><mi>V</mi><mi>C</mi></msub></math> 首尾相接（复数相加）正好等于电源电压 <math><mi>V</mi></math>——这就是 <b>KVL（基尔霍夫电压定律，Kirchhoff's Voltage Law）</b>：任一回路里各元件电压之和等于电源电压，只不过这里是<b>相量（复数矢量）</b>相加、而不是简单数值相加。</p>
+    <p><b>③ 乘以 <math><mi>j</mi></math> = 逆时针转 90°。</b> 电感 <math><mrow><msub><mi>Z</mi><mi>L</mi></msub><mo>=</mo><mi>j</mi><mi>&#x3C9;</mi><mi>L</mi></mrow></math>，乘 <math><mi>j</mi></math> 把电流相量转 <math><mrow><mo>+</mo><mn>90</mn><mo>&#xB0;</mo></mrow></math>，所以<b>电感电压超前电流 90°</b>；电容 <math><mrow><msub><mi>Z</mi><mi>C</mi></msub><mo>=</mo><mn>1</mn><mo>/</mo><mo>(</mo><mi>j</mi><mi>&#x3C9;</mi><mi>C</mi><mo>)</mo><mo>=</mo><mo>&#x2212;</mo><mi>j</mi><mo>/</mo><mo>(</mo><mi>&#x3C9;</mi><mi>C</mi><mo>)</mo></mrow></math>，除以 <math><mi>j</mi></math> 转 <math><mrow><mo>&#x2212;</mo><mn>90</mn><mo>&#xB0;</mo></mrow></math>，<b>电容电压滞后电流 90°</b>。</p>
+    <p><b>④ 相量 = 复指数旋转矢量。</b> 电压 <math><mrow><mi>v</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mi>V</mi><mi>m</mi></msub><mi>sin</mi><mo>(</mo><mi>&#x3C9;</mi><mi>t</mi><mo>)</mo></mrow></math> 是旋转相量 <math><mrow><msub><mi>V</mi><mi>m</mi></msub><msup><mi>e</mi><mrow><mi>j</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></msup></mrow></math> 在坐标轴上的<b>投影</b>——左图相量转、右图波形走，中间虚线连着的就是同一个瞬时值。</p>
+    <p class="lg">（当 <math><mrow><msub><mi>X</mi><mi>L</mi></msub><mo>=</mo><msub><mi>X</mi><mi>C</mi></msub></mrow></math> 即 <math><mrow><mi>X</mi><mo>=</mo><mn>0</mn></mrow></math> 时发生<b>谐振</b>：<math><mi>Z</mi></math> 变成纯电阻 <math><mi>R</mi></math>，辐角为 0、电流最大、电压电流同相。把频率滑到 <math><msub><mi>f</mi><mn>0</mn></msub></math> 看看。）</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>一个串联 RLC 交流电路。左边是<b>相量图</b>（复平面上的旋转矢量），右边是对应的<b>时域正弦波</b>，右侧读数区的小三角形是<b>阻抗</b> <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>X</mi></mrow></math>。</p>
+    <p><b>怎么玩：</b>拖 <math><mi>R</mi></math>/<math><mi>L</mi></math>/<math><mi>C</mi></math>/<math><mi>f</mi></math>/<math><msub><mi>V</mi><mi>m</mi></msub></math> 五个滑杆看相量与波形怎么变。点“暂停旋转”后，可用“相位 <math><mrow><mi>&#x3C9;</mi><mi>t</mi></mrow></math>”滑杆手动把相量转到任意角度，观察某一瞬时。</p>
+    <p><b>看什么：</b>①电压相量（蓝）与电流相量（绿）之间的夹角 = <math><mrow><mi>arg</mi><mi>Z</mi></mrow></math>；②两条正弦波错开的相位差也等于它；③把频率滑到谐振点 <math><msub><mi>f</mi><mn>0</mn></msub></math>，夹角归零、电流最大。</p>
+    <p><b>勾“显示分电压”：</b>把 <math><msub><mi>V</mi><mi>R</mi></msub></math>（同相）、<math><msub><mi>V</mi><mi>L</mi></msub></math>（超前 90°）、<math><msub><mi>V</mi><mi>C</mi></msub></math>（滞后 90°）首尾相接画出来，它们的矢量和正好等于电源电压 <math><mi>V</mi></math>。</p>
+    <p class="lg">注：电压相量与波形的长度<b>正比于电压幅值</b> <math><msub><mi>V</mi><mi>m</mi></msub></math>，拖 <math><msub><mi>V</mi><mi>m</mi></msub></math> 能看到整体变长/变短。电流与电压单位不同，电流按比例缩放，只用来比较<b>相位</b>与<b>相对大小</b>。勾选"显示分电压"后，若 <math><msub><mi>V</mi><mi>L</mi></msub></math>/<math><msub><mi>V</mi><mi>C</mi></msub></math> 因谐振放大而过大，整图会自动缩小以保证首尾相接看得全。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var cvZ=document.getElementById("cvZ"), ctxZ=cvZ?cvZ.getContext("2d"):null;
+var W=900,H=430,DPR=1, WZ=280,HZ=150;
+
+// 电路参数
+var R=30, Lmh=10, Cuf=1, f=1000, Vm=10;
+// 派生量
+var omega=0, XL=0, XC=0, X=0, absZ=1, argZ=0, Im=0, VR=0, VL=0, VC=0, f0=0;
+// 动画
+var theta=0, playing=true, showComp=false;
+var SPEED=0.9; // 视觉旋转速度(rad/s of animation)
+var lastTs=null;
+
+function recompute(){
+  var Lh=Lmh*1e-3, Cf=Cuf*1e-6;
+  omega=2*Math.PI*f;
+  XL=omega*Lh;
+  XC=1/(omega*Cf);
+  X=XL-XC;
+  absZ=Math.hypot(R,X);
+  argZ=Math.atan2(X,R);           // 电压超前电流的相位
+  Im=Vm/absZ;
+  VR=Im*R; VL=Im*XL; VC=Im*XC;
+  f0=1/(2*Math.PI*Math.sqrt(Lh*Cf));
+}
+
+/* ---------- 绘图 ---------- */
+function toPixLen(){ return 1; }
+function arrow(x0,y0,x1,y1,col,lw){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw||2;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  var a=Math.atan2(y1-y0,x1-x0), h=9;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-h*Math.cos(a-0.4),y1-h*Math.sin(a-0.4));
+  ctx.lineTo(x1-h*Math.cos(a+0.4),y1-h*Math.sin(a+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function label(txt,x,y,col,font){
+  ctx.fillStyle=col; ctx.font=font||"13px 'Microsoft YaHei',sans-serif"; ctx.fillText(txt,x,y);
+}
+// 混合文本：parts=[{s:"中文"},{s:"v",it:1}]，it 为真的片段用斜体公式体（变量/符号），其余用中文 sans
+function richText(parts,x,y,col,size){
+  size=size||12; ctx.fillStyle=col; var cx=x;
+  var cn=size+"px 'Microsoft YaHei',sans-serif";
+  var it="italic "+size+"px 'Cambria Math','STIX Two Math',serif";
+  for(var i=0;i<parts.length;i++){
+    ctx.font=parts[i].it?it:cn;
+    ctx.fillText(parts[i].s,cx,y);
+    cx+=ctx.measureText(parts[i].s).width;
+  }
+}
+// 带真下标的公式标签（画在 canvas 上，如 V 下标 R）
+function subLabel(main,sub,x,y,col,size){
+  size=size||13; ctx.fillStyle=col;
+  ctx.font="italic "+size+"px 'Cambria Math','STIX Two Math',serif";
+  ctx.fillText(main,x,y);
+  var mw=ctx.measureText(main).width;
+  ctx.font="italic "+(size*0.72).toFixed(1)+"px 'Cambria Math','STIX Two Math',serif";
+  ctx.fillText(sub,x+mw+1,y+size*0.28);
+}
+// 通用箭头（指定绘图上下文，供阻抗三角形小图复用）
+function arrowOn(c,x0,y0,x1,y1,col,lw){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw||2;
+  c.beginPath(); c.moveTo(x0,y0); c.lineTo(x1,y1); c.stroke();
+  var a=Math.atan2(y1-y0,x1-x0), h=8;
+  c.beginPath(); c.moveTo(x1,y1);
+  c.lineTo(x1-h*Math.cos(a-0.4),y1-h*Math.sin(a-0.4));
+  c.lineTo(x1-h*Math.cos(a+0.4),y1-h*Math.sin(a+0.4));
+  c.closePath(); c.fill();
+}
+
+var Lcx, cy, planeMax, voltScale, curLen, x0wave, x1wave;
+function layout(){
+  Lcx=W*0.245; cy=H*0.52;
+  planeMax=Math.min(W*0.185, H*0.36);
+  // 电压比例：固定基准 = 让"电压幅值滑杆上限(20V)"对应满量程，
+  // 这样拖 Vm 时电压/电流相量与波形会真的变长变短（Vm 越大越长）。
+  var VM_MAX=20;                               // 与 sVm 滑杆 max 一致
+  var fixedScale=0.92*planeMax/VM_MAX;
+  // 兜底：勾选分电压后 VL/VC 可能远大于 Vm（谐振电压放大），此时按最大分量缩放以保证首尾相接落在图内
+  var vmax=Vm;
+  if(showComp) vmax=Math.max(Vm,VR,VL,VC);
+  var fitScale=0.92*planeMax/Math.max(vmax,1e-6);
+  voltScale=Math.min(fixedScale, fitScale);
+  // 电流长度：以谐振电流 Vm/R 为参照，映到 Vm 的电压长度
+  curLen=(R/absZ)*Vm*voltScale;
+  x0wave=W*0.50; x1wave=W-14;
+}
+
+// 阻抗三角形 Z=R+jX（画在读数区独立小画布 cvZ，不再叠在主图上）
+function drawZTriangle(){
+  if(!ctxZ) return;
+  ctxZ.clearRect(0,0,WZ,HZ);
+  // 标题：中文说明 + 斜体公式体（与正文 MathML 观感一致）
+  ctxZ.textBaseline="alphabetic";
+  ctxZ.fillStyle="#4a5568"; ctxZ.font="bold 11.5px 'Microsoft YaHei',sans-serif";
+  ctxZ.fillText("阻抗三角形　",8,16);
+  var tx=8+ctxZ.measureText("阻抗三角形　").width;
+  ctxZ.fillStyle="#2b6cb0"; ctxZ.font="italic 13px 'Cambria Math','STIX Two Math',serif";
+  ctxZ.fillText("Z = R + j X",tx,16);
+  tx+=ctxZ.measureText("Z = R + j X").width;
+  ctxZ.fillStyle="#718096"; ctxZ.font="10.5px 'Microsoft YaHei',sans-serif";
+  ctxZ.fillText("（单位 Ω）",tx+2,16);
+  var ox=34, yT=34, yB=HZ-16, avail=yB-yT;
+  var mm=Math.max(R,Math.abs(X),absZ,1e-6);
+  var s=Math.min((WZ-2*ox)/mm, avail/mm)*0.9;
+  // 感抗(X>0)向上→原点放底边；容抗(X<0)向下→原点放顶边；两种都能完整落在画布内
+  var oy=(X>=0)?yB:yT;
+  var rx=ox+R*s, xy=oy-X*s;
+  // φ 夹角弧（Z 与实轴 R 之间）
+  var angZ=Math.atan2(xy-oy,rx-ox);
+  if(Math.abs(angZ)>0.04){
+    ctxZ.strokeStyle="#b7791f"; ctxZ.lineWidth=1.3;
+    ctxZ.beginPath(); ctxZ.arc(ox,oy,20,0,angZ,angZ<0); ctxZ.stroke();
+    ctxZ.fillStyle="#b7791f"; ctxZ.font="italic 12px 'Cambria Math','STIX Two Math',serif";
+    ctxZ.fillText("φ",ox+27*Math.cos(angZ/2)-3,oy+27*Math.sin(angZ/2)+4);
+  }
+  // R 分量(灰) 沿正实轴
+  arrowOn(ctxZ,ox,oy,rx,oy,"#718096",2);
+  ctxZ.fillStyle="#718096"; ctxZ.font="italic 13px 'Cambria Math','STIX Two Math',serif";
+  ctxZ.fillText("R",(ox+rx)/2-4,(X>=0)?oy+15:oy-6);
+  // X 分量(橙) 竖直：感性向上、容性向下
+  arrowOn(ctxZ,rx,oy,rx,xy,"#dd6b20",2);
+  ctxZ.fillStyle="#c05621"; ctxZ.font="italic 12.5px 'Cambria Math','STIX Two Math',serif";
+  ctxZ.fillText("j X",rx+6,(oy+xy)/2+4);
+  // Z 斜边(蓝)
+  arrowOn(ctxZ,ox,oy,rx,xy,"#2b6cb0",2.4);
+  ctxZ.fillStyle="#2b6cb0"; ctxZ.font="bold italic 14px 'Cambria Math','STIX Two Math',serif";
+  ctxZ.fillText("Z",(ox+rx)/2-16,(oy+xy)/2-4);
+}
+
+function drawPhasorPlane(){
+  // 坐标轴：横=实轴 Re，纵=虚轴 Im
+  var ext=planeMax+16;
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(Lcx-ext,cy); ctx.lineTo(Lcx+ext,cy);   // 实轴
+  ctx.moveTo(Lcx,cy+ext); ctx.lineTo(Lcx,cy-ext);   // 虚轴
+  ctx.stroke();
+  label("Re 实轴",Lcx+ext-52,cy+14,"#a0aec0","11px 'Microsoft YaHei'");
+  label("Im 虚轴",Lcx+8,cy-planeMax+16,"#a0aec0","11px 'Microsoft YaHei'");
+  // V 顶端轨迹圆
+  var Lv=Vm*voltScale;
+  ctx.strokeStyle="#e2e8f0"; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.arc(Lcx,cy,Lv,0,2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  label("相量图（复平面）",Lcx-52,cy-planeMax-4,"#4a5568","12px 'Microsoft YaHei'");
+  richText([{s:"↺ 以角速度 "},{s:"ω",it:1},{s:" 逆时针匀速旋转，在虚轴上的投影 = 该量此刻的瞬时值"}],Lcx-ext,cy+planeMax+22,"#a0aec0",10.5);
+
+  var angV=theta, angI=theta-argZ;
+  var tipV={x:Lcx+Lv*Math.cos(angV), y:cy-Lv*Math.sin(angV)};
+  var tipI={x:Lcx+curLen*Math.cos(angI), y:cy-curLen*Math.sin(angI)};
+
+  // 分电压(KVL 首尾相接): VR 沿 I 方向, VL +90°, VC -90°
+  if(showComp){
+    var uI={x:Math.cos(angI),y:-Math.sin(angI)};       // I 单位向量(屏幕)
+    var uP={x:Math.cos(angI+Math.PI/2),y:-Math.sin(angI+Math.PI/2)};
+    var p0={x:Lcx,y:cy};
+    var p1={x:p0.x+uI.x*VR*voltScale, y:p0.y+uI.y*VR*voltScale};
+    var p2={x:p1.x+uP.x*VL*voltScale, y:p1.y+uP.y*VL*voltScale};
+    var p3={x:p2.x-uP.x*VC*voltScale, y:p2.y-uP.y*VC*voltScale}; // ≈ tipV
+    arrow(p0.x,p0.y,p1.x,p1.y,"#718096",2); subLabel("V","R",(p0.x+p1.x)/2-4,(p0.y+p1.y)/2-4,"#718096",13);
+    arrow(p1.x,p1.y,p2.x,p2.y,"#dd6b20",2); subLabel("V","L",(p1.x+p2.x)/2+3,(p1.y+p2.y)/2,"#c05621",13);
+    arrow(p2.x,p2.y,p3.x,p3.y,"#6b46c1",2); subLabel("V","C",(p2.x+p3.x)/2+3,(p2.y+p3.y)/2,"#6b46c1",13);
+  }
+
+  // 夹角弧 φ=argZ (在 V 与 I 之间)
+  if(Math.abs(argZ)>0.03){
+    ctx.strokeStyle="#b7791f"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(Lcx,cy,34,-angV,-angI,argZ<0); ctx.stroke();
+    var mid=theta-argZ/2;
+    label("φ",Lcx+46*Math.cos(mid),cy-46*Math.sin(mid)+4,"#b7791f","bold 13px 'Cambria Math'");
+  }
+
+  // V(蓝) 与 I(绿)
+  arrow(Lcx,cy,tipV.x,tipV.y,"#2b6cb0",3);
+  label("V",tipV.x+6,tipV.y-2,"#2b6cb0","bold italic 15px 'Cambria Math','STIX Two Math',serif");
+  ctx.setLineDash([6,4]);
+  arrow(Lcx,cy,tipI.x,tipI.y,"#2f855a",2.6);
+  ctx.setLineDash([]);
+  label("I",tipI.x+6,tipI.y+4,"#2f855a","bold italic 15px 'Cambria Math','STIX Two Math',serif");
+
+  return {tipV:tipV, tipI:tipI, Lv:Lv};
+}
+
+function drawWaves(ph){
+  var cycles=2.4, Lv=Vm*voltScale;
+  // 轴
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(x0wave,cy-planeMax-8); ctx.lineTo(x0wave,cy+planeMax+8); // 幅值轴(边界)
+  ctx.moveTo(x0wave,cy); ctx.lineTo(x1wave,cy); ctx.stroke();          // 时间轴
+  richText([{s:"时域波形（电压 "},{s:"v",it:1},{s:" 蓝、电流 "},{s:"i",it:1},{s:" 绿）"}],x0wave+8,cy-planeMax-2,"#4a5568",12);
+  richText([{s:"纵轴 = 瞬时值　横轴 = 时间 "},{s:"t",it:1}],x0wave+8,cy-planeMax+13,"#a0aec0",10.5);
+  richText([{s:"t",it:1},{s:" 时间 →"}],x1wave-58,cy+16,"#a0aec0",11);
+
+  function plot(mag,phase0,col,dash){
+    ctx.strokeStyle=col; ctx.lineWidth=2.2; if(dash)ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    for(var x=x0wave;x<=x1wave;x+=2){
+      var pp=phase0+(x-x0wave)/(x1wave-x0wave)*cycles*2*Math.PI;
+      var y=cy-mag*Math.sin(pp);
+      if(x===x0wave)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  plot(Lv, ph, "#2b6cb0", false);       // v(t)
+  plot(curLen, ph-argZ, "#2f855a", true); // i(t)
+}
+
+function drawConnectors(tips,ph){
+  // 相量顶端 → 波形边界 的水平虚线(此刻瞬时值)
+  ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
+  ctx.strokeStyle="rgba(43,108,176,.55)";
+  ctx.beginPath(); ctx.moveTo(tips.tipV.x,tips.tipV.y); ctx.lineTo(x0wave,tips.tipV.y); ctx.stroke();
+  ctx.strokeStyle="rgba(47,133,90,.55)";
+  ctx.beginPath(); ctx.moveTo(tips.tipI.x,tips.tipI.y); ctx.lineTo(x0wave,tips.tipI.y); ctx.stroke();
+  ctx.setLineDash([]);
+  // 边界上的当前点
+  ctx.fillStyle="#2b6cb0"; ctx.beginPath(); ctx.arc(x0wave,tips.tipV.y,3.5,0,2*Math.PI); ctx.fill();
+  ctx.fillStyle="#2f855a"; ctx.beginPath(); ctx.arc(x0wave,tips.tipI.y,3.5,0,2*Math.PI); ctx.fill();
+}
+
+function draw(){
+  layout();
+  ctx.clearRect(0,0,W,H);
+  var tips=drawPhasorPlane();
+  drawWaves(theta);
+  drawConnectors(tips,theta);
+}
+
+/* ---------- 读数 ---------- */
+function fmt(x,d){ if(!isFinite(x))return "—"; return x.toFixed(d==null?1:d); }
+function updateReadout(){
+  document.getElementById("oOmega").textContent=fmt(omega,0);
+  document.getElementById("oXL").textContent=fmt(XL,1);
+  document.getElementById("oXC").textContent=fmt(XC,1);
+  var zt=fmt(R,1)+(X>=0?" + ":" − ")+"j"+fmt(Math.abs(X),1);
+  document.getElementById("oZ").textContent=zt;
+  document.getElementById("oAbsZ").textContent=fmt(absZ,1);
+  document.getElementById("oArgZ").textContent=fmt(argZ*180/Math.PI,1)+"°";
+  document.getElementById("oIm").textContent=fmt(Im,3);
+  var deg=argZ*180/Math.PI, ph=document.getElementById("oPhase");
+  if(Math.abs(deg)<0.6) ph.innerHTML="电压与电流<b>同相</b>（谐振/纯阻）。";
+  else if(deg>0) ph.innerHTML="感性电路：电压<b>超前</b>电流 <b>"+fmt(deg,1)+"°</b>（<math><mi>i</mi></math> 落后 <math><mi>v</mi></math>）。";
+  else ph.innerHTML="容性电路：电压<b>滞后</b>电流 <b>"+fmt(-deg,1)+"°</b>（<math><mi>i</mi></math> 超前 <math><mi>v</mi></math>）。";
+  document.getElementById("oF0").textContent=fmt(f0,0);
+  var near=Math.abs(f-f0)/f0<0.03, box=document.getElementById("oReson");
+  box.className="reson "+(near?"on":"off");
+}
+
+/* ---------- 动画 ---------- */
+function tick(ts){
+  if(lastTs==null)lastTs=ts;
+  var dt=(ts-lastTs)/1000; lastTs=ts;
+  if(playing){
+    theta+=SPEED*2*Math.PI*dt*0.35;
+    if(theta>2*Math.PI)theta-=2*Math.PI;
+    draw();
+    document.getElementById("sPh").value=(theta*180/Math.PI)%360;
+    document.getElementById("vPh").textContent=fmt(theta*180/Math.PI,0)+"°";
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- 控件 ---------- */
+function refresh(){ recompute(); updateReadout(); draw(); drawZTriangle(); }
+document.getElementById("sR").addEventListener("input",function(e){ R=+e.target.value; document.getElementById("vR").textContent=R+" Ω"; refresh(); });
+document.getElementById("sL").addEventListener("input",function(e){ Lmh=+e.target.value; document.getElementById("vL").textContent=fmt(Lmh,1)+" mH"; refresh(); });
+document.getElementById("sC").addEventListener("input",function(e){ Cuf=+e.target.value; document.getElementById("vC").textContent=fmt(Cuf,1)+" μF"; refresh(); });
+document.getElementById("sF").addEventListener("input",function(e){ f=+e.target.value; document.getElementById("vF").textContent=f+" Hz"; refresh(); });
+document.getElementById("sVm").addEventListener("input",function(e){ Vm=+e.target.value; document.getElementById("vVm").textContent=fmt(Vm,1)+" V"; refresh(); });
+document.getElementById("chkComp").addEventListener("change",function(e){ showComp=e.target.checked; draw(); });
+document.getElementById("btnPlay").addEventListener("click",function(){
+  playing=!playing; this.textContent=playing?"⏸ 暂停旋转":"▶ 开始旋转";
+  document.getElementById("phaseWrap").style.display=playing?"none":"block";
+});
+document.getElementById("sPh").addEventListener("input",function(e){
+  if(playing)return;
+  theta=(+e.target.value)*Math.PI/180;
+  document.getElementById("vPh").textContent=fmt(+e.target.value,0)+"°";
+  draw();
+});
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth; if(w<320)w=320; if(w>896)w=896;
+  W=w; H=Math.round(Math.max(360,w*0.48));
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(cvZ){
+    var wz=Math.min((cvZ.parentElement.clientWidth||300)-2, 300); if(wz<180)wz=180;
+    WZ=wz; HZ=Math.round(wz*0.52);
+    cvZ.width=WZ*DPR; cvZ.height=HZ*DPR; cvZ.style.width=WZ+"px"; cvZ.style.height=HZ+"px";
+    ctxZ.setTransform(DPR,0,0,DPR,0,0);
+  }
+  draw();
+  drawZTriangle();
+}
+window.addEventListener("resize",resize);
+recompute(); updateReadout(); resize(); requestAnimationFrame(tick);
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-phasor";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
