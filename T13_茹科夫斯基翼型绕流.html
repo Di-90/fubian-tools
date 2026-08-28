@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞机为什么能飞 · 茹科夫斯基翼型 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.7;}
+  .wrap{max-width:860px; margin:0 auto; padding:22px 18px 60px;}
+  .back{font-size:13px; color:var(--blue); text-decoration:none;}
+  .back:hover{text-decoration:underline;}
+  h1{font-size:23px; margin:8px 0 6px;}
+  .lead{color:var(--sub); font-size:14.5px; margin:0 0 4px;}
+  .intro{background:#fffaf0; border:1px solid #f6e05e; border-radius:10px;
+         padding:12px 16px; font-size:13.5px; color:#744210; margin:16px 0 18px;}
+  .intro b{color:#5f370e;}
+
+  .stage{background:var(--card); border:1px solid var(--line); border-radius:14px;
+         box-shadow:var(--shadow); padding:16px 16px 14px;}
+  .dots{display:flex; gap:8px; justify-content:center; margin-bottom:10px;}
+  .dot{width:26px; height:5px; border-radius:3px; background:#e2e8f0;}
+  .dot.on{background:var(--blue);}
+  .say{text-align:center; margin:2px 0 12px;}
+  .say .tt{font-size:17px; font-weight:700; color:var(--ink);}
+  .say .ds{font-size:14px; color:var(--sub); margin-top:5px; max-width:640px; margin-left:auto; margin-right:auto;}
+  .say .ds b{color:var(--ink);}
+
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+
+  .ctrls{margin-top:12px; min-height:52px;}
+  .ctrl{margin:8px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:5px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  .toggle{display:flex; gap:0; border:1px solid #cbd5e0; border-radius:8px; overflow:hidden; max-width:440px; margin:6px auto 0;}
+  .toggle button{flex:1; border:none; background:#fff; padding:9px 8px; cursor:pointer; font-size:13px; color:var(--sub);}
+  .toggle button.wrongOn{background:#dd6b20; color:#fff;}
+  .toggle button.rightOn{background:var(--green); color:#fff;}
+  .lift{margin-top:10px; text-align:center; font-size:13.5px;}
+  .lift .bar{display:inline-block; height:10px; border-radius:5px; background:var(--green);
+             vertical-align:middle; transition:width .2s; width:60px;}
+  .lift .lbl{color:var(--sub);}
+
+  .nav{display:flex; justify-content:space-between; align-items:center; margin-top:16px;}
+  .nav button{border:1px solid var(--blue); background:var(--blue); color:#fff;
+              padding:9px 20px; border-radius:8px; cursor:pointer; font-size:14px;}
+  .nav button.ghost{background:#fff; color:var(--blue);}
+  .nav button:disabled{opacity:.4; cursor:default;}
+  .tip{font-size:12.5px; color:var(--sub); text-align:center;}
+
+  .playbtn{border:1px solid var(--blue); border-radius:6px; padding:5px 12px; background:#fff;
+            cursor:pointer; color:var(--blue); font-size:13px;}
+  .deriv{margin:12px 0 2px; border:1px solid #cbd5e0; border-radius:10px; background:#f8fafc; padding:0 14px;}
+  .deriv>summary{cursor:pointer; padding:11px 2px; font-size:13.5px; font-weight:600; color:var(--blue); list-style:none;}
+  .deriv>summary::-webkit-details-marker{display:none;}
+  .deriv>summary::before{content:"▸ "; color:var(--gold);}
+  .deriv[open]>summary::before{content:"▾ ";}
+  .derivbody{padding:2px 2px 12px; font-size:13.3px; color:#2d3748; line-height:1.75;}
+  .derivbody p{margin:8px 0;}
+  .derivbody table{width:100%; border-collapse:collapse; margin:11px 0; font-size:13px;}
+  .derivbody th,.derivbody td{border:1px solid #e2e8f0; padding:6px 8px; text-align:center;}
+  .derivbody th{background:#edf2f7; color:var(--sub); font-weight:600;}
+  .derivbody math{font-family:"Cambria Math","STIX Two Math",serif; font-size:14px;}
+  .derivbody .hi{color:#b7791f; font-weight:600;}
+  .know{margin-top:22px; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:16px 20px;}
+  .know h2{font-size:16px; color:var(--blue); border-left:3px solid var(--gold);
+           padding-left:10px; margin:0 0 12px;}
+  .know p{margin:9px 0; font-size:13.8px; color:#2d3748;}
+  .know code{background:#edf2f7; border:1px solid #dbe2ea; border-radius:4px;
+             padding:1px 6px; font-family:"Cambria Math",Consolas,monospace; font-size:13.5px;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .know math{font-size:15.5px; padding:0 2px;}
+  .say math, .intro math{font-family:"Cambria Math","STIX Two Math",serif; font-size:15px;}
+  .ctrl math{font-family:"Cambria Math","STIX Two Math",serif; font-size:14.5px;}
+  .know .flow{background:#ebf8ff; border:1px solid #bee3f8; border-radius:8px;
+              padding:9px 12px; text-align:center; color:#2a4365; font-weight:600;}
+  .know .tie{background:#f0fff4; border:1px solid #c6f6d5; border-radius:8px;
+             padding:9px 12px; color:#22543d;}
+  footer{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <h1>飞机为什么能飞？——复变函数的一次著名应用</h1>
+  <div class="lead">兴趣拓展 · 学完“解析函数 / 调和函数”之后开开眼界（本例核心用到的“保角映射”属课外拓展，了解即可）</div>
+
+  <div class="intro">
+    <b>这是一页“开眼界”的拓展</b>，不是考试内容。把手伸出行驶的车窗、手掌微微上翘，就会被气流<b>往上托</b>——这就是升力。上世纪初人们已经会造机翼，却算不清升力到底多大；
+    直到数学家发现：你在课上学的<b>解析函数、调和函数</b>，正好能描述这种气流，再借一个“把圆捏成机翼”的映射，就把难算的“绕机翼”变回了会算的“绕圆柱”。
+    一百年前的这套办法，用的正是你现在学的东西。这一页，我们一步一步看它是怎么回事——<b>看懂即可，不必人人会推</b>。
+  </div>
+
+  <div class="stage">
+    <div class="dots">
+      <div class="dot" data-d="1"></div><div class="dot" data-d="2"></div>
+      <div class="dot" data-d="3"></div><div class="dot" data-d="4"></div>
+    </div>
+
+    <div class="say">
+      <div class="tt" id="sceneTitle"></div>
+      <div class="ds" id="sceneDesc"></div>
+    </div>
+
+    <canvas id="cv"></canvas>
+
+    <div class="ctrls">
+      <div class="ctrl" id="cAoa" style="display:none;">
+        <label>机翼迎风的倾角（攻角 α）：<span class="v" id="vAoa">6°</span></label>
+        <input type="range" id="sAoa" min="-6" max="16" step="0.5" value="6">
+      </div>
+      <div class="ctrl" id="cMorph" style="display:none;">
+        <label>变形程度 <math><mi>t</mi></math>（即公式 <math><mrow><mi>w</mi><mo>=</mo><mi>&#x3B6;</mi><mo>+</mo><mfrac><mi>t</mi><mi>&#x3B6;</mi></mfrac></mrow></math> 里的 <math><mi>t</mi></math>）：<span class="v" id="vMorph">机翼</span>　（<math><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow></math> 圆　→　<math><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow></math> 机翼）</label>
+        <input type="range" id="sMorph" min="0" max="1" step="0.01" value="1">
+        <div style="text-align:center;margin-top:6px;">
+          <button id="btnPlay" class="playbtn">▶ 自动来回变形</button>
+        </div>
+      </div>
+      <details class="deriv" id="cDeriv" style="display:none;">
+        <summary>这个公式到底怎么把圆“压”成机翼？点开，手算 4 个点看看</summary>
+        <div class="derivbody">
+          <p><b>先弄清两个记号。</b> <math><mi>&#x3B6;</mi></math>（zeta）是<b>圆上的一个点</b>——它是个复数，也就是平面上的一个坐标；<math><mi>w</mi></math> 是把这个点代进公式 <math><mrow><mi>w</mi><mo>=</mo><mi>&#x3B6;</mi><mo>+</mo><mfrac><mn>1</mn><mi>&#x3B6;</mi></mfrac></mrow></math> 算出来的<b>新落点</b>。把圆上<b>每一个</b>点都这样搬一次，所有新落点连起来，就是新曲线。</p>
+          <p>拿最干净的<b>单位圆</b>（半径 1、圆心在原点）来试。圆上的点可写成 <math><mrow><mi>&#x3B6;</mi><mo>=</mo><mi>cos</mi><mi>&#x3B8;</mi><mo>+</mo><mi>i</mi><mi>sin</mi><mi>&#x3B8;</mi></mrow></math>，这时 <math><mrow><mn>1</mn><mo>/</mo><mi>&#x3B6;</mi><mo>=</mo><mi>cos</mi><mi>&#x3B8;</mi><mo>&#x2212;</mo><mi>i</mi><mi>sin</mi><mi>&#x3B8;</mi></mrow></math>（正好是它关于横轴的镜像）：</p>
+          <table>
+            <tr><th>圆上的点 <math><mi>&#x3B6;</mi></math></th><th>算 <math><mrow><mi>&#x3B6;</mi><mo>+</mo><mn>1</mn><mo>/</mo><mi>&#x3B6;</mi></mrow></math></th><th>落点 <math><mi>w</mi></math></th></tr>
+            <tr><td><math><mrow><mi>&#x3B6;</mi><mo>=</mo><mn>1</mn></mrow></math>（最右）</td><td><math><mrow><mn>1</mn><mo>+</mo><mn>1</mn></mrow></math></td><td class="hi"><math><mrow><mi>w</mi><mo>=</mo><mn>2</mn></mrow></math>　尖后缘</td></tr>
+            <tr><td><math><mrow><mi>&#x3B6;</mi><mo>=</mo><mi>i</mi></mrow></math>（最上）</td><td><math><mrow><mi>i</mi><mo>+</mo><mn>1</mn><mo>/</mo><mi>i</mi><mo>=</mo><mi>i</mi><mo>&#x2212;</mo><mi>i</mi></mrow></math></td><td class="hi"><math><mrow><mi>w</mi><mo>=</mo><mn>0</mn></mrow></math></td></tr>
+            <tr><td><math><mrow><mi>&#x3B6;</mi><mo>=</mo><mo>&#x2212;</mo><mn>1</mn></mrow></math>（最左）</td><td><math><mrow><mo>(</mo><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>+</mo><mo>(</mo><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></math></td><td><math><mrow><mi>w</mi><mo>=</mo><mo>&#x2212;</mo><mn>2</mn></mrow></math>　前缘</td></tr>
+            <tr><td><math><mrow><mi>&#x3B6;</mi><mo>=</mo><mo>&#x2212;</mo><mi>i</mi></mrow></math>（最下）</td><td><math><mrow><mo>(</mo><mo>&#x2212;</mo><mi>i</mi><mo>)</mo><mo>+</mo><mi>i</mi></mrow></math></td><td class="hi"><math><mrow><mi>w</mi><mo>=</mo><mn>0</mn></mrow></math></td></tr>
+          </table>
+          <p><b>看出来了吗：</b>最上的 <math><mi>i</mi></math> 和最下的 <math><mrow><mo>&#x2212;</mo><mi>i</mi></mrow></math> 都被搬到了<b>同一点 <math><mn>0</mn></math></b>——整个圆被上下“压扁”，塌成横轴上的一条线段 <math><mrow><mo>[</mo><mo>&#x2212;</mo><mn>2</mn><mo>,</mo><mn>2</mn><mo>]</mo></mrow></math>；而 <math><mrow><mi>&#x3B6;</mi><mo>=</mo><mn>1</mn></mrow></math> 那里被挤出一个<b>尖角</b>（尖后缘）。这就是最薄的“平板机翼”。</p>
+          <p><b>再让它鼓起来：</b>如果不用正中间的圆，而把圆<b>稍微偏心</b>（圆心挪开一点、但仍穿过 <math><mrow><mi>&#x3B6;</mi><mo>=</mo><mn>1</mn></mrow></math>），上下就压不到一起了，于是压扁后留下<b>厚度和弧度</b>——一个真正的翼型就出来了。本工具的圆心设在 <math><mrow><mo>(</mo><mo>&#x2212;</mo><mn>0.10</mn><mo>,</mo><mn>0.08</mn><mo>)</mo></mrow></math>，所以你看到的是有厚度、上鼓下平的机翼。</p>
+          <p style="color:#718096;">（滑杆里的 <math><mi>t</mi></math> 就是把这套“搬家”做几成：<math><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow></math> 完全不搬，还是原来的圆；<math><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow></math> 搬到位，就是上面这张表的结果。）</p>
+        </div>
+      </details>
+      <div class="ctrl" id="cCam" style="display:none;">
+        <label>机翼的弯度（拱起程度）：<span class="v" id="vCam">中</span></label>
+        <input type="range" id="sCam" min="0" max="0.22" step="0.005" value="0.08">
+      </div>
+      <div class="ctrl" id="cKutta" style="display:none;">
+        <label style="text-align:center;">气流经过尖尖的后缘时，怎么走？</label>
+        <div class="toggle">
+          <button id="btnWrong">硬绕过刀尖（不可能发生）</button>
+          <button id="btnRight" class="rightOn">顺着刀尖甩出去（真实）</button>
+        </div>
+      </div>
+      <div class="lift" id="liftBox" style="display:none;">
+        <span class="lbl">此时升力：</span>
+        <span class="bar" id="liftBar"></span>
+        <span class="v" id="liftTxt">中</span>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="ghost" id="btnPrev">← 上一步</button>
+      <div class="tip" id="stepTip">第 1 / 4 步</div>
+      <button id="btnNext">下一步 →</button>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>这和课上学的哪些内容有关？（哪些是本课内容，哪些是拓展）</h2>
+
+    <p class="tie"><b>先说清定位：</b>这个例子里真正“化难为易”的那一步（把圆映成机翼）用的是<b>保角映射</b>，那是<b>本课不讲的拓展内容</b>，你了解个大意即可。但它赖以成立的地基——<b>解析函数、调和函数</b>——正是你课上学的东西。下面把两者分开讲。</p>
+
+    <p><b>① 属于本课内容——解析函数与调和函数（重点看这条）。</b> 平面理想流动可以用一个<b>解析函数“复势” W</b> 来描述；它的实部与虚部（速度势 <math><mi>&#x3C6;</mi></math> 与流函数 <math><mi>&#x3C8;</mi></math>）<b>都是调和函数</b>，满足拉普拉斯方程 <math><mrow><mi>&#x394;</mi><mi>&#x3C6;</mi><mo>=</mo><mn>0</mn></mrow></math>、<math><mrow><mi>&#x394;</mi><mi>&#x3C8;</mi><mo>=</mo><mn>0</mn></mrow></math>，而且互为<b>共轭调和</b>（由 C-R 方程联系）。你在第一、三步看到的那一条条蓝色流线，就是流函数 <math><mrow><mi>&#x3C8;</mi><mo>=</mo><mtext>常数</mtext></mrow></math> 的等值线。这一套“解析函数 ⇒ 实虚部调和 ⇒ 描述物理场”，和工具 <b>T8「调和函数与共轭调和」</b> 讲的是同一件事，只是这里换成了绕机翼的气流。</p>
+
+    <p><b>② 属于本课内容——留数与闭曲线积分。</b> 升力大小由“环量”Γ 决定，而环量 <math><mi>&#x393;</mi></math> 正是<b>复速度沿闭曲线的积分</b>，由<b>留数定理</b>有 <math><mrow><mo>&#x222E;</mo><msup><mi>W</mi><mo>&#x2032;</mo></msup><mi>d</mi><mi>z</mi><mo>=</mo><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi><mo>&#x22C5;</mo><mo>&#x2211;</mo><mi>Res</mi></mrow></math>——与工具 <b>T5「简单闭曲线积分」</b> 同一套定理。算出 <math><mi>&#x393;</mi></math> 后代入库塔–茹科夫斯基公式 <math><mrow><msup><mi>L</mi><mo>&#x2032;</mo></msup><mo>=</mo><mo>&#x2212;</mo><mi>&#x3C1;</mi><mi>U</mi><mi>&#x393;</mi></mrow></math> 就得到升力。</p>
+
+    <p><b>③ 属于拓展内容——保角映射（了解即可，不考）。</b> 映射 <math><mrow><mi>w</mi><mo>=</mo><mi>&#x3B6;</mi><mo>+</mo><mfrac><mn>1</mn><mi>&#x3B6;</mi></mfrac></mrow></math> 也是解析函数，它能把 <math><mi>&#x3B6;</mi></math> 平面上的一个圆，一对一地“捏成” <math><mi>w</mi></math> 平面上的机翼形状。关键在于：<b>拉普拉斯方程在这种映射下保持不变</b>，所以圆上算好的流动，映过去仍是一个真实的流动——难题就这样变回了会算的题：</p>
+    <p class="flow">会算的「绕圆柱」 ——(把圆捏成机翼：<math><mrow><mi>w</mi><mo>=</mo><mi>&#x3B6;</mi><mo>+</mo><mfrac><mn>1</mn><mi>&#x3B6;</mi></mfrac></mrow></math>)——&gt; 直接得到「绕机翼」，不必重算。</p>
+    <p>（顺带一提：机翼那个<b>尖后缘</b>——第三步的橙点——来自 <math><mrow><mi>&#x3B6;</mi><mo>=</mo><mo>&#xB1;</mo><mn>1</mn></mrow></math> 处 <math><mrow><msup><mi>w</mi><mo>&#x2032;</mo></msup><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><mn>1</mn><msup><mi>&#x3B6;</mi><mn>2</mn></msup></mfrac><mo>=</mo><mn>0</mn></mrow></math>，是圆被挤出的尖角。这也属于拓展细节。）</p>
+
+    <p class="tie"><b>一句话总结：</b>你课上学的<b>解析函数、调和函数、留数</b>，就是描述与计算这股气流的全部工具；唯独“把圆变成机翼”这一步借用了课外的<b>保角映射</b>。所以这一页的价值不在于教你新知识点，而在于——让你看见自己刚学的东西，一百年前就把飞机为什么能飞算清楚了。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* 单图 + 变形族 w_t(ζ)=ζ+t/ζ : t=0 恒等(绕圆柱), t=1 茹科夫斯基(翼型) */
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var W=760,H=460,DPR=1;
+var U=1.0, mu={x:-0.10,y:0.08}, R=1.0, alpha=6*Math.PI/180, Gamma=0;
+var t=1.0, targetT=1.0, kuttaWrong=false, scene=1;
+var RANX=2.7, contourDirty=true, CONTOURS=[];
+
+function wt(zx,zy){ var d=zx*zx+zy*zy; if(d<1e-9)d=1e-9; return {x:zx+t*zx/d, y:zy-t*zy/d}; }
+function scale(){ return W/(2*RANX); }
+function toPix(px,py){ var s=scale(); return {x:W/2+px*s, y:H/2-py*s}; }
+
+function recompute(){
+  R=Math.hypot(1-mu.x,-mu.y);
+  var th0=Math.atan2(-mu.y,1-mu.x);
+  Gamma=kuttaWrong?0:4*Math.PI*U*R*Math.sin(th0-alpha);
+  contourDirty=true;
+}
+function psi(zx,zy){
+  var xp=zx-mu.x, yp=zy-mu.y, r2=xp*xp+yp*yp;
+  if(r2<R*R-1e-6) return NaN;
+  var ca=Math.cos(alpha), sa=Math.sin(alpha);
+  return U*(yp*ca-xp*sa)+U*R*R*(xp*sa-yp*ca)/r2-(Gamma/(2*Math.PI))*0.5*Math.log(r2);
+}
+var GN=150;
+function buildContours(){
+  var lo=-3.0,hi=3.0,step=(hi-lo)/GN,i,j;
+  var grid=[],gx=[];
+  for(i=0;i<=GN;i++){ grid[i]=[]; gx[i]=lo+i*step; }
+  for(i=0;i<=GN;i++) for(j=0;j<=GN;j++) grid[i][j]=psi(lo+i*step,lo+j*step);
+  var psi0=-(Gamma/(2*Math.PI))*Math.log(R);
+  var levels=[]; for(var k=-15;k<=15;k++){ if(k===0)continue; levels.push(psi0+k*0.24); }
+  var out=[];
+  for(var L=0;L<levels.length;L++){
+    var lv=levels[L],segs=[];
+    for(i=0;i<GN;i++) for(j=0;j<GN;j++){
+      var a=grid[i][j],b=grid[i+1][j],c=grid[i+1][j+1],d=grid[i][j+1];
+      if(isNaN(a)||isNaN(b)||isNaN(c)||isNaN(d)) continue;
+      var x0=gx[i],x1=gx[i+1],y0=gx[j],y1=gx[j+1];
+      var idx=(a>lv?1:0)|(b>lv?2:0)|(c>lv?4:0)|(d>lv?8:0);
+      if(idx===0||idx===15) continue;
+      function ip(va,vb,ax,ay,bx,by){ var s=(lv-va)/(vb-va); return {x:ax+(bx-ax)*s,y:ay+(by-ay)*s}; }
+      var eB=ip(a,b,x0,y0,x1,y0),eR=ip(b,c,x1,y0,x1,y1),eT=ip(d,c,x0,y1,x1,y1),eL=ip(a,d,x0,y0,x0,y1);
+      var e=null;
+      switch(idx){
+        case 1: case 14: e=[eL,eB]; break;
+        case 2: case 13: e=[eB,eR]; break;
+        case 3: case 12: e=[eL,eR]; break;
+        case 4: case 11: e=[eR,eT]; break;
+        case 6: case 9:  e=[eB,eT]; break;
+        case 7: case 8:  e=[eL,eT]; break;
+        case 5:  e=[eL,eB,eR,eT]; break;
+        case 10: e=[eL,eT,eB,eR]; break;
+      }
+      if(e) segs.push(e);
+    }
+    out.push(segs);
+  }
+  return out;
+}
+function ensureContours(){ if(contourDirty){ CONTOURS=buildContours(); contourDirty=false; } }
+
+function arrow(x0,y0,x1,y1,col,lw,label){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw||2;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  var a=Math.atan2(y1-y0,x1-x0),h=8;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-h*Math.cos(a-0.42),y1-h*Math.sin(a-0.42));
+  ctx.lineTo(x1-h*Math.cos(a+0.42),y1-h*Math.sin(a+0.42));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font="12px 'Microsoft YaHei',sans-serif"; ctx.fillText(label,x1+5,y1+4); }
+}
+// 在图上画出攻角 α：水平（翼弦）参考线 与 来流方向 之间的夹角
+function drawAoA(){
+  var px=66, py=H-46, len=82;
+  ctx.save();
+  // 水平（翼弦）参考线：虚线
+  ctx.setLineDash([5,4]); ctx.strokeStyle="#a0aec0"; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+len,py); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle="#718096"; ctx.font="11px 'Microsoft YaHei',sans-serif";
+  ctx.fillText("水平（翼弦）",px+len+4,py+4);
+  // 来流方向：实线箭头，抬起 α
+  var ex=px+len*Math.cos(alpha), ey=py-len*Math.sin(alpha);
+  arrow(px,py,ex,ey,"#2b6cb0",2,null);
+  ctx.fillStyle="#2b6cb0";
+  ctx.fillText("来流",ex+4, alpha>=0?ey-4:ey+12);
+  // 夹角圆弧
+  ctx.strokeStyle="#dd6b20"; ctx.lineWidth=1.8;
+  ctx.beginPath(); ctx.arc(px,py,32,Math.min(0,-alpha),Math.max(0,-alpha),false); ctx.stroke();
+  // α 数值标注
+  ctx.fillStyle="#b7791f"; ctx.font="bold 13px 'Cambria Math',serif";
+  ctx.fillText("α = "+(alpha*180/Math.PI).toFixed(1)+"°", px+40, py-16);
+  ctx.restore();
+}
+function draw(){
+  ensureContours();
+  ctx.clearRect(0,0,W,H);
+  // 来流
+  for(var yy=-1.4;yy<=1.4;yy+=0.7){
+    var p0=toPix(-2.5,yy),dx=Math.cos(alpha)*26,dy=-Math.sin(alpha)*26;
+    arrow(p0.x,p0.y,p0.x+dx,p0.y+dy,"rgba(66,153,225,0.5)",1.6,null);
+  }
+  ctx.fillStyle="rgba(66,153,225,0.85)"; ctx.font="12px 'Microsoft YaHei',sans-serif";
+  var lp=toPix(-2.55,1.8); ctx.fillText("风（来流）",lp.x,lp.y);
+  // 流线
+  ctx.strokeStyle="rgba(43,108,176,0.55)"; ctx.lineWidth=1.5;
+  for(var L=0;L<CONTOURS.length;L++){
+    var segs=CONTOURS[L];
+    for(var s=0;s<segs.length;s++){
+      var e=segs[s];
+      for(var p=0;p+1<e.length;p+=2){
+        var A=wt(e[p].x,e[p].y),B=wt(e[p+1].x,e[p+1].y);
+        var PA=toPix(A.x,A.y),PB=toPix(B.x,B.y);
+        ctx.beginPath(); ctx.moveTo(PA.x,PA.y); ctx.lineTo(PB.x,PB.y); ctx.stroke();
+      }
+    }
+  }
+  // 形体
+  var N=400,pts=[];
+  for(var i=0;i<=N;i++){
+    var th=i/N*2*Math.PI, m=wt(mu.x+R*Math.cos(th),mu.y+R*Math.sin(th));
+    pts.push(toPix(m.x,m.y));
+  }
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+  for(var i2=1;i2<pts.length;i2++) ctx.lineTo(pts[i2].x,pts[i2].y);
+  ctx.closePath();
+  var mix=t;
+  ctx.fillStyle="rgba("+Math.round(160-53*mix)+","+Math.round(174-104*mix)+","+Math.round(192+1*mix)+",0.22)";
+  ctx.fill();
+  ctx.strokeStyle=mix>0.5?"#6b46c1":"#4a5568"; ctx.lineWidth=2.2; ctx.stroke();
+  // 尖后缘标记
+  if(scene===3 && t>0.85){
+    var te=wt(1,0),pte=toPix(te.x,te.y);
+    ctx.fillStyle="#dd6b20"; ctx.beginPath(); ctx.arc(pte.x,pte.y,4,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle="#7b341e"; ctx.font="12px 'Microsoft YaHei',sans-serif";
+    ctx.fillText("尖尖的后缘（刀尖）",pte.x+7,pte.y-6);
+  }
+  // 升力
+  if(!kuttaWrong && t>0.7 && (scene===1||scene===3||scene===4)){
+    var Lp=-Gamma;
+    if(Math.abs(Lp)>0.05){
+      var c=toPix(0.2*t,mu.y*t+0.05), up=Lp>0?-1:1, len=Math.min(70,20+Math.abs(Lp)*16);
+      arrow(c.x,c.y,c.x,c.y+up*len,"#2f855a",3,"升力");
+    }
+  }
+  // 攻角标注（第一、四步显示）
+  if(scene===1||scene===4) drawAoA();
+}
+// 动画
+var playing=false, playDir=-1;
+function tick(){
+  var need=false;
+  if(Math.abs(t-targetT)>0.004){ t+=(targetT-t)*0.16; need=true; }
+  else if(t!==targetT){ t=targetT; need=true; }
+  if(playing){ t+=playDir*0.012; if(t<=0){t=0;playDir=1;} if(t>=1){t=1;playDir=-1;} targetT=t; need=true; syncMorphLabel(); }
+  if(need) draw();
+  requestAnimationFrame(tick);
+}
+function updateLift(){
+  var box=document.getElementById("liftBox");
+  if(scene!==1 && scene!==4){ box.style.display="none"; return; }
+  box.style.display="block";
+  var chord=4*R, Cl=kuttaWrong?0:-2*Gamma/(U*chord), mag=Math.abs(Cl);
+  document.getElementById("liftBar").style.width=Math.min(180,mag*95)+"px";
+  var txt=mag<0.15?"几乎没有":mag<0.8?"小":mag<1.4?"中":"大";
+  document.getElementById("liftTxt").textContent=txt+(Cl>0.05?" ↑":"");
+}
+var SCENES={
+  1:{title:"第一步：先看——它真的会飞",
+     desc:"这是机翼的横截面，风从左边吹来。蓝线是气流走的路。拖下面的<b>攻角</b>滑杆（把机翼迎风抬起一点），看气流怎样托住它、右侧绿色的<b>升力</b>怎样变大。"},
+  2:{title:"第二步：惊喜——这机翼其实是一个“圆”变出来的",
+     desc:"最神奇的地方来了。拖<b>变形</b>滑杆（或点“自动来回变形”）：机翼会连续地<b>缩回成一个圆</b>。也就是说，难算的“绕机翼”其实就是把会算的“绕圆柱”用公式 <b><math><mrow><mi>w</mi><mo>=</mo><mi>&#x3B6;</mi><mo>+</mo><mfrac><mn>1</mn><mi>&#x3B6;</mi></mfrac></mrow></math></b> 捏一下——这一步叫<b>保角映射</b>，是本课之外的拓展手法，看个热闹、了解大意即可。"},
+  3:{title:"第三步：秘密——升力到底从哪来",
+     desc:"看机翼<b>尖尖的后缘</b>（橙点）。气流不可能“硬拐着绕过刀尖”（那需要无限大的速度）。自然界让气流<b>顺着刀尖平滑甩出去</b>——为此气流必须整体带上一点“旋转”，正是这点旋转让上表面流得快、下表面流得慢，把机翼<b>往上顶</b>。点下面两个按钮对比一下。"},
+  4:{title:"第四步：自己玩一玩，把结论连起来",
+     desc:"随便调：把<b>攻角</b>抬大、或让机翼更<b>弯</b>，升力就更大；拖<b>变形</b>还能看它变回圆。一句话——“绕机翼”被保角映射变回“绕圆柱”，圆的流动我们会算，于是飞机为什么能飞，就被复变函数算清楚了。"}
+};
+function show(id,on){ document.getElementById(id).style.display=on?"block":"none"; }
+function syncMorphLabel(){
+  document.getElementById("vMorph").textContent=t>0.92?"机翼":t<0.08?"圆":t.toFixed(2);
+  document.getElementById("sMorph").value=t;
+}
+function setToggle(wrong){
+  kuttaWrong=wrong;
+  document.getElementById("btnWrong").className=wrong?"wrongOn":"";
+  document.getElementById("btnRight").className=wrong?"":"rightOn";
+  recompute(); updateLift(); draw();
+}
+function renderScene(){
+  document.getElementById("sceneTitle").textContent=SCENES[scene].title;
+  document.getElementById("sceneDesc").innerHTML=SCENES[scene].desc;
+  var dots=document.querySelectorAll(".dot");
+  dots.forEach(function(d){ d.classList.toggle("on",+d.dataset.d<=scene); });
+  document.getElementById("stepTip").textContent="第 "+scene+" / 4 步";
+  document.getElementById("btnPrev").disabled=(scene===1);
+  document.getElementById("btnNext").disabled=(scene===4);
+  show("cAoa",scene===1||scene===4);
+  show("cMorph",scene===2||scene===4);
+  show("cDeriv",scene===2);
+  show("cCam",scene===4);
+  show("cKutta",scene===3);
+  playing=false; document.getElementById("btnPlay").textContent="▶ 自动来回变形";
+  if(scene===1){ kuttaWrong=false; targetT=1; }
+  if(scene===2){ kuttaWrong=false; targetT=0; }
+  if(scene===3){ setToggle(false); targetT=1; }
+  if(scene===4){ kuttaWrong=false; targetT=1; }
+  recompute(); updateLift(); syncMorphLabel(); draw();
+}
+document.getElementById("sAoa").addEventListener("input",function(e){
+  alpha=parseFloat(e.target.value)*Math.PI/180;
+  document.getElementById("vAoa").textContent=parseFloat(e.target.value).toFixed(1)+"°";
+  recompute(); updateLift(); draw();
+});
+document.getElementById("sMorph").addEventListener("input",function(e){
+  playing=false; document.getElementById("btnPlay").textContent="▶ 自动来回变形";
+  t=parseFloat(e.target.value); targetT=t; syncMorphLabel(); draw();
+});
+document.getElementById("btnPlay").addEventListener("click",function(){
+  playing=!playing; this.textContent=playing?"⏸ 暂停":"▶ 自动来回变形";
+  if(playing) playDir=(t>0.5?-1:1);
+});
+document.getElementById("sCam").addEventListener("input",function(e){
+  mu.y=parseFloat(e.target.value);
+  var lv=mu.y; document.getElementById("vCam").textContent=lv<0.04?"平":lv<0.12?"中":"大";
+  recompute(); updateLift(); draw();
+});
+document.getElementById("btnWrong").addEventListener("click",function(){ setToggle(true); });
+document.getElementById("btnRight").addEventListener("click",function(){ setToggle(false); });
+document.getElementById("btnPrev").addEventListener("click",function(){ if(scene>1){scene--;renderScene();} });
+document.getElementById("btnNext").addEventListener("click",function(){ if(scene<4){scene++;renderScene();} });
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth-34; if(w<300)w=300; if(w>780)w=780;
+  W=w; H=Math.round(w*0.6);
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+window.addEventListener("resize",resize);
+recompute(); renderScene(); resize(); tick();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-joukowski";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
