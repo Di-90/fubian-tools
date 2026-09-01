@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>傅里叶级数合成器 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+  .engbg{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+         border-radius:12px; box-shadow:var(--shadow); overflow:hidden;}
+  .engbg>summary{cursor:pointer; padding:13px 20px; font-size:14px; font-weight:600;
+                 color:var(--blue); list-style:none; user-select:none;}
+  .engbg>summary::-webkit-details-marker{display:none;}
+  .engbg>summary:hover{background:#f7fafc;}
+  .engbg[open]>summary{border-bottom:1px solid var(--line);}
+  .engbg .tri{display:inline-block; transition:transform .15s; margin-right:4px;}
+  .engbg[open] .tri{transform:rotate(90deg);}
+  .engbg-body{padding:8px 20px 16px;}
+  .engbg-body p{font-size:13.4px; color:#2d3748; margin:8px 0;}
+  .fig{margin:16px 0 6px;}
+  .fig-cap{font-size:13.2px; color:var(--ink); margin:0 0 7px;}
+  .fig canvas{display:block; width:100%; height:auto; background:#fbfdff;
+              border:1px solid var(--line); border-radius:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>傅里叶级数合成器</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T10 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">一个<b>周期函数</b>（哪怕带尖角、带跳变）都能写成一串<b>正弦、余弦</b>的叠加——这就是傅里叶级数。拖动“<b>项数 <math><mi>N</mi></math></b>”滑杆，看有限项部分和 <math><msub><mi>S</mi><mi>N</mi></msub></math> 怎样一步步逼近目标波形，下方柱状图是各次谐波的<b>振幅谱</b>。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>先想一个问题：方波能用正弦“拼”出来吗？</h2>
+    <p>正弦、余弦都是<b>光滑、连续</b>的曲线；而方波却是<b>棱角分明、还带跳变</b>的。直觉上两者八竿子打不着。傅里叶的惊人结论是：<b>只要把不同频率的正弦按合适的比例叠加起来，就能拼出方波</b>——频率越高的成分负责刻画越"急"的细节（尖角、跳变），频率越低的负责大轮廓。</p>
+    <p>具体地，周期为 <math><mrow><mn>2</mn><mi>π</mi></mrow></math> 的函数 <math><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math> 展开成</p>
+    <p style="text-align:center;"><math display="block"><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mfrac><msub><mi>a</mi><mn>0</mn></msub><mn>2</mn></mfrac><mo>+</mo><munderover><mo>&#x2211;</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mi>&#x221E;</mi></munderover><mrow><mo>[</mo><msub><mi>a</mi><mi>n</mi></msub><mi>cos</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo><mo>+</mo><msub><mi>b</mi><mi>n</mi></msub><mi>sin</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo><mo>]</mo></mrow></mrow></math></p>
+    <p>其中系数由积分给出（<math><mi>n</mi></math> 从 0/1 起）：</p>
+    <p style="text-align:center;"><math display="block"><mrow><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>π</mi></mfrac><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>π</mi></mrow><mi>π</mi></msubsup><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>cos</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi><mo>,</mo><mspace width="1.4em"></mspace><msub><mi>b</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>π</mi></mfrac><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>π</mi></mrow><mi>π</mi></msubsup><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>sin</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi></mrow></math></p>
+    <p class="lg">下面把无穷项截到前 <math><mi>N</mi></math> 项，看看"拼"得像不像。</p>
+  </div>
+
+  <div class="main">
+    <canvas id="cv"></canvas>
+    <p class="lg" style="font-size:12.3px;margin:8px 2px 0;padding:8px 12px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;color:var(--sub);">
+      <span style="color:#a0aec0;">▬</span> 目标波形 <math><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>
+      <span style="color:#2b6cb0;">▬</span> 前 <math><mi>N</mi></math> 项部分和 <math><msub><mi>S</mi><mi>N</mi></msub></math>
+      <span style="color:#b7791f;">▬</span> 各次谐波（勾选后显示）。图中画了两个周期，方便看出<b>周期性</b>。
+    </p>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>控制</h2>
+        <div class="ctrl">
+          <label>目标波形</label>
+          <select id="selWave">
+            <option value="square">方波（奇函数，只含正弦 · 有跳变）</option>
+            <option value="saw">锯齿波 f(x)=x（奇函数 · 有跳变）</option>
+            <option value="tri">三角波 f(x)=|x|（偶函数，只含余弦 · 连续）</option>
+            <option value="half">正弦半波整流（含直流 + 混合项）</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>项数 <math><mi>N</mi></math>（叠加到第几次谐波）：<span class="v" id="vN">5</span></label>
+          <input type="range" id="sN" min="1" max="60" step="1" value="5"></div>
+        <div class="row">
+          <button class="btn" id="btnAnim">▶ 逐项叠加</button>
+          <label class="chk"><input type="checkbox" id="chkHarm"> 显示各次谐波</label>
+        </div>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="chkTarget" checked> 显示目标波形</label>
+        </div>
+      </div>
+
+      <div class="readout">
+        <h2>当前展开</h2>
+        <p id="oName">—</p>
+        <p>系数：<span id="oCoef">—</span></p>
+        <p>已叠加到 <math><mrow><mi>N</mi><mo>=</mo></mrow></math> <b id="oN">5</b> 次谐波。</p>
+        <p style="margin:4px 0 2px;font-size:12.8px;color:var(--sub);">各次谐波振幅谱 <math><mrow><msqrt><mrow><msubsup><mi>a</mi><mi>n</mi><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>b</mi><mi>n</mi><mn>2</mn></msubsup></mrow></msqrt></mrow></math>（含直流项 <math><mrow><mo>|</mo><msub><mi>a</mi><mn>0</mn></msub><mo>/</mo><mn>2</mn><mo>|</mo></mrow></math>）：</p>
+        <canvas id="cvS" style="display:block; width:100%; max-width:320px; height:auto; margin:2px auto 4px; background:#fbfdff; border:1px solid var(--line); border-radius:8px;"></canvas>
+        <p class="lg" style="font-size:12.3px;margin:2px 0;">越靠右是越高频的谐波。<b>连续、光滑</b>的波形（三角波）谱衰减快（<math><mo>&#x221D;</mo><mn>1</mn><mo>/</mo><msup><mi>n</mi><mn>2</mn></msup></math>），几项就够；<b>带跳变</b>的波形（方波/锯齿波）谱衰减慢（<math><mo>&#x221D;</mo><mn>1</mn><mo>/</mo><mi>n</mi></math>），需要很多项，且跳变处永远有过冲（吉布斯现象）。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>看什么？三个要点</h2>
+    <p><b>① 高频管细节，低频管轮廓。</b> 只取 <math><mrow><mi>N</mi><mo>=</mo><mn>1</mn></mrow></math> 时只有一条最基本的正弦（基波），只能给出大致起伏；<math><mi>N</mi></math> 加大，越来越多的高频谐波补进来，尖角和跳变才逐渐清晰。</p>
+    <p><b>② 吉布斯现象（跳变处的过冲）。</b> 对方波、锯齿波这类<b>有跳变</b>的波形，无论 <math><mi>N</mi></math> 取多大，跳变点附近部分和总会<b>过冲约 9%</b>、并留下一圈波纹。过冲不会随 <math><mi>N</mi></math> 消失，只会越挤越窄。把 <math><mi>N</mi></math> 拉大盯着跳变处看。它在通信、图像里都真实存在——展开下方“<b>▸ 工程背景</b>”看两个例子。</p>
+    <p><b>③ 跳变点收敛到"中点值"。</b> 在 <math><mrow><mi>f</mi></mrow></math> 的连续点，级数收敛到 <math><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math> 本身；在<b>跳变点</b>，级数收敛到左右极限的<b>平均</b> <math><mrow><mfrac><mrow><mi>f</mi><mo>(</mo><msup><mi>x</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>+</mo><mi>f</mi><mo>(</mo><msup><mi>x</mi><mo>+</mo></msup><mo>)</mo></mrow><mn>2</mn></mfrac></mrow></math>（狄利克雷收敛定理）。方波在 <math><mrow><mi>x</mi><mo>=</mo><mn>0</mn><mo>,</mo><mi>π</mi></mrow></math> 处正好收敛到 0。</p>
+  </div>
+
+  <details class="engbg">
+    <summary><span class="tri">▸</span>工程背景：吉布斯现象在真实系统里长什么样（点开看两个例子）</summary>
+    <div class="engbg-body">
+      <p class="lg" style="margin-top:2px;">吉布斯现象不是数学玩具——凡是把<b>含跳变 / 锐边</b>的信号送进<b>带限（只保留有限个频率）</b>的系统，跳变附近就会冒出这圈过冲与波纹。而“带限”在现实里<b>无处不在</b>：存储要压缩、任何信道与电路的带宽都有限，都留不住无穷多个频率——<b>截到有限项</b>，正是本页那条“<b>项数 <math><mi>N</mi></math></b>”滑杆在做的事。下面两张图都由本页<b>同一套部分和</b>数学生成：</p>
+
+      <div class="fig">
+        <div class="fig-cap"><b>例 1 · 图像锐利边缘的“振铃伪影”</b>（图像压缩 / JPEG）</div>
+        <canvas id="cvEdge" style="max-width:560px; margin:0 auto;"></canvas>
+        <p class="lg">把一条黑白锐利边界只用<b>前若干个频率成分</b>重建，边界两侧就浮出一圈<b>平行的亮暗条纹</b>。这正是 JPEG 等压缩把高频砍掉后，图像锐利边缘旁出现的“振铃伪影”。<br><b>为什么只留前若干个？</b>因为存下全部频率太占空间，JPEG 这类压缩会<b>主动丢掉高频</b>（人眼对高频细节不敏感）来省体积，留下的就是低频那几项——这里的“带限”就是压缩本身，振铃是省空间付出的代价。</p>
+      </div>
+
+      <div class="fig">
+        <div class="fig-cap"><b>例 2 · 方波过理想低通滤波器的“边沿振铃”</b>（通信 / 信号处理）</div>
+        <canvas id="cvFilter" style="max-width:470px; margin:0 auto;"></canvas>
+        <p class="lg">理想低通滤波器（只让低频通过）作用在方波上，输出在每个跳变沿都带<b>过冲和衰减振荡</b>——就是吉布斯。实际滤波器设计里要靠<b>加窗</b>来压制它。<br><b>为什么要过低通？</b>因为任何真实的<b>信道 / 电路 / 放大器带宽都有限</b>，本就传不了无限高的频率，理想低通是它的理想化模型；含锐边的信号一进去，让边沿变陡的那些高频被砍掉，边沿就振铃。这也是数字信号边沿会变圆、带宽限制传输速率的根源。</p>
+      </div>
+    </div>
+  </details>
+
+  <div class="know">
+    <h2>与后面几章的衔接</h2>
+    <p><b>从"谱线"到"频谱"。</b> 右边的振幅谱是一根根<b>离散谱线</b>（只在整数倍频率 <math><mrow><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处有值），因为函数是<b>周期</b>的。当周期趋于无穷（<math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math>，即不再周期），谱线越挤越密、最后连成一条<b>连续</b>的曲线——这就是<b>傅里叶变换</b>与<b>频谱</b>（第 7 章 7.1–7.4，见工具 T11）。</p>
+    <p class="lg">复数视角（欧拉公式 <math><mrow><msup><mi>e</mi><mrow><mi>i</mi><mi>n</mi><mi>x</mi></mrow></msup><mo>=</mo><mi>cos</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo><mo>+</mo><mi>i</mi><mi>sin</mi><mo>(</mo><mi>n</mi><mi>x</mi><mo>)</mo></mrow></math>）下，级数还能写成更紧凑的复指数形式 <math><mrow><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>n</mi><mo>=</mo><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></munderover><msub><mi>c</mi><mi>n</mi></msub><msup><mi>e</mi><mrow><mi>i</mi><mi>n</mi><mi>x</mi></mrow></msup></mrow></math>——这正是复变函数与积分变换把它们放在一起讲的原因。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>把一个周期波形用有限项正弦/余弦叠加去逼近。灰线是目标波形，蓝线是前 <math><mi>N</mi></math> 项的部分和。</p>
+    <p><b>怎么玩：</b>①选一种目标波形；②拖“项数 <math><mi>N</mi></math>”滑杆，看蓝线怎样越来越贴近灰线；③点“逐项叠加”看它从 1 项一路加上去的动画；④勾“显示各次谐波”看每一条被加进来的正弦长什么样。</p>
+    <p><b>重点观察：</b>三角波几项就很准（谱衰减快）；方波/锯齿波要很多项，且跳变处永远有一小撮过冲（<b>吉布斯现象</b>），这不是画错，是数学上的必然。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var cvS=document.getElementById("cvS"), ctxS=cvS?cvS.getContext("2d"):null;
+var cvE=document.getElementById("cvEdge"), ctxE=cvE?cvE.getContext("2d"):null;
+var cvF=document.getElementById("cvFilter"), ctxF=cvF?cvF.getContext("2d"):null;
+var W=900,H=420,DPR=1, WS=300,HS=150, WE=560,HE=150, WF=470,HF=140;
+
+var PI=Math.PI;
+
+// ---- 波形定义：周期 2π，在 (-π,π] 上给出 exact，系数 coef(n) 返回 {a,b}（n>=1），a0 单列 ----
+var WAVES={
+  square:{
+    name:"方波（奇函数，只含正弦）",
+    exact:function(x){ return x>0?1:(x<0?-1:0); },   // sign，在 x=0 取中点 0
+    a0:0,
+    coef:function(n){ return {a:0, b:(n%2===1)?4/(PI*n):0}; },
+    tex:"<math><msub><mi>b</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>4</mn><mrow><mi>n</mi><mi>π</mi></mrow></mfrac></math>（n 为奇数），其余为 0；<math><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mn>0</mn></math>",
+    yMax:1.35
+  },
+  saw:{
+    name:"锯齿波 <math><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi>x</mi></math>（奇函数）",
+    exact:function(x){ return x; },
+    a0:0,
+    coef:function(n){ return {a:0, b:2*((n%2===1)?1:-1)/n}; }, // 2(-1)^{n+1}/n
+    tex:"<math><msub><mi>b</mi><mi>n</mi></msub><mo>=</mo><mfrac><mrow><mn>2</mn><msup><mrow><mo>(</mo><mo>&#8722;</mo><mn>1</mn><mo>)</mo></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><mi>n</mi></mfrac></math>；<math><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mn>0</mn></math>",
+    yMax:PI*1.25
+  },
+  tri:{
+    name:"三角波 <math><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mo>|</mo><mi>x</mi><mo>|</mo></math>（偶函数，只含余弦）",
+    exact:function(x){ return Math.abs(x); },
+    a0:PI,   // a0/2 = π/2
+    coef:function(n){ return {a:(n%2===1)?-4/(PI*n*n):0, b:0}; },
+    tex:"<math><mfrac><msub><mi>a</mi><mn>0</mn></msub><mn>2</mn></mfrac><mo>=</mo><mfrac><mi>π</mi><mn>2</mn></mfrac></math>；<math><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mo>&#8722;</mo><mfrac><mn>4</mn><mrow><mi>π</mi><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></math>（n 为奇数），其余为 0；<math><msub><mi>b</mi><mi>n</mi></msub><mo>=</mo><mn>0</mn></math>",
+    yMax:PI*1.12
+  },
+  half:{
+    name:"正弦半波整流（含直流 + 混合项）",
+    exact:function(x){ return Math.max(Math.sin(x),0); },
+    a0:2/PI, // a0/2 = 1/π
+    coef:function(n){
+      if(n===1) return {a:0,b:0.5};
+      if(n%2===0) return {a:-2/(PI*(n*n-1)), b:0};
+      return {a:0,b:0};
+    },
+    tex:"<math><mfrac><msub><mi>a</mi><mn>0</mn></msub><mn>2</mn></mfrac><mo>=</mo><mfrac><mn>1</mn><mi>π</mi></mfrac></math>；<math><msub><mi>b</mi><mn>1</mn></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></math>；<math><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mo>&#8722;</mo><mfrac><mn>2</mn><mrow><mi>π</mi><mo>(</mo><msup><mi>n</mi><mn>2</mn></msup><mo>&#8722;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></math>（n 为偶数），其余为 0",
+    yMax:1.25
+  }
+};
+
+var key="square", wave=WAVES[key], N=5, showHarm=false, showTarget=true;
+var animating=false, animN=0, ANIM_SPEED=8; // 项/秒
+
+function wrapX(x){ // 映射到 (-π,π]
+  var y=((x+PI)%(2*PI)); if(y<0)y+=2*PI; return y-PI;
+}
+function partial(x,nn){
+  var s=wave.a0/2;
+  for(var n=1;n<=nn;n++){ var c=wave.coef(n); s+=c.a*Math.cos(n*x)+c.b*Math.sin(n*x); }
+  return s;
+}
+function harmonic(x,n){ var c=wave.coef(n); return c.a*Math.cos(n*x)+c.b*Math.sin(n*x); }
+function effN(){ return animating?Math.max(1,Math.floor(animN)):N; }
+
+/* ---------- 主图 ---------- */
+var mL=44,mR=16,mT=22,mB=28;
+function X2px(x, x0,x1){ return mL+(x-x0)/(x1-x0)*(W-mL-mR); }
+function Y2px(y, ymax){ return mT+(1-(y+ymax)/(2*ymax))*(H-mT-mB); }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var x0=-PI, x1=3*PI;             // 画两个周期
+  var ymax=wave.yMax;
+  // 网格与坐标轴
+  ctx.strokeStyle="#edf2f7"; ctx.lineWidth=1;
+  var ticks=[-PI,0,PI,2*PI,3*PI], tlab=["−π","0","π","2π","3π"];
+  for(var i=0;i<ticks.length;i++){ var px=X2px(ticks[i],x0,x1);
+    ctx.beginPath(); ctx.moveTo(px,mT); ctx.lineTo(px,H-mB); ctx.stroke(); }
+  // x 轴 (y=0)
+  var y0=Y2px(0,ymax);
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(mL,y0); ctx.lineTo(W-mR,y0); ctx.stroke();
+  // y 轴
+  ctx.beginPath(); ctx.moveTo(mL,mT); ctx.lineTo(mL,H-mB); ctx.stroke();
+  // 刻度标签
+  ctx.fillStyle="#a0aec0"; ctx.font="11px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="center";
+  for(i=0;i<ticks.length;i++){ ctx.fillText(tlab[i],X2px(ticks[i],x0,x1),H-mB+15); }
+  ctx.textAlign="right";
+  ctx.fillText(ymax.toFixed(1),mL-5,mT+10);
+  ctx.fillText((-ymax).toFixed(1),mL-5,H-mB-2);
+  ctx.textAlign="left";
+
+  // 目标波形（灰，分段以免跳变处连线）
+  if(showTarget){
+    ctx.strokeStyle="#a0aec0"; ctx.lineWidth=2.4; ctx.beginPath();
+    var prevJump=true;
+    for(var px2=mL; px2<=W-mR; px2+=1){
+      var xx=x0+(px2-mL)/(W-mL-mR)*(x1-x0);
+      var xm=wrapX(xx);
+      // 跳变检测：square/saw 在 xm≈π(或 -π) 处断开
+      var nearEdge=(key==="square"||key==="saw") && Math.abs(Math.abs(xm)-PI)<0.05;
+      var yy=wave.exact(xm), py=Y2px(yy,ymax);
+      if(nearEdge){ prevJump=true; continue; }
+      if(prevJump){ ctx.moveTo(px2,py); prevJump=false; } else ctx.lineTo(px2,py);
+    }
+    ctx.stroke();
+  }
+
+  var nn=effN();
+  // 各次谐波（金色，低透明）
+  if(showHarm){
+    ctx.lineWidth=1;
+    for(var n=1;n<=nn;n++){
+      ctx.strokeStyle="rgba(183,121,31,"+(0.15+0.25*(n===1?1:0))+")";
+      ctx.beginPath();
+      for(var px3=mL;px3<=W-mR;px3+=2){
+        var x3=x0+(px3-mL)/(W-mL-mR)*(x1-x0);
+        var py3=Y2px(harmonic(x3,n),ymax);
+        if(px3===mL)ctx.moveTo(px3,py3); else ctx.lineTo(px3,py3);
+      }
+      ctx.stroke();
+    }
+    // 直流项
+    if(Math.abs(wave.a0/2)>1e-6){
+      ctx.strokeStyle="rgba(183,121,31,.35)"; ctx.setLineDash([4,4]);
+      var pyd=Y2px(wave.a0/2,ymax);
+      ctx.beginPath(); ctx.moveTo(mL,pyd); ctx.lineTo(W-mR,pyd); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // 部分和 S_N（蓝）
+  ctx.strokeStyle="#2b6cb0"; ctx.lineWidth=2.4; ctx.beginPath();
+  for(var px4=mL;px4<=W-mR;px4+=1){
+    var x4=x0+(px4-mL)/(W-mL-mR)*(x1-x0);
+    var py4=Y2px(partial(x4,nn),ymax);
+    if(px4===mL)ctx.moveTo(px4,py4); else ctx.lineTo(px4,py4);
+  }
+  ctx.stroke();
+
+  // 右上角文字
+  ctx.fillStyle="#2b6cb0"; ctx.font="bold 13px 'Cambria Math','STIX Two Math',serif";
+  ctx.textAlign="right"; ctx.fillText("S"+"  ( N = "+nn+" )",W-mR-4,mT+14); ctx.textAlign="left";
+}
+
+/* ---------- 频谱柱状图 ---------- */
+function drawSpectrum(){
+  if(!ctxS) return;
+  ctxS.clearRect(0,0,WS,HS);
+  var nn=effN();
+  var mags=[Math.abs(wave.a0/2)];
+  var maxm=mags[0];
+  for(var n=1;n<=nn;n++){ var c=wave.coef(n); var m=Math.hypot(c.a,c.b); mags.push(m); if(m>maxm)maxm=m; }
+  if(maxm<1e-9)maxm=1;
+  var pad=8, baseY=HS-18, top=10;
+  var cnt=mags.length, bw=(WS-2*pad)/cnt;
+  ctxS.strokeStyle="#cbd5e0"; ctxS.lineWidth=1;
+  ctxS.beginPath(); ctxS.moveTo(pad,baseY); ctxS.lineTo(WS-pad,baseY); ctxS.stroke();
+  for(var k=0;k<cnt;k++){
+    var h=(mags[k]/maxm)*(baseY-top);
+    var x=pad+k*bw+bw*0.15, w=bw*0.7;
+    ctxS.fillStyle=(k===0)?"#b7791f":"#2b6cb0";
+    ctxS.fillRect(x,baseY-h,Math.max(w,1),h);
+  }
+  ctxS.fillStyle="#a0aec0"; ctxS.font="10px 'Microsoft YaHei',sans-serif"; ctxS.textAlign="center";
+  ctxS.fillText("直流",pad+bw*0.5,HS-5);
+  ctxS.textAlign="left";
+  ctxS.fillText("n=1",pad+bw*1.1,HS-5);
+  ctxS.textAlign="right";
+  ctxS.fillText("n="+nn,WS-pad,HS-5);
+  ctxS.textAlign="left";
+}
+
+/* ---------- 工程背景两张自绘示意图 ---------- */
+function sqPartial(t,nn){ // 方波 sign(sin t) 的前 nn 项部分和（只含奇次正弦），周期 2π
+  var s=0;
+  for(var n=1;n<=nn;n+=2){ s+=(4/(PI*n))*Math.sin(n*t); }
+  return s;
+}
+function clamp01(v){ return v<0?0:(v>1?1:v); }
+function roundRect(cx,x,y,w,h,r){
+  cx.beginPath(); cx.moveTo(x+r,y);
+  cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r);
+  cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath();
+}
+function arrow(cx,x1,y1,x2,y2){
+  cx.strokeStyle="#718096"; cx.lineWidth=1.4;
+  cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+  cx.beginPath(); cx.moveTo(x2,y2); cx.lineTo(x2-7,y2-4); cx.lineTo(x2-7,y2+4);
+  cx.closePath(); cx.fillStyle="#718096"; cx.fill();
+}
+// 例1：黑白锐利边缘 → 带限重建的振铃条纹
+function drawEdgeFig(){
+  if(!ctxE) return;
+  ctxE.clearRect(0,0,WE,HE);
+  var pad=10, labH=15, stripH=(HE-2*labH-3*pad)/2;
+  var y1=labH+pad, y2=y1+stripH+labH+pad;
+  ctxE.textAlign="left"; ctxE.fillStyle="#4a5568"; ctxE.font="12px 'Microsoft YaHei',sans-serif";
+  ctxE.fillText("原始：黑白锐利边界", pad, y1-4);
+  for(var px=pad; px<WE-pad; px++){
+    var t=(px-pad)/(WE-2*pad)*2*PI;
+    var g=Math.round(clamp01(((t<PI?1:-1)+1)/2)*220+18);
+    ctxE.fillStyle="rgb("+g+","+g+","+g+")"; ctxE.fillRect(px,y1,1,stripH);
+  }
+  ctxE.fillStyle="#4a5568";
+  ctxE.fillText("带限重建（只保留前 15 个频率）：边界两侧的亮暗条纹＝振铃伪影", pad, y2-4);
+  for(px=pad; px<WE-pad; px++){
+    t=(px-pad)/(WE-2*pad)*2*PI;
+    // 留 ±1.3 的余量：不把平顶裁成纯黑白，好让过冲/振荡显成一圈亮暗带
+    var gg=Math.round(clamp01((sqPartial(t,15)+1.3)/2.6)*220+18);
+    ctxE.fillStyle="rgb("+gg+","+gg+","+gg+")"; ctxE.fillRect(px,y2,1,stripH);
+  }
+  var xEdge=pad+(WE-2*pad)*0.5;
+  ctxE.strokeStyle="rgba(43,108,176,.55)"; ctxE.setLineDash([3,3]); ctxE.lineWidth=1;
+  ctxE.beginPath(); ctxE.moveTo(xEdge,y1); ctxE.lineTo(xEdge,y2+stripH); ctxE.stroke(); ctxE.setLineDash([]);
+}
+// 例2：方波 → 理想低通 → 带过冲振铃的输出
+function miniPlot(cx,ox,oy,pw,ph,fn,color,ymax){
+  cx.strokeStyle="#e2e8f0"; cx.lineWidth=1;
+  cx.beginPath(); cx.moveTo(ox,oy+ph/2); cx.lineTo(ox+pw,oy+ph/2); cx.stroke();
+  cx.strokeStyle=color; cx.lineWidth=2; cx.beginPath();
+  for(var i=0;i<=pw;i++){
+    var v=fn(i/pw*2*PI), py=oy+ph/2-(v/ymax)*(ph/2-4);
+    if(i===0)cx.moveTo(ox+i,py); else cx.lineTo(ox+i,py);
+  }
+  cx.stroke();
+}
+function drawFilterFig(){
+  if(!ctxF) return;
+  ctxF.clearRect(0,0,WF,HF);
+  var pw=120, ph=88, top=22;
+  miniPlot(ctxF,10,top,pw,ph,function(t){return t<PI?1:-1;},"#a0aec0",1.45);
+  ctxF.textAlign="center"; ctxF.fillStyle="#4a5568"; ctxF.font="12px 'Microsoft YaHei',sans-serif";
+  ctxF.fillText("方波输入",10+pw/2,top+ph+15);
+  var bx=10+pw+24, bw=96, by=top+ph/2-24, bh=48;
+  arrow(ctxF,10+pw+4,top+ph/2,bx-2,top+ph/2);
+  ctxF.fillStyle="#ebf4ff"; ctxF.strokeStyle="#2b6cb0"; ctxF.lineWidth=1.4;
+  roundRect(ctxF,bx,by,bw,bh,8); ctxF.fill(); ctxF.stroke();
+  ctxF.fillStyle="#2b6cb0"; ctxF.font="12.5px 'Microsoft YaHei',sans-serif";
+  ctxF.fillText("理想低通",bx+bw/2,by+21); ctxF.fillText("滤波器",bx+bw/2,by+38);
+  var ox2=bx+bw+24;
+  arrow(ctxF,bx+bw+4,top+ph/2,ox2-2,top+ph/2);
+  miniPlot(ctxF,ox2,top,pw,ph,function(t){return sqPartial(t,7);},"#2b6cb0",1.45);
+  ctxF.fillStyle="#4a5568"; ctxF.font="12px 'Microsoft YaHei',sans-serif";
+  ctxF.fillText("输出：边沿过冲振铃",ox2+pw/2,top+ph+15);
+  ctxF.textAlign="left";
+}
+
+/* ---------- 读数 ---------- */
+function updateReadout(){
+  document.getElementById("oName").innerHTML="目标：<b>"+wave.name+"</b>";
+  document.getElementById("oCoef").innerHTML=wave.tex;
+  document.getElementById("oN").textContent=effN();
+}
+
+/* ---------- 动画 ---------- */
+var lastTs=null;
+function tick(ts){
+  if(lastTs==null)lastTs=ts; var dt=(ts-lastTs)/1000; lastTs=ts;
+  if(animating){
+    animN+=ANIM_SPEED*dt;
+    if(animN>=N){ animN=N; animating=false; document.getElementById("btnAnim").textContent="▶ 逐项叠加"; }
+    draw(); drawSpectrum(); updateReadout();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- 控件 ---------- */
+function refresh(){ draw(); drawSpectrum(); updateReadout(); }
+document.getElementById("selWave").addEventListener("change",function(e){
+  key=e.target.value; wave=WAVES[key]; animating=false; document.getElementById("btnAnim").textContent="▶ 逐项叠加"; refresh();
+});
+document.getElementById("sN").addEventListener("input",function(e){
+  N=+e.target.value; document.getElementById("vN").textContent=N;
+  animating=false; document.getElementById("btnAnim").textContent="▶ 逐项叠加"; refresh();
+});
+document.getElementById("chkHarm").addEventListener("change",function(e){ showHarm=e.target.checked; draw(); });
+document.getElementById("chkTarget").addEventListener("change",function(e){ showTarget=e.target.checked; draw(); });
+document.getElementById("btnAnim").addEventListener("click",function(){
+  if(animating){ animating=false; this.textContent="▶ 逐项叠加"; }
+  else{ animN=0; animating=true; this.textContent="⏸ 暂停"; }
+});
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth; if(w<320)w=320; if(w>896)w=896;
+  W=w; H=Math.round(Math.max(340,w*0.46));
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(cvS){
+    var ws=Math.min((cvS.parentElement.clientWidth||300)-2,320); if(ws<180)ws=180;
+    WS=ws; HS=Math.round(ws*0.5);
+    cvS.width=WS*DPR; cvS.height=HS*DPR; cvS.style.width=WS+"px"; cvS.style.height=HS+"px";
+    ctxS.setTransform(DPR,0,0,DPR,0,0);
+  }
+  if(ctxE){ cvE.width=WE*DPR; cvE.height=HE*DPR; ctxE.setTransform(DPR,0,0,DPR,0,0); drawEdgeFig(); }
+  if(ctxF){ cvF.width=WF*DPR; cvF.height=HF*DPR; ctxF.setTransform(DPR,0,0,DPR,0,0); drawFilterFig(); }
+  refresh();
+}
+window.addEventListener("resize",resize);
+resize(); requestAnimationFrame(tick);
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-fourier-series";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

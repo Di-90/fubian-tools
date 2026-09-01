@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>傅里叶变换的性质 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1; --orange:#c05621;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .layout{display:grid; grid-template-columns:minmax(0,0.92fr) minmax(0,1.08fr); gap:16px; margin-top:6px; align-items:start;}
+  @media(max-width:760px){ .layout{grid-template-columns:1fr;} }
+  .col{display:flex; flex-direction:column; gap:6px; min-width:0;}
+  .plotcap{font-size:13px; color:var(--sub); margin:8px 2px 0; display:flex; align-items:baseline; gap:5px;}
+  .plotcap:first-child{margin-top:0;}
+  .plotcap b{color:var(--blue);}
+  .plotcap math{font-size:15.5px;}
+  .caphint{font-size:12.3px; margin:1px 2px 4px; padding:7px 11px; background:#f7fafc;
+           border:1px solid var(--line); border-radius:8px; color:var(--sub);}
+  .caphint math{font-size:13.5px;}
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px; margin-top:8px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px; margin-top:8px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink);}
+  .prop{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:13px; background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .prop math{font-size:15px;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>傅里叶变换的性质</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T13 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">左边是<b>时域信号</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，右边是它的<b>频谱</b>——上为<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>|</mo></mrow></math>、下为<b>相位谱</b> <math><mrow><mi>arg</mi><mspace width="2px"/><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>。选一条性质、拖参数，看时域一动、频域<b>如何跟着变</b>。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>一句话抓住五条性质</h2>
+    <p>傅里叶变换 <math><mrow><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>&#x3C9;</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math> 把时域搬到频域。它的几条性质，恰好把“时域动作”翻译成“频域动作”：</p>
+    <p><b>时移</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub><mo>)</mo><mo>&#x27F7;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>&#x3C9;</mi><msub><mi>t</mi><mn>0</mn></msub></mrow></msup><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>：<b>幅度谱纹丝不动</b>，只在相位上加一道线性斜坡 <math><mrow><mo>&#x2212;</mo><mi>&#x3C9;</mi><msub><mi>t</mi><mn>0</mn></msub></mrow></math>。→ <b>位置信息藏在相位里</b>。</p>
+    <p><b>频移/调制</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mi>cos</mi><mo>(</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>&#x2212;</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>+</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>：频谱被<b>搬到 <math><mrow><mo>&#xB1;</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub></mrow></math></b>（通信里的调制）。</p>
+    <p><b>尺度</b> <math><mrow><mi>f</mi><mo>(</mo><mi>a</mi><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mfrac><mn>1</mn><mrow><mo>|</mo><mi>a</mi><mo>|</mo></mrow></mfrac><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>/</mo><mi>a</mi><mo>)</mo></mrow></math>：<b>时域压窄 ⟺ 频域展宽</b>（测不准），且幅度按 <math><mrow><mn>1</mn><mo>/</mo><mo>|</mo><mi>a</mi><mo>|</mo></mrow></math> 缩放。</p>
+    <p><b>微分</b> <math><mrow><msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mi>j</mi><mi>&#x3C9;</mi><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>：乘 <math><mrow><mi>j</mi><mi>&#x3C9;</mi></mrow></math>，<b>高频被抬升</b>（求导凸显快变化）。</p>
+    <p><b>线性</b> <math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi><mo>&#x27F7;</mo><mi>&#x3B1;</mi><mi>F</mi><mo>+</mo><mi>&#x3B2;</mi><mi>G</mi></mrow></math>：<b>两个不同信号</b>的线性组合，其谱＝各自谱按同样权重的组合。</p>
+  </div>
+
+  <div class="main">
+    <div class="layout">
+      <div class="col">
+        <div class="plotcap">时域 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math></div>
+        <canvas id="cvT"></canvas>
+        <p class="caphint"><span style="color:#2b6cb0;">蓝</span>＝原信号 <math><mi>f</mi></math>、<span style="color:#2f855a;">绿</span>＝变换后；线性时 <span style="color:#c05621;">橙</span>＝第二信号 <math><mi>g</mi></math>，<span style="color:#2f855a;">绿</span>＝组合。信号与其频谱同色。</p>
+        <div class="ctrls">
+          <h2>控制</h2>
+          <div class="ctrl">
+            <label>演示的性质</label>
+            <select id="selProp">
+              <option value="shift">时移 f(t−t₀)：幅度不动、相位加斜坡</option>
+              <option value="mod">频移/调制 f(t)·cos(ω₀t)：谱搬到 ±ω₀</option>
+              <option value="scale">尺度 f(at)：时窄频宽</option>
+              <option value="deriv">微分 f′(t) ↔ jωF(ω)：抬高频</option>
+              <option value="linear">线性 αf + βg（两个不同信号）</option>
+            </select>
+          </div>
+          <div class="ctrl">
+            <label>第一信号 <math><mi>f</mi></math>（类型）</label>
+            <select id="selBase">
+              <option value="rect">矩形脉冲（谱为 Sa/sinc）</option>
+              <option value="gauss">高斯脉冲（谱仍是高斯）</option>
+              <option value="tri">三角脉冲</option>
+              <option value="wave">高斯波包 cos·e^</option>
+            </select>
+          </div>
+          <div class="ctrl"><label>第一信号 <math><mi>f</mi></math> 宽度 <math><mi>w</mi></math>：<span class="v" id="vW">1.0</span></label>
+            <input type="range" id="sW" min="0.3" max="2.5" step="0.05" value="1.0"></div>
+
+          <div class="ctrl pset" data-for="shift"><label>时移 <math><msub><mi>t</mi><mn>0</mn></msub></math>：<span class="v" id="vT0">0.0</span></label>
+            <input type="range" id="sT0" min="-3" max="3" step="0.1" value="0"></div>
+          <div class="ctrl pset" data-for="mod" style="display:none;"><label>调制频率 <math><msub><mi>&#x3C9;</mi><mn>0</mn></msub></math>：<span class="v" id="vW0">4.0</span></label>
+            <input type="range" id="sW0" min="0" max="9" step="0.1" value="4"></div>
+          <div class="ctrl pset" data-for="scale" style="display:none;"><label>尺度因子 <math><mi>a</mi></math>：<span class="v" id="vA">1.0</span></label>
+            <input type="range" id="sA" min="0.4" max="3" step="0.05" value="1"></div>
+          <div class="ctrl pset" data-for="linear" style="display:none;"><label>第二信号 <math><mi>g</mi></math>（与 <math><mi>f</mi></math> 独立，可任选）</label>
+            <select id="selG">
+              <option value="wave">高斯波包 cos·e^</option>
+              <option value="gauss">高斯脉冲</option>
+              <option value="rect">矩形脉冲</option>
+              <option value="tri">三角脉冲</option>
+            </select></div>
+          <div class="ctrl pset" data-for="linear" style="display:none;"><label>权重 <math><mi>&#x3B1;</mi></math>（第一信号 <math><mi>f</mi></math>）：<span class="v" id="vAl">1.00</span></label>
+            <input type="range" id="sAl" min="0" max="2" step="0.05" value="1"></div>
+          <div class="ctrl pset" data-for="linear" style="display:none;"><label>权重 <math><mi>&#x3B2;</mi></math>（第二信号 <math><mi>g</mi></math>）：<span class="v" id="vBe">1.00</span></label>
+            <input type="range" id="sBe" min="0" max="2" step="0.05" value="1"></div>
+          <div class="ctrl pset" data-for="linear" style="display:none;"><label>第二信号平移 <math><msub><mi>d</mi><mi>g</mi></msub></math>：<span class="v" id="vDg">1.5</span></label>
+            <input type="range" id="sDg" min="-3" max="3" step="0.1" value="1.5"></div>
+
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="chkOrig" checked> 显示原信号 / 分量（蓝、橙）作对照</label>
+          </div>
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="chkPhase" checked> 显示相位谱</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="plotcap"><b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>|</mo></mrow></math></div>
+        <canvas id="cvM"></canvas>
+        <div class="plotcap" id="capPhase"><b>相位谱</b> <math><mrow><mi>arg</mi><mspace width="2px"/><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math></div>
+        <canvas id="cvP"></canvas>
+        <p class="caphint">相位仅在 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math> 足够大处才画（幅度≈0 处相位无意义）。</p>
+        <div class="readout">
+          <h2>当前性质</h2>
+          <p id="oName">—</p>
+          <div class="prop" id="oProp">—</div>
+          <p id="oHint" class="lg" style="font-size:12.8px;color:var(--sub);">—</p>
+          <div id="oUse" style="margin-top:10px;padding:9px 11px;border-left:3px solid var(--green);background:#f0fff4;border-radius:0 6px 6px 0;font-size:12.8px;line-height:1.6;">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>为什么“相位携带位置、幅度携带频率含量”？</h2>
+    <p>把<b>时移</b>那条盯久一点：无论把脉冲挪到哪，<b>幅度谱一模一样</b>——因为“含有哪些频率、各占多少”跟信号<b>放在时间轴的哪个位置</b>无关；改变的只是<b>相位</b>（每个频率分量要“错开”多少）。所以：<b>“有哪些频率成分”看幅度谱，“它们如何对齐、信号在何处”看相位谱。</b>这也解释了为什么只丢掉相位、只保留幅度，往往无法还原信号。</p>
+    <p class="lg">（数值说明：本工具的频谱由数值积分 <math><mrow><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>&#x2248;</mo><mo>&#x2211;</mo><mi>f</mi><mo>(</mo><msub><mi>t</mi><mi>k</mi></msub><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>&#x3C9;</mi><msub><mi>t</mi><mi>k</mi></msub></mrow></msup><mi>&#x394;</mi><mi>t</mi></mrow></math> 实时算出，因此每条性质你看到的都是“真的算出来”的谱，而非预先画好的示意图。）</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>把一个时域信号和它的频谱（幅度 + 相位）并排画出来，演示傅里叶变换的五条基本性质。</p>
+    <p><b>怎么玩：</b>①选基信号（矩形/高斯）；②选一条性质；③拖对应的参数滑杆，盯着右边的幅度谱与相位谱怎么变。</p>
+    <p><b>时移</b>：拖 <math><msub><mi>t</mi><mn>0</mn></msub></math>——<b>幅度谱完全不动，只有相位在“转”</b>（一道随 <math><mi>&#x3C9;</mi></math> 变陡的斜坡）。这就是“位置信息在相位里”。</p>
+    <p><b>线性</b>：<math><mi>f</mi></math> 和 <math><mi>g</mi></math> 是<b>两个各自独立</b>的信号——<math><mi>g</mi></math> 的类型（波包/高斯/矩形/三角）和位置都能单独选。无论怎么选，调 <math><mi>&#x3B1;</mi></math>、<math><mi>&#x3B2;</mi></math> 后组合 <math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi></mrow></math> 的谱都正好是 <math><mrow><mi>&#x3B1;</mi><mi>F</mi><mo>+</mo><mi>&#x3B2;</mi><mi>G</mi></mrow></math>。</p>
+    <p class="lg">频谱是数值积分实时算的；相位只在幅度足够大处才画。选“微分”时会自动切到高斯脉冲——矩形求导是冲激，不便观察。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cvT=document.getElementById("cvT"), ctxT=cvT.getContext("2d");
+var cvM=document.getElementById("cvM"), ctxM=cvM.getContext("2d");
+var cvP=document.getElementById("cvP"), ctxP=cvP.getContext("2d");
+var WT=460,HT=270,WM=520,HM=310,WP=520,HP=220,DPR=1;
+var PI=Math.PI;
+
+// ---- 参数 ----
+var base="rect", prop="shift", w=1.0, t0=0, w0=4, a=1, alpha=1, beta=1, gType="wave", dg=1.5;
+var showOrig=true, showPhase=true;
+
+// ---- 时间与频率网格 ----
+var Tmax=6, Nt=420, Wmax=12, Nw=241;
+var tGrid=[], wGrid=[], dt=0;
+function buildGrids(){
+  tGrid.length=0; wGrid.length=0;
+  dt=2*Tmax/(Nt-1);
+  for(var i=0;i<Nt;i++) tGrid.push(-Tmax+i*dt);
+  for(var k=0;k<Nw;k++) wGrid.push(-Wmax+2*Wmax*k/(Nw-1));
+}
+buildGrids();
+
+// 四类基本信号，x 为（已平移的）自变量、s 为宽度参数
+function shape(type,x,s){
+  switch(type){
+    case "rect":  return (Math.abs(x)<=s)?1:0;
+    case "gauss": return Math.exp(-x*x/(2*s*s));
+    case "tri":   return Math.max(0,1-Math.abs(x)/(1.5*s));
+    case "wave":  return Math.exp(-x*x/(2*s*s))*Math.cos(5*x);
+    default:      return Math.exp(-x*x/(2*s*s));
+  }
+}
+// 第一信号 f(t)：类型 base、宽度 w，居中
+function base0(t){ return shape(base,t,w); }
+// 第二信号 g(t)：类型 gType、可平移 dg，与 f 完全独立（宽度固定 0.7）
+function gShape(t){ return shape(gType,t-dg,0.7); }
+
+// 变换后 / 组合信号（当前性质）
+function gsig(t){
+  switch(prop){
+    case "shift":  return base0(t-t0);
+    case "mod":    return base0(t)*Math.cos(w0*t);
+    case "scale":  return base0(a*t);
+    case "deriv":  { var h=dt; return (base0(t+h)-base0(t-h))/(2*h); }
+    case "linear": return alpha*base0(t)+beta*gShape(t);
+    default: return base0(t);
+  }
+}
+// 线性性质的两个分量（加权）
+function comp1(t){ return alpha*base0(t); }   // αf
+function comp2(t){ return beta*gShape(t); }   // βg
+
+// 数值傅里叶变换
+function ftOf(sigFn){
+  var re=new Array(Nw), im=new Array(Nw);
+  var g=new Array(Nt);
+  for(var i=0;i<Nt;i++) g[i]=sigFn(tGrid[i]);
+  for(var k=0;k<Nw;k++){
+    var wk=wGrid[k], sr=0, si=0;
+    for(var j=0;j<Nt;j++){
+      var ph=wk*tGrid[j];
+      sr+=g[j]*Math.cos(ph);
+      si+=-g[j]*Math.sin(ph);
+    }
+    re[k]=sr*dt; im[k]=si*dt;
+  }
+  return {re:re,im:im};
+}
+function mag(F,k){ return Math.hypot(F.re[k],F.im[k]); }
+
+var Fg=null, Fo=null, Fo2=null, magMax=1;
+function recompute(){
+  Fg=ftOf(gsig);
+  Fo=null; Fo2=null;
+  if(prop==="linear"){
+    if(showOrig){ Fo=ftOf(comp1); Fo2=ftOf(comp2); }
+  }else if(showOrig){
+    Fo=ftOf(base0);
+  }
+  magMax=1e-6;
+  for(var k=0;k<Nw;k++){
+    var m=mag(Fg,k); if(m>magMax)magMax=m;
+    if(Fo){ var mo=mag(Fo,k); if(mo>magMax)magMax=mo; }
+    if(Fo2){ var m2=mag(Fo2,k); if(m2>magMax)magMax=m2; }
+  }
+}
+
+/* ---------- 绘图工具 ---------- */
+function hAxis(ctx,x0,y,x1){ ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke(); }
+function vAxis(ctx,x,y0,y1){ ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke(); }
+function axisLetter(ctx,ch,x,y){ ctx.fillStyle="#a0aec0";
+  ctx.font="italic 12px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="right";
+  ctx.fillText(ch,x,y); ctx.textAlign="left"; }
+
+/* ---------- 时域画布 ---------- */
+function drawTime(){
+  var ctx=ctxT, R={x:40,y:12,w:WT-52,h:HT-28}, y0=R.y+R.h/2;
+  hAxis(ctx,R.x,y0,R.x+R.w);
+  var xz=R.x+(0+Tmax)/(2*Tmax)*R.w; vAxis(ctx,xz,R.y,R.y+R.h); // t=0 轴
+  axisLetter(ctx,"t",R.x+R.w-2,y0+14);
+  // 纵向量程
+  var amp=1.15, i, v;
+  if(prop==="deriv"){ amp=0; for(i=0;i<Nt;i++){v=Math.abs(gsig(tGrid[i])); if(v>amp)amp=v;} amp*=1.15; if(amp<1e-3)amp=1; }
+  else if(prop==="linear"){ amp=0;
+    for(i=0;i<Nt;i++){ v=Math.max(Math.abs(gsig(tGrid[i])),Math.abs(comp1(tGrid[i])),Math.abs(comp2(tGrid[i]))); if(v>amp)amp=v; }
+    amp*=1.15; if(amp<1e-3)amp=1;
+  }
+  function X(t){ return R.x+(t+Tmax)/(2*Tmax)*R.w; }
+  function Y(vv){ return y0-(vv/amp)*(R.h/2); }
+  function curve(fn,color,lw){ ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.beginPath();
+    for(var j=0;j<Nt;j++){ var px=X(tGrid[j]),py=Y(fn(tGrid[j])); if(j===0)ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke(); }
+  // 对照曲线：f=蓝、g=橙（与各自频谱同色）
+  if(showOrig){
+    if(prop==="linear"){ curve(comp1,"#2b6cb0",1.8); curve(comp2,"#c05621",1.8); }
+    else curve(base0,"#2b6cb0",1.8);
+  }
+  // 主曲线（变换后 / 组合）=绿，与其频谱同色
+  curve(gsig,"#2f855a",2.4);
+}
+
+/* ---------- 幅度谱画布 ---------- */
+function drawMag(){
+  var ctx=ctxM, R={x:44,y:12,w:WM-56,h:HM-24}, yb=R.y+R.h-2;
+  hAxis(ctx,R.x,yb,R.x+R.w);
+  var xz=R.x+R.w/2; vAxis(ctx,xz,R.y,yb);
+  axisLetter(ctx,"ω",R.x+R.w-2,yb-3);
+  function X(wv){ return R.x+(wv+Wmax)/(2*Wmax)*R.w; }
+  function Y(m){ return yb-(m/magMax)*(R.h-16); }
+  function curve(F,color,lw){ ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.beginPath();
+    for(var k=0;k<Nw;k++){ var px=X(wGrid[k]),py=Y(mag(F,k)); if(k===0)ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.stroke(); }
+  if(showOrig){
+    if(Fo) curve(Fo,"#2b6cb0",1.8);
+    if(Fo2) curve(Fo2,"#c05621",1.8);
+  }
+  curve(Fg,"#2f855a",2.2);
+}
+
+/* ---------- 相位谱画布 ---------- */
+function drawPhase(){
+  var ctx=ctxP, R={x:44,y:12,w:WP-56,h:HP-22}, y0=R.y+R.h/2;
+  hAxis(ctx,R.x,y0,R.x+R.w);
+  var xz=R.x+R.w/2; vAxis(ctx,xz,R.y,R.y+R.h);
+  axisLetter(ctx,"ω",R.x+R.w-2,y0+13);
+  ctx.fillStyle="#a0aec0"; ctx.font="11px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="left";
+  ctx.fillText("+π",R.x+2,R.y+10); ctx.fillText("−π",R.x+2,R.y+R.h-2);
+  function X(wv){ return R.x+(wv+Wmax)/(2*Wmax)*R.w; }
+  function Y(ph){ return y0-(ph/PI)*(R.h/2-4); }
+  var thr=magMax*0.04;
+  ctx.strokeStyle="#2f855a"; ctx.lineWidth=1.8; ctx.beginPath(); var pen=false;
+  for(var k=0;k<Nw;k++){
+    if(mag(Fg,k)<thr){ pen=false; continue; }
+    var ph=Math.atan2(Fg.im[k],Fg.re[k]);
+    var px=X(wGrid[k]),py=Y(ph);
+    if(!pen){ ctx.moveTo(px,py); pen=true; } else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+}
+function draw(){
+  ctxT.clearRect(0,0,WT,HT); drawTime();
+  ctxM.clearRect(0,0,WM,HM); drawMag();
+  if(showPhase){ ctxP.clearRect(0,0,WP,HP); drawPhase(); }
+}
+
+/* ---------- 读数（公式用 MathML） ---------- */
+var M={
+  t0:'<math><msub><mi>t</mi><mn>0</mn></msub></math>',
+  w:'<math><mi>&#x3C9;</mi></math>',
+  slope:'<math><mrow><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub></mrow></math>',
+  w0:'<math><msub><mi>&#x3C9;</mi><mn>0</mn></msub></math>',
+  pmw0:'<math><mrow><mo>&#xB1;</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub></mrow></math>',
+  weq0:'<math><mrow><mi>&#x3C9;</mi><mo>=</mo><mn>0</mn></mrow></math>',
+  cosw0:'<math><mrow><mi>cos</mi><mo>(</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>',
+  a:'<math><mi>a</mi></math>',
+  ag1:'<math><mrow><mi>a</mi><mo>&gt;</mo><mn>1</mn></mrow></math>',
+  al1:'<math><mrow><mi>a</mi><mo>&lt;</mo><mn>1</mn></mrow></math>',
+  inva:'<math><mrow><mn>1</mn><mo>/</mo><mo>|</mo><mi>a</mi><mo>|</mo></mrow></math>',
+  Fw:'<math><mrow><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>',
+  jw:'<math><mrow><mi>j</mi><mi>&#x3C9;</mi></mrow></math>',
+  alpha:'<math><mi>&#x3B1;</mi></math>', beta:'<math><mi>&#x3B2;</mi></math>',
+  fsym:'<math><mi>f</mi></math>', gsym:'<math><mi>g</mi></math>',
+  afbg:'<math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi></mrow></math>',
+  AFBG:'<math><mrow><mi>&#x3B1;</mi><mi>F</mi><mo>+</mo><mi>&#x3B2;</mi><mi>G</mi></mrow></math>',
+  af:'<math><mrow><mi>&#x3B1;</mi><mi>f</mi></mrow></math>',
+  bg:'<math><mrow><mi>&#x3B2;</mi><mi>g</mi></mrow></math>'
+};
+var NAMES={
+  shift:'时移 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub><mo>)</mo></mrow></math>',
+  mod:'频移/调制 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mi>cos</mi><mo>(</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>',
+  scale:'尺度变换 <math><mrow><mi>f</mi><mo>(</mo><mi>a</mi><mi>t</mi><mo>)</mo></mrow></math>',
+  deriv:'微分 <math><mrow><msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>',
+  linear:'线性 <math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi></mrow></math>'
+};
+var PROPTX={
+  shift:'<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub><mo>)</mo><mo>&#x27F7;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>&#x3C9;</mi><msub><mi>t</mi><mn>0</mn></msub></mrow></msup><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>',
+  mod:'<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mi>cos</mi><mo>(</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>&#x2212;</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>+</mo><msub><mi>&#x3C9;</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>',
+  scale:'<math><mrow><mi>f</mi><mo>(</mo><mi>a</mi><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mfrac><mn>1</mn><mrow><mo>|</mo><mi>a</mi><mo>|</mo></mrow></mfrac><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>/</mo><mi>a</mi><mo>)</mo></mrow></math>',
+  deriv:'<math><mrow><msup><mi>f</mi><mo>&#x2032;</mo></msup><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mi>j</mi><mi>&#x3C9;</mi><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>',
+  linear:'<math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x27F7;</mo><mi>&#x3B1;</mi><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>+</mo><mi>&#x3B2;</mi><mi>G</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>'
+};
+var HINTS={
+  shift:'拖 '+M.t0+'：注意上方幅度谱<b>完全不动</b>，下方相位谱变成一道随 '+M.w+' 越来越陡的斜坡（斜率 = '+M.slope+'）。位置信息全在相位里。',
+  mod:'拖 '+M.w0+'：原本集中在 '+M.weq0+' 附近的谱，被<b>搬到 '+M.pmw0+'</b> 两处（一分为二）。这正是通信里“把基带信号搬到载波频率”的调制。',
+  scale:'拖 '+M.a+'：'+M.ag1+' 时域压窄、频谱展宽；'+M.al1+' 时域展宽、频谱压窄。时域和频域的“宽度”成反比（测不准），幅度按 '+M.inva+' 缩放。',
+  deriv:'求导后 '+M.Fw+' 乘上 '+M.jw+'：低频被压、高频被抬，谱整体向高频偏。求导凸显信号里“变化快”的部分。（矩形求导为冲激，已自动切到高斯演示。）',
+  linear:M.fsym+' 与 '+M.gsym+' 是<b>两个可各自任选、彼此独立</b>的信号（'+M.gsym+' 的类型、位置都能单独调）。无论怎么选，组合 '+M.afbg+' 的谱都<b>恰好</b>等于 '+M.AFBG+'——这就是线性。时域里 <span style="color:#2b6cb0;">蓝＝'+M.af+'</span>、<span style="color:#c05621;">橙＝'+M.bg+'</span>，<span style="color:#2f855a;">绿＝其和</span>。'
+};
+var USES={
+  shift:'<b>🛰 实际用处：定位与测距。</b>雷达、声呐、GPS 都靠“回波比发射晚了多少”来算距离——时延 '+M.t0+' 只改变相位斜坡、不改幅度，所以位置信息全藏在<b>相位</b>里。地震波到时定位、音频对齐同理。',
+  mod:'<b>📡 实际用处：无线通信的基石。</b>把低频语音/数据（基带）乘上高频载波 '+M.cosw0+'，谱就搬到 '+M.pmw0+'，才能用天线发射、并让多个电台各占一段频率互不干扰——这就是调幅（AM）、混频与变频接收的原理。',
+  scale:'<b>🚗 实际用处：多普勒与变速。</b>目标相对运动使回波在时间轴上被压缩/拉伸，频谱随之展宽/压窄——测速雷达、超声测血流都用它；音频“变速不变调 / 变调”、小波多尺度分析也是同一条性质。',
+  deriv:'<b>🖼 实际用处：突出“变化快”的地方。</b>求导给频谱乘 '+M.jw+'，压低频、抬高频，等于一个高通/边缘增强器——图像边缘检测（梯度算子）、信号去趋势、电感电容的 u–i 微分关系都基于此。',
+  linear:'<b>🎚 实际用处：叠加原理，一切分析的前提。</b>复杂信号可拆成简单信号之和，分别变换再相加即可；滤波器对多个频率成分“分别处理、结果相加”，频谱分析、系统响应计算都依赖这条线性性。'
+};
+function updateReadout(){
+  document.getElementById("oName").innerHTML="性质：<b>"+NAMES[prop]+"</b>";
+  document.getElementById("oProp").innerHTML=PROPTX[prop];
+  document.getElementById("oHint").innerHTML=HINTS[prop];
+  document.getElementById("oUse").innerHTML=USES[prop];
+}
+
+/* ---------- 控件 ---------- */
+function showParamSets(){
+  var sets=document.querySelectorAll(".pset");
+  for(var i=0;i<sets.length;i++){
+    sets[i].style.display=(sets[i].getAttribute("data-for")===prop)?"block":"none";
+  }
+}
+function enforceBaseAvail(){
+  var sel=document.getElementById("selBase");
+  var rectOpt=sel.querySelector('option[value="rect"]');
+  var isDeriv=(prop==="deriv");
+  rectOpt.disabled=isDeriv;
+  if(isDeriv && base==="rect"){ base="gauss"; sel.value="gauss"; }
+}
+function refresh(){ recompute(); draw(); updateReadout(); }
+document.getElementById("selBase").addEventListener("change",function(e){
+  if(prop==="deriv" && e.target.value==="rect"){ e.target.value="gauss"; }
+  base=e.target.value; refresh();
+});
+document.getElementById("selProp").addEventListener("change",function(e){
+  prop=e.target.value; enforceBaseAvail(); showParamSets(); refresh();
+});
+document.getElementById("sW").addEventListener("input",function(e){ w=+e.target.value; document.getElementById("vW").textContent=w.toFixed(2); refresh(); });
+document.getElementById("sT0").addEventListener("input",function(e){ t0=+e.target.value; document.getElementById("vT0").textContent=t0.toFixed(1); refresh(); });
+document.getElementById("sW0").addEventListener("input",function(e){ w0=+e.target.value; document.getElementById("vW0").textContent=w0.toFixed(1); refresh(); });
+document.getElementById("sA").addEventListener("input",function(e){ a=+e.target.value; document.getElementById("vA").textContent=a.toFixed(2); refresh(); });
+document.getElementById("sAl").addEventListener("input",function(e){ alpha=+e.target.value; document.getElementById("vAl").textContent=alpha.toFixed(2); refresh(); });
+document.getElementById("sBe").addEventListener("input",function(e){ beta=+e.target.value; document.getElementById("vBe").textContent=beta.toFixed(2); refresh(); });
+document.getElementById("selG").addEventListener("change",function(e){ gType=e.target.value; refresh(); });
+document.getElementById("sDg").addEventListener("input",function(e){ dg=+e.target.value; document.getElementById("vDg").textContent=dg.toFixed(1); refresh(); });
+document.getElementById("chkOrig").addEventListener("change",function(e){ showOrig=e.target.checked; refresh(); });
+document.getElementById("chkPhase").addEventListener("change",function(e){ showPhase=e.target.checked; resize(); });
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function fit(cv,ctx,aspect,minH){
+  var ww=cv.parentElement.clientWidth; if(ww<300)ww=300;
+  var hh=Math.round(Math.max(minH,ww*aspect));
+  cv.width=ww*DPR; cv.height=hh*DPR; cv.style.width=ww+"px"; cv.style.height=hh+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  return {w:ww,h:hh};
+}
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var capPhase=document.getElementById("capPhase");
+  capPhase.style.display=showPhase?"flex":"none";
+  cvP.style.display=showPhase?"block":"none";
+  var dT=fit(cvT,ctxT,0.58,210); WT=dT.w; HT=dT.h;
+  var dM=fit(cvM,ctxM,0.58,200); WM=dM.w; HM=dM.h;
+  if(showPhase){ var dP=fit(cvP,ctxP,0.42,150); WP=dP.w; HP=dP.h; }
+  draw();
+}
+window.addEventListener("resize",resize);
+enforceBaseAvail(); showParamSets(); recompute(); updateReadout(); resize();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-fourier-props";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

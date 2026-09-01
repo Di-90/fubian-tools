@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卷积定理 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1; --orange:#dd6b20;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .prow{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;}
+  @media(max-width:680px){ .prow{grid-template-columns:1fr;} }
+  figure{margin:0;}
+  figcaption{font-size:12px; color:var(--sub); margin:0 0 4px 3px; font-weight:600;}
+  .cvbox{position:relative;}
+  .clab{position:absolute; top:5px; left:48px; display:flex; gap:16px; line-height:1; pointer-events:none;}
+  .clab math{font-size:15px;}
+  #srow{margin-top:12px;}
+  #srow figure{max-width:540px; margin:0 auto;}
+  /* 变换切换 */
+  .seg{display:flex; margin:14px 22px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; width:max-content; box-shadow:var(--shadow);}
+  .seg button{border:0; background:#fff; color:var(--sub); padding:9px 20px; font-size:14px; cursor:pointer; font-weight:600;}
+  .seg button.on{background:var(--blue); color:#fff;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px; padding:0 22px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .match{margin-top:10px; padding:9px 12px; border-radius:8px; font-size:13px;
+         background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  #sAlg{border-left:4px solid var(--purple);}
+  #sAlg .row2{display:flex; flex-wrap:wrap; gap:8px 26px; align-items:center; margin:6px 0;}
+  .legend{font-size:12.3px; margin:10px 2px 0; padding:8px 12px; background:#f7fafc;
+          border:1px solid var(--line); border-radius:8px; color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:620px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>卷积定理</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T14 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">卷积定理说：<b>时域的卷积，换到变换域就变成逐点相乘</b>。本页把它"看见"——分别用<b>两条独立的路线</b>算出同一条曲线，看它们是否<b>严丝合缝地重合</b>。上方按钮切换<b>傅里叶</b>与<b>拉普拉斯</b>两个版本。</p>
+
+  <div class="know" id="thmCard" style="border-left:4px solid var(--gold);">
+    <h2 id="thmTitle">傅里叶卷积定理</h2>
+    <p id="thmFormula" style="text-align:center;"></p>
+    <p id="thmText"></p>
+  </div>
+
+  <div class="seg" id="seg">
+    <button data-mode="F" class="on">傅里叶变换</button>
+    <button data-mode="L">拉普拉斯变换</button>
+  </div>
+
+  <div class="main">
+    <div class="prow">
+      <figure><figcaption>时域 · 原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math></figcaption><div class="cvbox"><canvas id="cT1"></canvas><div class="clab" id="labT1"></div></div></figure>
+      <figure><figcaption id="capT2">时域 · 卷积 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math></figcaption><div class="cvbox"><canvas id="cT2"></canvas><div class="clab" id="labT2"></div></div></figure>
+    </div>
+    <div class="prow" id="frow">
+      <figure><figcaption>频域 · 原频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math>、<math><mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow></math></figcaption><div class="cvbox"><canvas id="cF1"></canvas><div class="clab" id="labF1"></div></div></figure>
+      <figure><figcaption>频域 · 相乘 <math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math>　=　卷积的频谱</figcaption><div class="cvbox"><canvas id="cF2"></canvas><div class="clab" id="labF2"></div></div></figure>
+    </div>
+    <div id="srow" style="display:none;">
+      <figure><figcaption>s 平面 · <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 幅度热力图（亮斑＝极点 ×，暗点＝零点 ○）</figcaption><canvas id="cS"></canvas></figure>
+    </div>
+    <p class="legend" id="legend"></p>
+  </div>
+
+  <div class="panel">
+    <div class="ctrls">
+      <h2>控制</h2>
+      <div class="ctrl">
+        <label>信号 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math></label>
+        <select id="selF"></select>
+      </div>
+      <div class="ctrl"><label><span id="pLabF">宽度 w</span>：<span class="v" id="pValF">1.0</span></label>
+        <input type="range" id="sPF" min="0.5" max="2.5" step="0.1" value="1"></div>
+      <div class="ctrl">
+        <label>信号 <math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math></label>
+        <select id="selG"></select>
+      </div>
+      <div class="ctrl"><label><span id="pLabG">宽度 w</span>：<span class="v" id="pValG">1.0</span></label>
+        <input type="range" id="sPG" min="0.5" max="2.5" step="0.1" value="1"></div>
+      <p class="lg" id="lapNote" style="font-size:12px;color:var(--sub);display:none;">拉普拉斯变换要求信号<b>右边（因果）</b>，故此模式只提供矩形、指数两种。</p>
+    </div>
+
+    <div class="readout">
+      <h2>当前读数</h2>
+      <p id="oPair">—</p>
+      <div class="match" id="oMatch">—</div>
+    </div>
+  </div>
+
+  <div class="know" id="sAlg" style="display:none;">
+    <h2>s 域：相乘后再反变换</h2>
+    <div class="row2"><span id="algF"></span></div>
+    <div class="row2"><span id="algG"></span></div>
+    <div class="row2"><b style="color:var(--purple);">相乘：</b><span id="algP"></span></div>
+    <p id="algInv" class="lg"></p>
+  </div>
+
+  <div class="know">
+    <h2>为什么"卷积 = 相乘"这么重要？</h2>
+    <p>一个原本要做积分的卷积，换到频域 / 复频域就成了两条变换<b>逐点相乘</b>——这正是<b>频域滤波</b>、<b>用变换法解微分方程</b>之所以好用的根本原因：把难算的卷积（或微分）搬到变换域变成代数运算，算完再反变换回来。</p>
+    <p class="lg"><b>与其它工具的关系：</b>卷积本身的"翻转—平移—相乘—积分"机理见 <b>T12 卷积演示</b>；各信号的频谱与变换对见 <b>T11</b>；变换的其它性质见 <b>T13</b>；s 平面极点与时域响应见 <b>T15</b>；用拉氏变换解方程见 <b>T16</b>。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>用"两条独立路线算同一条曲线、看是否重合"的方式，把<b>卷积定理</b>演示出来。</p>
+    <p><b>傅里叶模式（四张图）：</b>上排时域——左图是原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>，右图是它们的卷积 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math>；下排频域——左图是原频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math>、<math><mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow></math>，右图把<b>两谱相乘</b> <math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math>（粗紫）与<b>"先卷积再变换"</b>的谱 <math><mrow><mo>|</mo><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>|</mo></mrow></math>（橙虚线）叠在一起。右下两条重合，就是 <math><mrow><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi></mrow></math>。</p>
+    <p><b>拉普拉斯模式：</b>时域右图中，<b>紫实线</b>是直接卷积，<b>橙虚线</b>是"两像函数相乘 <math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math> 再反变换"，两者重合即 <math><mrow><mi>&#x2112;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>；下方 <b>s 平面</b>是 <math><mrow><mo>|</mo><mi>F</mi><mi>G</mi><mo>|</mo></mrow></math> 的<b>幅度热力图</b>（亮斑＝极点、暗点＝零点）——相乘就是把 <math><mi>f</mi></math>、<math><mi>g</mi></math> 各自的极点零点<b>合并</b>。</p>
+    <p><b>怎么玩：</b>切换变换类型；选 <math><mi>f</mi></math>、<math><mi>g</mi></math> 并拖参数滑杆改变形状；观察"最大偏差"读数始终 ≈ 0——这就是定理成立的数值证据。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- 信号库 ----------
+var SIG={
+  rect:{ name:"矩形脉冲", causal:true, param:{label:"宽度",sym:"w",min:0.5,max:2.5,step:0.1,def:1},
+    f:function(p){ return function(x){ return (x>=0&&x<=p)?1:0; }; },
+    Fmag:function(p){ return function(w){ return Math.abs(w)<1e-7?p:Math.abs(2*Math.sin(w*p/2)/w); }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>（<math><mrow><mn>0</mn><mo>&#x2264;</mo><mi>t</mi><mo>&#x2264;</mo><mi>w</mi></mrow></math>）",
+    Ls:"<mfrac><mrow><mn>1</mn><mo>&#x2212;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>w</mi><mi>s</mi></mrow></msup></mrow><mi>s</mi></mfrac>",
+    pz:function(p){ var z=[]; for(var k=1;k<=8;k++){ var im=2*Math.PI*k/p; z.push({re:0,im:im}); z.push({re:0,im:-im}); } return {poles:[],zeros:z}; } },
+  exp:{ name:"指数衰减", causal:true, param:{label:"衰减率",sym:"a",min:0.5,max:3,step:0.1,def:1},
+    f:function(p){ return function(x){ return x>=0?Math.exp(-p*x):0; }; },
+    Fmag:function(p){ return function(w){ return 1/Math.sqrt(p*p+w*w); }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup><mi>u</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>",
+    Ls:"<mfrac><mn>1</mn><mrow><mi>s</mi><mo>+</mo><mi>a</mi></mrow></mfrac>",
+    pz:function(p){ return {poles:[{re:-p,im:0}],zeros:[]}; } },
+  gauss:{ name:"高斯", causal:false, param:{label:"标准差",sym:"&#x3C3;",min:0.3,max:1.2,step:0.05,def:0.5},
+    f:function(p){ return function(x){ return Math.exp(-x*x/(2*p*p)); }; },
+    Fmag:function(p){ return function(w){ return p*Math.sqrt(2*Math.PI)*Math.exp(-p*p*w*w/2); }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>t</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>&#x3C3;</mi><mn>2</mn></msup></mrow></msup></mrow></math>", Ls:"" },
+  tri:{ name:"三角", causal:false, param:{label:"半宽",sym:"h",min:0.5,max:1.5,step:0.1,def:1},
+    f:function(p){ return function(x){ return Math.max(0,1-Math.abs(x)/p); }; },
+    Fmag:function(p){ return function(w){ if(Math.abs(w)<1e-7)return p; var s=Math.sin(w*p/2)/(w*p/2); return p*s*s; }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mo>|</mo><mi>t</mi><mo>|</mo><mo>/</mo><mi>h</mi><mo>)</mo></mrow><mo>+</mo></msub></mrow></math>", Ls:"" }
+};
+function fmtP(key,v){ return v.toFixed(SIG[key].param.step<0.1?2:1); }
+function symLabel(key){ var p=SIG[key].param; return p.label+" <math><mi>"+p.sym+"</mi></math>"; }
+
+var mode="F", keyF="rect", keyG="rect", paramF=1, paramG=1;
+var fnF=SIG.rect.f(1), fnG=SIG.rect.f(1);
+
+// ---------- 计算网格 ----------
+var GT0=-10, GT1=10, GDT=0.02, NT=Math.round((GT1-GT0)/GDT)+1;
+var gT=new Float64Array(NT), cY=new Float64Array(NT);
+for(var ii=0;ii<NT;ii++) gT[ii]=GT0+ii*GDT;
+
+function convAt(t){ var s=0; for(var tau=GT0; tau<=GT1; tau+=GDT){ s+=fnF(tau)*fnG(t-tau); } return s*GDT; }
+function lapConv(t){
+  if(t<0) return 0;
+  var kf=keyF,kg=keyG,pf=paramF,pg=paramG;
+  if(kf==="exp"&&kg==="exp"){ var a=pf,b=pg; return Math.abs(a-b)<1e-9? t*Math.exp(-a*t):(Math.exp(-a*t)-Math.exp(-b*t))/(b-a); }
+  if((kf==="rect"&&kg==="exp")||(kf==="exp"&&kg==="rect")){
+    var w=(kf==="rect")?pf:pg, b2=(kf==="exp")?pf:pg, m=Math.min(w,t);
+    return Math.exp(-b2*t)*(Math.exp(b2*m)-1)/b2; }
+  if(kf==="rect"&&kg==="rect"){ var lo=Math.max(0,t-pg), hi=Math.min(pf,t); return Math.max(0,hi-lo); }
+  return 0;
+}
+var convMaxT=1;
+function recompute(){ var mx=1e-6; for(var i=0;i<NT;i++){ var v=convAt(gT[i]); cY[i]=v; if(v>mx)mx=v; } convMaxT=mx; }
+function cInterp(t){ if(t<=GT0)return cY[0]; if(t>=GT1)return cY[NT-1];
+  var idx=(t-GT0)/GDT, i=Math.floor(idx); if(i>=NT-1)i=NT-2; var a=idx-i; return cY[i]*(1-a)+cY[i+1]*a; }
+function convFmag(w){ var re=0,im=0; for(var i=0;i<NT;i++){ var ph=w*gT[i]; re+=cY[i]*Math.cos(ph); im-=cY[i]*Math.sin(ph); } return Math.hypot(re,im)*GDT; }
+
+// ---------- 绘图辅助 ----------
+function richText(c,parts,x,y,col,size){
+  size=size||12; c.fillStyle=col; var cx=x;
+  var cn=size+"px 'Cambria Math','STIX Two Math',serif", it="italic "+size+"px 'Cambria Math','STIX Two Math',serif";
+  for(var i=0;i<parts.length;i++){ c.font=parts[i].it?it:cn; c.fillText(parts[i].s,cx,y); cx+=c.measureText(parts[i].s).width; }
+}
+var mL=42,mR=12,mT=16,mB=24;
+function xToPx(x,w,x0,x1){ return mL+(x-x0)/(x1-x0)*(w-mL-mR); }
+function drawAxis(c,W,H,x0,x1,yMax,xlabel){
+  var baseY=H-mB;
+  function Y(v){ return baseY-(v/yMax)*(H-mT-mB); }
+  c.strokeStyle="#cbd5e0"; c.lineWidth=1.1;
+  c.beginPath(); c.moveTo(mL,baseY); c.lineTo(W-mR,baseY); c.stroke();
+  c.beginPath(); c.moveTo(mL,mT); c.lineTo(mL,baseY); c.stroke();
+  c.font="10.5px 'Cambria Math','STIX Two Math',serif"; c.textAlign="center";
+  var span=x1-x0, step=span>16?4:span>9?2:1;
+  for(var xt=Math.ceil(x0/step)*step; xt<=x1+1e-9; xt+=step){ var px=xToPx(xt,W,x0,x1);
+    c.beginPath(); c.strokeStyle="#edf2f7"; c.moveTo(px,mT); c.lineTo(px,baseY); c.stroke();
+    c.fillStyle="#a0aec0"; c.fillText(xt,px,baseY+14); }
+  c.textAlign="left"; richText(c,[{s:xlabel,it:1}],W-mR-14,baseY+14,"#a0aec0",11.5);
+  return Y;
+}
+function plot(c,fn,x0,x1,W,Y,col,lw,dash){
+  c.strokeStyle=col; c.lineWidth=lw; if(dash)c.setLineDash(dash); c.beginPath();
+  var first=true;
+  for(var px=mL; px<=W-mR; px+=1){ var x=x0+(px-mL)/(W-mL-mR)*(x1-x0), py=Y(fn(x));
+    if(first){ c.moveTo(px,py); first=false; } else c.lineTo(px,py); }
+  c.stroke(); c.setLineDash([]);
+}
+function sampleMax(fn,x0,x1){ var mx=1e-6; for(var i=0;i<=200;i++){ var v=fn(x0+(x1-x0)*i/200); if(v>mx)mx=v; } return mx; }
+
+// ---------- 各图 ----------
+var TX0=-4, TX1=7, WX=10;
+function drawSignals(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
+  var Y=drawAxis(c,W,H,TX0,TX1,1.2,"t");
+  var oneY=Y(1); c.strokeStyle="rgba(160,174,192,.5)"; c.lineWidth=1; c.setLineDash([4,3]);
+  c.beginPath(); c.moveTo(mL,oneY); c.lineTo(W-mR,oneY); c.stroke(); c.setLineDash([]);
+  c.fillStyle="#a0aec0"; c.font="10.5px serif"; c.textAlign="right"; c.fillText("1",mL-4,oneY+4); c.textAlign="left";
+  plot(c,fnF,TX0,TX1,W,Y,"#2b6cb0",2.2,null);
+  plot(c,fnG,TX0,TX1,W,Y,"#2f855a",2.0,[6,4]);
+}
+function drawConv(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
+  var yMax=Math.max(1.1,convMaxT*1.15), Y=drawAxis(c,W,H,TX0,TX1,yMax,"t");
+  plot(c,cInterp,TX0,TX1,W,Y,"#6b46c1",2.8,null);
+  if(mode==="L") plot(c,lapConv,TX0,TX1,W,Y,"#dd6b20",2.2,[3,4]);
+}
+function drawSpecOrig(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
+  var Fm=SIG[keyF].Fmag(paramF), Gm=SIG[keyG].Fmag(paramG);
+  var yMax=Math.max(sampleMax(Fm,-WX,WX),sampleMax(Gm,-WX,WX))*1.12;
+  var Y=drawAxis(c,W,H,-WX,WX,yMax,"ω");
+  plot(c,Fm,-WX,WX,W,Y,"#2b6cb0",2.0,null);
+  plot(c,Gm,-WX,WX,W,Y,"#2f855a",2.0,[6,4]);
+}
+function drawSpecProd(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
+  var Fm=SIG[keyF].Fmag(paramF), Gm=SIG[keyG].Fmag(paramG);
+  var prod=function(w){ return Fm(w)*Gm(w); };
+  var yMax=sampleMax(prod,-WX,WX)*1.12, Y=drawAxis(c,W,H,-WX,WX,yMax,"ω");
+  plot(c,prod,-WX,WX,W,Y,"#6b46c1",2.8,null);
+  plot(c,convFmag,-WX,WX,W,Y,"#dd6b20",2.0,[4,4]);
+}
+// |F(s)| 复频域幅度（因果信号）
+function FmagS(key,p){
+  if(key==="exp") return function(sg,om){ return 1/Math.sqrt((sg+p)*(sg+p)+om*om); };
+  if(key==="rect") return function(sg,om){ var r2=sg*sg+om*om; if(r2<1e-8) return p;
+    var e=Math.exp(-p*sg), nre=1-e*Math.cos(p*om), nim=e*Math.sin(p*om);
+    return Math.sqrt(nre*nre+nim*nim)/Math.sqrt(r2); };
+  return function(){ return 0; };
+}
+function heatColor(t){
+  var stops=[[0,[11,30,63]],[0.35,[43,108,176]],[0.6,[56,178,172]],[0.8,[236,201,75]],[1,[255,245,208]]];
+  for(var i=1;i<stops.length;i++){ if(t<=stops[i][0]){ var a=stops[i-1],b=stops[i],f=(t-a[0])/(b[0]-a[0]);
+    return [Math.round(a[1][0]+(b[1][0]-a[1][0])*f),Math.round(a[1][1]+(b[1][1]-a[1][1])*f),Math.round(a[1][2]+(b[1][2]-a[1][2])*f)]; } }
+  return stops[stops.length-1][1];
+}
+function drawSplane(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
+  var reMin=-3.6,reMax=1.6,imMin=-9,imMax=9, ml=32,mr=52,mt=12,mb=20;
+  var plotW=W-ml-mr, plotH=H-mt-mb;
+  function X(re){ return ml+(re-reMin)/(reMax-reMin)*plotW; }
+  function Yv(im){ return (mt+plotH)-(im-imMin)/(imMax-imMin)*plotH; }
+  // 幅度热力图 |F(s)·G(s)|（对数标度）
+  var Ff=FmagS(keyF,paramF), Gg=FmagS(keyG,paramG);
+  var gw=Math.max(2,Math.round(plotW/2)), gh=Math.max(2,Math.round(plotH/2));
+  var tmp=document.createElement("canvas"); tmp.width=gw; tmp.height=gh;
+  var tctx=tmp.getContext("2d"), img=tctx.createImageData(gw,gh), dat=img.data, Lmin=-1.5,Lmax=1.6;
+  for(var yy=0;yy<gh;yy++){ var om=imMax-(yy+0.5)/gh*(imMax-imMin);
+    for(var xx=0;xx<gw;xx++){ var sg=reMin+(xx+0.5)/gw*(reMax-reMin);
+      var m=Ff(sg,om)*Gg(sg,om), L=Math.log10(m+1e-9), t=(L-Lmin)/(Lmax-Lmin);
+      if(t<0)t=0; if(t>1)t=1; var col=heatColor(t), idx=(yy*gw+xx)*4;
+      dat[idx]=col[0]; dat[idx+1]=col[1]; dat[idx+2]=col[2]; dat[idx+3]=255; } }
+  tctx.putImageData(img,0,0);
+  c.imageSmoothingEnabled=true; c.drawImage(tmp,ml,mt,plotW,plotH);
+  // 轴（白色叠在热力图上）
+  c.strokeStyle="rgba(255,255,255,.5)"; c.lineWidth=1;
+  c.beginPath(); c.moveTo(X(reMin),Yv(0)); c.lineTo(X(reMax),Yv(0)); c.stroke();
+  c.strokeStyle="rgba(255,255,255,.85)"; c.lineWidth=1.4;
+  c.beginPath(); c.moveTo(X(0),mt); c.lineTo(X(0),mt+plotH); c.stroke();
+  c.fillStyle="rgba(255,255,255,.8)"; c.font="10px 'Cambria Math',serif"; c.textAlign="center";
+  for(var r=-3;r<=1;r++){ if(r!==0) c.fillText(r,X(r),Yv(0)+13); }
+  c.textAlign="right"; richText(c,[{s:"σ",it:1}],X(reMax)-2,Yv(0)-5,"rgba(255,255,255,.9)",11);
+  c.textAlign="left"; richText(c,[{s:"jω",it:1}],X(0)+5,mt+10,"rgba(255,255,255,.95)",11);
+  // 极点(×)/零点(○) 标注
+  function mark(pzo){ c.strokeStyle="#fff"; c.lineWidth=1.8;
+    pzo.poles.forEach(function(pp){ if(pp.re<reMin||pp.re>reMax||pp.im<imMin||pp.im>imMax)return;
+      var x=X(pp.re),y=Yv(pp.im),r=6; c.beginPath(); c.moveTo(x-r,y-r); c.lineTo(x+r,y+r); c.moveTo(x+r,y-r); c.lineTo(x-r,y+r); c.stroke(); });
+    pzo.zeros.forEach(function(z){ if(z.re<reMin||z.re>reMax||z.im<imMin||z.im>imMax)return;
+      var x=X(z.re),y=Yv(z.im); c.beginPath(); c.arc(x,y,4.5,0,2*Math.PI); c.stroke(); }); }
+  if(SIG[keyF].pz) mark(SIG[keyF].pz(paramF));
+  if(SIG[keyG].pz) mark(SIG[keyG].pz(paramG));
+  // 色带图例
+  var cbX=W-mr+14, cbY=mt+8, cbW=11, cbH=plotH-40;
+  for(var i=0;i<cbH;i++){ var col2=heatColor(1-i/cbH); c.fillStyle="rgb("+col2[0]+","+col2[1]+","+col2[2]+")"; c.fillRect(cbX,cbY+i,cbW,1); }
+  c.fillStyle="#4a5568"; c.font="9.5px 'Microsoft YaHei',sans-serif"; c.textAlign="left";
+  c.fillText("大",cbX+cbW+2,cbY+8); c.fillText("小",cbX+cbW+2,cbY+cbH);
+  c.save(); c.translate(cbX+cbW+18,cbY+cbH/2); c.rotate(-Math.PI/2); c.textAlign="center";
+  c.fillStyle="#718096"; c.font="italic 11px 'Cambria Math','STIX Two Math',serif"; c.fillText("|F·G|",0,0); c.restore();
+  // 底注
+  c.fillStyle="rgba(255,255,255,.92)"; c.font="10.5px 'Microsoft YaHei',sans-serif"; c.textAlign="center";
+  c.fillText("左半平面：极点在此 ⇒ f∗g 衰减(稳定)",ml+plotW*0.36,mt+plotH-8);
+}
+
+// ---------- 画布注册 ----------
+var PLOTS=[
+  {id:"cT1",draw:drawSignals,hr:0.62},
+  {id:"cT2",draw:drawConv,hr:0.62},
+  {id:"cF1",draw:drawSpecOrig,hr:0.62},
+  {id:"cF2",draw:drawSpecProd,hr:0.62},
+  {id:"cS", draw:drawSplane,hr:1.05}
+];
+var DPR=1;
+PLOTS.forEach(function(P){ P.el=document.getElementById(P.id); P.ctx=P.el.getContext("2d"); P.W=300; P.H=180; });
+function visible(el){ return el.offsetParent!==null; }
+function draw(){ PLOTS.forEach(function(P){ if(visible(P.el)) P.draw(P); }); }
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  PLOTS.forEach(function(P){
+    if(!visible(P.el)) return;
+    var w=P.el.clientWidth; if(!w) return;
+    var h=Math.round(w*P.hr);
+    h = (P.id==="cS") ? Math.max(300,Math.min(430,h)) : Math.max(150,Math.min(230,h));
+    P.W=w; P.H=h; P.el.width=w*DPR; P.el.height=h*DPR; P.el.style.height=h+"px";
+    P.ctx.setTransform(DPR,0,0,DPR,0,0);
+  });
+  draw();
+}
+window.addEventListener("resize",resize);
+
+// ---------- 重合度 ----------
+function maxDiff(){
+  var d=0;
+  if(mode==="F"){ var Fm=SIG[keyF].Fmag(paramF), Gm=SIG[keyG].Fmag(paramG);
+    for(var w=-WX; w<=WX; w+=0.1){ var e=Math.abs(convFmag(w)-Fm(w)*Gm(w)); if(e>d)d=e; } }
+  else{ for(var t=TX0; t<=TX1; t+=0.05){ var e2=Math.abs(cInterp(t)-lapConv(t)); if(e2>d)d=e2; } }
+  return d;
+}
+
+// ---------- 读数 / s 域代数 ----------
+function updateReadout(){
+  var gF=SIG[keyG].formula.replace("<mi>f</mi>","<mi>g</mi>");
+  document.getElementById("oPair").innerHTML=
+    "<span style='color:#2b6cb0;'>"+SIG[keyF].formula+"</span>　<b>"+symLabel(keyF)+" = "+fmtP(keyF,paramF)+"</b><br>"+
+    "<span style='color:#2f855a;'>"+gF+"</span>　<b>"+symLabel(keyG)+" = "+fmtP(keyG,paramG)+"</b>";
+  var d=maxDiff();
+  var routes = mode==="F"
+    ? "<math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math> 与 <math><mrow><mo>|</mo><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>|</mo></mrow></math>（频域右图）"
+    : "直接卷积 与 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>}</mo></mrow></math>（时域右图）";
+  document.getElementById("oMatch").innerHTML="两条路线（"+routes+"）<b>最大偏差 = "+d.toExponential(1)+"</b> ≈ 0　⟹　卷积定理成立。";
+  if(mode==="L") updateAlgebra();
+}
+function updateAlgebra(){
+  var Lf=SIG[keyF].Ls, Lg=SIG[keyG].Ls;
+  document.getElementById("algF").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lf+"</mrow></math>　<b>"+symLabel(keyF)+" = "+fmtP(keyF,paramF)+"</b>";
+  document.getElementById("algG").innerHTML="<math><mrow><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lg+"</mrow></math>　<b>"+symLabel(keyG)+" = "+fmtP(keyG,paramG)+"</b>";
+  document.getElementById("algP").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lf+"<mo>&#x22C5;</mo>"+Lg+"</mrow></math>";
+  var inv="把它反变换回时域，得到的就是时域右图的<b>橙色虚线</b>——与直接算的卷积（紫线）完全重合。";
+  if(keyF==="exp"&&keyG==="exp"){ var a=paramF,b=paramG;
+    if(Math.abs(a-b)<1e-9) inv="本例 <math><mrow><mi>a</mi><mo>=</mo><mi>b</mi></mrow></math>（s 平面上是<b>二阶极点</b>），反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo><mo>=</mo><mi>t</mi><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup></mrow></math>，正是时域右图橙色虚线。";
+    else inv="反变换（部分分式）<math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo><mo>=</mo><mfrac><mrow><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup><mo>&#x2212;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>b</mi><mi>t</mi></mrow></msup></mrow><mrow><mi>b</mi><mo>&#x2212;</mo><mi>a</mi></mrow></mfrac></mrow></math>，正是时域右图橙色虚线。"; }
+  document.getElementById("algInv").innerHTML=inv;
+}
+function updateThmCard(){
+  if(mode==="F"){
+    document.getElementById("thmTitle").textContent="傅里叶卷积定理";
+    document.getElementById("thmFormula").innerHTML="<math display=\"block\"><mrow><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>&#x22C5;</mo><mi>G</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>";
+    document.getElementById("thmText").innerHTML="时域两信号卷积后的频谱，等于各自频谱的<b>逐点相乘</b>（幅度相乘、相位相加）。频域右图里粗紫线 <math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math> 与橙虚线 <math><mrow><mo>|</mo><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>|</mo></mrow></math> 重合即为证据。";
+  }else{
+    document.getElementById("thmTitle").textContent="拉普拉斯卷积定理";
+    document.getElementById("thmFormula").innerHTML="<math display=\"block\"><mrow><mi>&#x2112;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>&#x22C5;</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>";
+    document.getElementById("thmText").innerHTML="对<b>因果（右边）信号</b>，时域卷积的拉氏变换等于两个像函数<b>相乘</b>。这正是“变换 → 相乘 / 代数求解 → 反变换”解方程的基础（见 T16）。时域右图紫实线（直接卷积）与橙虚线（相乘后反变换）重合即为证据；s 平面幅度图上则表现为亮斑（极点）的合并。";
+  }
+}
+
+// ---------- 控件 ----------
+function populateSelects(){
+  var opts="";
+  for(var k in SIG){ if(mode==="L"&&!SIG[k].causal) continue; opts+="<option value=\""+k+"\">"+SIG[k].name+"</option>"; }
+  var sf=document.getElementById("selF"), sg=document.getElementById("selG");
+  sf.innerHTML=opts; sg.innerHTML=opts;
+  if(mode==="L"){ if(!SIG[keyF].causal)keyF="rect"; if(!SIG[keyG].causal)keyG="rect"; }
+  sf.value=keyF; sg.value=keyG;
+}
+function applyParamUI(which){
+  var key=which==="F"?keyF:keyG, pr=SIG[key].param, val=which==="F"?paramF:paramG;
+  var s=document.getElementById(which==="F"?"sPF":"sPG");
+  s.min=pr.min; s.max=pr.max; s.step=pr.step; s.value=val;
+  document.getElementById(which==="F"?"pLabF":"pLabG").innerHTML=pr.label+" <math><mi>"+pr.sym+"</mi></math>";
+  document.getElementById(which==="F"?"pValF":"pValG").textContent=fmtP(key,val);
+}
+function setLegend(){
+  document.getElementById("legend").innerHTML = mode==="F"
+    ? "<b>上排时域</b>：左＝原信号 <math><mi>f</mi></math>(蓝)、<math><mi>g</mi></math>(绿)；右＝卷积 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math>(紫)。<b>下排频域</b>：左＝原频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math>、<math><mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow></math>；右＝<span style='color:#6b46c1;'>两谱相乘</span> 叠 <span style='color:#dd6b20;'>先卷积再变换</span>——<b>两者重合即定理成立</b>。"
+    : "<b>时域</b>：左＝原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>；右＝<span style='color:#6b46c1;'>直接卷积</span> 叠 <span style='color:#dd6b20;'>相乘后反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow></math></span>，重合即定理成立。<b>s 平面</b>：热力图是 <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 的幅度——<b>越亮越大</b>，极点(×)处冲向无穷成<b>亮斑</b>、零点(○)处为暗点。相乘 ⇒ 极点/零点合并；亮斑都在左半平面 ⇒ <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math> 衰减稳定（参见 T15）。";
+}
+function setPlotLabels(){
+  function sp(col,ml){ return "<span style='color:"+col+"'><math>"+ml+"</math></span>"; }
+  document.getElementById("labT1").innerHTML=
+    sp("#2b6cb0","<mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow>")+
+    sp("#2f855a","<mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow>");
+  document.getElementById("labT2").innerHTML=
+    sp("#6b46c1","<mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo></mrow>")+
+    (mode==="L"? sp("#dd6b20","<mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow>") : "");
+  document.getElementById("labF1").innerHTML=
+    sp("#2b6cb0","<mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow>")+
+    sp("#2f855a","<mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow>");
+  document.getElementById("labF2").innerHTML=
+    sp("#6b46c1","<mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow>")+
+    sp("#dd6b20","<mrow><mo>|</mo><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>|</mo></mrow>");
+}
+function switchMode(m){
+  mode=m;
+  document.querySelectorAll("#seg button").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-mode")===m); });
+  document.getElementById("frow").style.display = (m==="F")?"grid":"none";
+  document.getElementById("srow").style.display = (m==="L")?"block":"none";
+  document.getElementById("sAlg").style.display = (m==="L")?"block":"none";
+  document.getElementById("lapNote").style.display = (m==="L")?"block":"none";
+  populateSelects();
+  keyF=document.getElementById("selF").value; keyG=document.getElementById("selG").value;
+  paramF=SIG[keyF].param.def; paramG=SIG[keyG].param.def;
+  fnF=SIG[keyF].f(paramF); fnG=SIG[keyG].f(paramG);
+  applyParamUI("F"); applyParamUI("G");
+  updateThmCard(); setLegend(); setPlotLabels(); recompute(); resize(); updateReadout();
+}
+document.querySelectorAll("#seg button").forEach(function(b){ b.addEventListener("click",function(){ switchMode(b.getAttribute("data-mode")); }); });
+document.getElementById("selF").addEventListener("change",function(e){ keyF=e.target.value; paramF=SIG[keyF].param.def; fnF=SIG[keyF].f(paramF); applyParamUI("F"); recompute(); draw(); updateReadout(); });
+document.getElementById("selG").addEventListener("change",function(e){ keyG=e.target.value; paramG=SIG[keyG].param.def; fnG=SIG[keyG].f(paramG); applyParamUI("G"); recompute(); draw(); updateReadout(); });
+document.getElementById("sPF").addEventListener("input",function(e){ paramF=+e.target.value; fnF=SIG[keyF].f(paramF); document.getElementById("pValF").textContent=fmtP(keyF,paramF); recompute(); draw(); updateReadout(); });
+document.getElementById("sPG").addEventListener("input",function(e){ paramG=+e.target.value; fnG=SIG[keyG].f(paramG); document.getElementById("pValG").textContent=fmtP(keyG,paramG); recompute(); draw(); updateReadout(); });
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+// ---------- 初始化 ----------
+populateSelects(); applyParamUI("F"); applyParamUI("G");
+updateThmCard(); setLegend(); setPlotLabels();
+recompute(); resize(); updateReadout();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-conv-theorem";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{ var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

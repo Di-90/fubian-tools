@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>复频率 s 平面与时域响应 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .cvpair{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:680px){ .cvpair{grid-template-columns:1fr;} }
+  .cvcap{font-size:12.3px; color:var(--sub); margin:6px 2px 0; padding:0 2px;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  .seg{display:flex; gap:0; border:1px solid var(--blue); border-radius:8px; overflow:hidden; margin-bottom:6px;}
+  .seg button{flex:1; border:none; background:#fff; color:var(--blue); padding:8px 6px; font-size:13px; cursor:pointer;}
+  .seg button.on{background:var(--blue); color:#fff;}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .stab{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:13px;}
+  .stab.ok{background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .stab.crit{background:#fffaf0; border:1px solid #f6e05e; color:#744210;}
+  .stab.bad{background:#fff5f5; border:1px solid #fc8181; color:#c53030;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>复频率 s 平面与时域响应</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T15 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">拉普拉斯变换把时间函数 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 送进<b>复频率平面</b> <math><mrow><mi>s</mi><mo>=</mo><mi>σ</mi><mo>+</mo><mi>j</mi><mi>ω</mi></mrow></math>。<b>在左边拖动极点</b>（叉号 ×），右边的时域波形会实时改变：极点的<b>实部</b>决定<b>衰减还是发散</b>，<b>虚部</b>决定<b>振荡快慢</b>。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>先认识 s 平面：一个极点就"锁定"了一种时域波形</h2>
+    <p>拉普拉斯变换 <math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mn>0</mn><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>s</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math> 里的 <math><mi>s</mi></math> 是<b>复数</b>——横轴是它的实部 <math><mrow><mi>σ</mi><mo>=</mo><mi>Re</mi><mspace width="0.1em"></mspace><mi>s</mi></mrow></math>，纵轴是虚部 <math><mrow><mi>ω</mi><mo>=</mo><mi>Im</mi><mspace width="0.1em"></mspace><mi>s</mi></mrow></math>。把 <math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math> 写成分式后，分母的零点就是<b>极点</b>；极点落在哪，就对应哪一种时域基本波形。本工具就是让你<b>反过来</b>：先摆极点，看它"长"出什么样的 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>。</p>
+    <p class="lg">（说明：这里从"<b>极点位置 ↔ 时域基本波形</b>"的对应去<b>直观理解</b>逆变换，不做逐步的逆变换<em>计算</em>；系统而完整的逆变换方法留待后续。）</p>
+  </div>
+
+  <div class="main">
+    <div class="cvpair">
+      <div>
+        <canvas id="cvS"></canvas>
+        <p class="cvcap">复频率 <math><mi>s</mi></math> 平面：× 极点，阴影 = 收敛域 <math><mrow><mi>Re</mi><mspace width="0.1em"></mspace><mi>s</mi><mo>&gt;</mo><msub><mi>σ</mi><mn>0</mn></msub></mrow></math>，绿色竖线 = 虚轴（傅里叶轴）。<b>可拖动 ×</b>。</p>
+      </div>
+      <div>
+        <canvas id="cvT"></canvas>
+        <p class="cvcap">时域响应 <math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>（<math><mrow><mi>t</mi><mo>&#x2265;</mo><mn>0</mn></mrow></math>）。共轭极点模式另画 <math><mo>&#xB1;</mo></math> 衰减包络（虚线）。</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>控制</h2>
+        <div class="seg" id="segMode">
+          <button data-m="real" class="on">单实极点</button>
+          <button data-m="conj">一对共轭极点</button>
+        </div>
+        <p class="cvcap" id="modeHint" style="margin-top:2px;">在左图拖动叉号移动极点；也可用下面滑杆微调。</p>
+        <div class="ctrl"><label>极点实部 <math><msub><mi>σ</mi><mn>0</mn></msub></math>：<span class="v" id="vSig">−0.6</span></label>
+          <input type="range" id="sSig" min="-3" max="3" step="0.05" value="-0.6"></div>
+        <div class="ctrl" id="omWrap"><label>极点虚部 <math><mi>β</mi></math>（振荡频率）：<span class="v" id="vOm">2.0</span></label>
+          <input type="range" id="sOm" min="0" max="4" step="0.05" value="2"></div>
+        <div class="row">
+          <button class="btn ghost" id="btnStable">放到左半平面（稳定）</button>
+          <button class="btn ghost" id="btnAxis">放到虚轴（临界）</button>
+        </div>
+      </div>
+
+      <div class="readout">
+        <h2>读数</h2>
+        <p id="oPole">—</p>
+        <p id="oF">—</p>
+        <p id="oH">—</p>
+        <p id="oDecay" class="lg">—</p>
+        <div class="stab ok" id="oStab">—</div>
+        <p class="lg" style="font-size:12.5px;margin-top:10px;"><b>与傅里叶的关系：</b><span id="oFourier">—</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>三条要记住的规律</h2>
+    <p><b>① 实部管"存活还是爆炸"。</b> 极点实部 <math><msub><mi>σ</mi><mn>0</mn></msub></math> 出现在时域的指数因子 <math><msup><mi>e</mi><mrow><msub><mi>σ</mi><mn>0</mn></msub><mi>t</mi></mrow></msup></math> 上：<math><mrow><msub><mi>σ</mi><mn>0</mn></msub><mo>&lt;</mo><mn>0</mn></mrow></math>（<b>左半平面</b>）→ 衰减、稳定；<math><mrow><msub><mi>σ</mi><mn>0</mn></msub><mo>=</mo><mn>0</mn></mrow></math>（<b>虚轴</b>）→ 不增不减（临界）；<math><mrow><msub><mi>σ</mi><mn>0</mn></msub><mo>&gt;</mo><mn>0</mn></mrow></math>（<b>右半平面</b>）→ 发散。</p>
+    <p><b>② 虚部管"振荡多快"。</b> 共轭极点的虚部 <math><mi>β</mi></math> 就是时域正弦的角频率：<math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x221D;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>α</mi><mi>t</mi></mrow></msup><mi>sin</mi><mo>(</mo><mi>β</mi><mi>t</mi><mo>)</mo></mrow></math>（这里 <math><mrow><mi>α</mi><mo>=</mo><mo>&#x2212;</mo><msub><mi>σ</mi><mn>0</mn></msub></mrow></math> 是衰减率）。<math><mi>β</mi></math> 越大振荡越密，<math><mi>α</mi></math> 越大衰减越快。极点落在虚轴（<math><mrow><mi>α</mi><mo>=</mo><mn>0</mn></mrow></math>）时是<b>等幅正弦</b>。</p>
+    <p><b>③ 收敛域（ROC）。</b> 右侧时间函数的拉氏积分只在 <math><mrow><mi>Re</mi><mspace width="0.1em"></mspace><mi>s</mi><mo>&gt;</mo><msub><mi>σ</mi><mn>0</mn></msub></mrow></math> 收敛（阴影区）。极点一定在收敛域<b>边界</b>上、不在其内。</p>
+  </div>
+
+  <div class="know">
+    <h2>拉普拉斯与傅里叶：同一张平面上的关系</h2>
+    <p><b>傅里叶就是拉普拉斯在虚轴上的切片。</b> 令 <math><mrow><mi>s</mi><mo>=</mo><mi>σ</mi><mo>+</mo><mi>j</mi><mi>ω</mi></mrow></math>，当 <math><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow></math>（即 <math><mrow><mi>s</mi><mo>=</mo><mi>j</mi><mi>ω</mi></mrow></math>，落在<b>绿色虚轴</b>上）时，<math><mrow><mo>&#x222B;</mo><mi>f</mi><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>s</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math> 就退化成傅里叶变换 <math><mrow><mo>&#x222B;</mo><mi>f</mi><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math>。</p>
+    <p><b>所以"能不能做傅里叶"看收敛域是否盖住虚轴：</b>极点在左半平面（<math><mrow><msub><mi>σ</mi><mn>0</mn></msub><mo>&lt;</mo><mn>0</mn></mrow></math>）→ 收敛域 <math><mrow><mi>Re</mi><mspace width="0.1em"></mspace><mi>s</mi><mo>&gt;</mo><msub><mi>σ</mi><mn>0</mn></msub></mrow></math> 包含虚轴 → 傅里叶变换存在（信号衰减、能量有限）；极点在右半平面 → 虚轴不在收敛域内 → 傅里叶变换不存在（信号发散）。这就是<b>为什么工程上先有傅里叶、又要引入拉普拉斯</b>——拉氏用衰减因子 <math><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>σ</mi><mi>t</mi></mrow></msup></math> 把傅里叶管不住的发散信号也纳入了分析。</p>
+  </div>
+
+  <div class="know" style="border-left:4px solid var(--green); background:#f0fff4;">
+    <h2 style="border-left-color:var(--green);">这个工具想让你学到什么</h2>
+    <p><b>① 把"复频率 <math><mrow><mi>s</mi><mo>=</mo><mi>σ</mi><mo>+</mo><mi>j</mi><mi>ω</mi></mrow></math>"从符号变成一张地图。</b> 拉氏变换里 <math><mi>s</mi></math> 是复数、看不见摸不着，是学习的最大障碍。这里把 <math><mi>s</mi></math> 平面画出来、极点成了可拖的叉号，你第一次能"看见" <math><mi>σ</mi></math>、<math><mi>ω</mi></math> 到底是什么。</p>
+    <p><b>② 建立"极点位置 ↔ 时域波形"的双向直觉。</b> 教材总是正向（给 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 求 <math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>、找极点）；这里反过来——<b>先摆极点、看它长出什么波形</b>。拖着拖着你自己就会总结出：<b>实部管生死（衰减/发散）、虚部管振荡快慢</b>。这正是后续"信号与系统""自动控制"里判断稳定性的根基。</p>
+    <p><b>③ 打通拉普拉斯与傅里叶（最关键）。</b> 拖着极点穿过绿色虚轴，看读数从"傅里叶存在"跳到"不存在"，一眼看懂"为什么有了傅里叶还要拉普拉斯"：<b>傅里叶是拉氏在虚轴上的切片，能不能做傅里叶就看收敛域盖不盖得住虚轴。</b></p>
+    <p class="lg">④ 本工具<b>刻意淡化逐步计算</b>，只建立"极点 ↔ 波形"的物理图像，把精力留给<b>理解</b>而非<b>套公式</b>；系统的逆变换算法留待课堂后续。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>左边是复频率 <math><mi>s</mi></math> 平面（横 <math><mi>σ</mi></math>、纵 <math><mi>ω</mi></math>），右边是对应的时域波形 <math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>。</p>
+    <p><b>怎么玩：</b>①上方切换"单实极点 / 一对共轭极点"；②<b>直接在左图拖动叉号</b> × 移动极点（共轭模式下另一个极点自动镜像），或用滑杆微调 <math><msub><mi>σ</mi><mn>0</mn></msub></math>、<math><mi>β</mi></math>；③看右图波形怎样从衰减 → 等幅 → 发散地变化。</p>
+    <p><b>重点：</b>把极点从左半平面拖到虚轴、再拖到右半平面，观察时域从"衰减"变成"等幅振荡"再变成"发散"，同时读数区的收敛域与傅里叶判断随之改变。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cvS=document.getElementById("cvS"), ctxS=cvS.getContext("2d");
+var cvT=document.getElementById("cvT"), ctxT=cvT.getContext("2d");
+var WS=420,HS=360, WT=420,HT=360, DPR=1;
+
+var PI=Math.PI;
+var SIG_MAX=3, OM_MAX=4;         // s 平面显示范围
+var TMAX=10;                      // 时域显示时长
+
+var mode="real";                 // real | conj
+var sig=-0.6, om=2.0;            // 极点：实部 sig，虚部 |β|=om（real 模式下 om 忽略）
+
+/* ---------- 数学 ---------- */
+// 时域响应
+function hOf(t){
+  if(mode==="real") return Math.exp(sig*t);                 // e^{a t}, a=sig
+  // 共轭极点 s=sig±jom → 1/((s-sig)^2+om^2) 的逆变换 = e^{sig t} sin(om t)/om
+  if(om<1e-6) return Math.exp(sig*t)*t;                     // 退化重根 → t e^{sig t}
+  return Math.exp(sig*t)*Math.sin(om*t)/om;
+}
+function envOf(t){ return Math.exp(sig*t)/Math.max(om,1e-6); }
+
+/* ---------- s 平面坐标映射 ---------- */
+var sM={};
+function layoutS(){ sM.l=40; sM.r=WS-14; sM.t=14; sM.b=HS-26;
+  sM.cx=sM.l+(sM.r-sM.l)*(SIG_MAX)/(2*SIG_MAX);   // σ=0 的像素 x
+  sM.cy=(sM.t+sM.b)/2; }
+function sig2px(s){ return sM.l+(s+SIG_MAX)/(2*SIG_MAX)*(sM.r-sM.l); }
+function om2py(w){ return sM.cy-(w/OM_MAX)*((sM.b-sM.t)/2); }
+function px2sig(px){ return (px-sM.l)/(sM.r-sM.l)*(2*SIG_MAX)-SIG_MAX; }
+function py2om(py){ return -(py-sM.cy)/((sM.b-sM.t)/2)*OM_MAX; }
+
+function drawSPlane(){
+  ctxS.clearRect(0,0,WS,HS); layoutS();
+  // 收敛域阴影 Re s > sig
+  var xR=sig2px(sig);
+  ctxS.fillStyle="rgba(43,108,176,.08)";
+  ctxS.fillRect(xR,sM.t,sM.r-xR,sM.b-sM.t);
+  // 网格
+  ctxS.strokeStyle="#edf2f7"; ctxS.lineWidth=1;
+  for(var g=-SIG_MAX+1; g<SIG_MAX; g++){ if(g===0)continue; var gx=sig2px(g);
+    ctxS.beginPath(); ctxS.moveTo(gx,sM.t); ctxS.lineTo(gx,sM.b); ctxS.stroke(); }
+  for(var gw=-OM_MAX+1; gw<OM_MAX; gw++){ if(gw===0)continue; var gy=om2py(gw);
+    ctxS.beginPath(); ctxS.moveTo(sM.l,gy); ctxS.lineTo(sM.r,gy); ctxS.stroke(); }
+  // σ 轴（实轴）
+  ctxS.strokeStyle="#cbd5e0"; ctxS.lineWidth=1.2;
+  ctxS.beginPath(); ctxS.moveTo(sM.l,sM.cy); ctxS.lineTo(sM.r,sM.cy); ctxS.stroke();
+  // jω 轴（虚轴）——绿色高亮（傅里叶轴）
+  var x0=sig2px(0);
+  ctxS.strokeStyle="#2f855a"; ctxS.lineWidth=2;
+  ctxS.beginPath(); ctxS.moveTo(x0,sM.t); ctxS.lineTo(x0,sM.b); ctxS.stroke();
+  // ROC 边界竖线（极点实部处）
+  ctxS.strokeStyle="rgba(43,108,176,.5)"; ctxS.setLineDash([5,4]); ctxS.lineWidth=1.3;
+  ctxS.beginPath(); ctxS.moveTo(xR,sM.t); ctxS.lineTo(xR,sM.b); ctxS.stroke(); ctxS.setLineDash([]);
+  // 标签
+  var MATHF="italic 13px 'Cambria Math','STIX Two Math',serif";
+  var CNF="11px 'Microsoft YaHei',sans-serif";
+  ctxS.textAlign="left";
+  // σ 轴标签（数学斜体）
+  ctxS.fillStyle="#718096"; ctxS.font=MATHF; ctxS.fillText("σ = Re s",sM.r-56,sM.cy-6);
+  // jω 虚轴：jω 斜体 + 中文正体
+  ctxS.fillStyle="#2f855a"; ctxS.font=MATHF; ctxS.fillText("jω",x0+5,sM.t+13);
+  var jwW=ctxS.measureText("jω").width;
+  ctxS.font=CNF; ctxS.fillText(" 虚轴（傅里叶）",x0+5+jwW,sM.t+13);
+  // ROC：中文正体 + ROC 斜体
+  ctxS.fillStyle="#2b6cb0"; ctxS.font=CNF; ctxS.fillText("收敛域 ",xR+6,sM.b-8);
+  var rw=ctxS.measureText("收敛域 ").width;
+  ctxS.font="italic 12px 'Cambria Math','STIX Two Math',serif"; ctxS.fillText("ROC",xR+6+rw,sM.b-8);
+  // 极点 ×
+  function drawX(px,py){
+    ctxS.strokeStyle="#c53030"; ctxS.lineWidth=2.4; var r=7;
+    ctxS.beginPath(); ctxS.moveTo(px-r,py-r); ctxS.lineTo(px+r,py+r);
+    ctxS.moveTo(px-r,py+r); ctxS.lineTo(px+r,py-r); ctxS.stroke();
+  }
+  drawX(sig2px(sig),om2py(mode==="conj"?om:0));
+  if(mode==="conj" && om>1e-6) drawX(sig2px(sig),om2py(-om));
+}
+
+/* ---------- 时域图 ---------- */
+var tM={};
+function layoutT(){ tM.l=40; tM.r=WT-14; tM.t=14; tM.b=HT-26; tM.cy=(tM.t+tM.b)/2; }
+function t2px(t){ return tM.l+(t/TMAX)*(tM.r-tM.l); }
+function drawTime(){
+  ctxT.clearRect(0,0,WT,HT); layoutT();
+  // 采样求纵向范围
+  var ymax=1e-6, N=400, i, t, y;
+  for(i=0;i<=N;i++){ t=i/N*TMAX; y=Math.abs(hOf(t)); if(isFinite(y)&&y>ymax)ymax=y; }
+  ymax=Math.min(ymax,50)*1.15;   // 发散时封顶
+  function y2px(v){ v=Math.max(-ymax,Math.min(ymax,v)); return tM.cy-(v/ymax)*((tM.b-tM.t)/2); }
+  // 网格 + 轴
+  ctxT.strokeStyle="#edf2f7"; ctxT.lineWidth=1;
+  for(var g=1; g<10; g++){ var gx=t2px(g); ctxT.beginPath(); ctxT.moveTo(gx,tM.t); ctxT.lineTo(gx,tM.b); ctxT.stroke(); }
+  ctxT.strokeStyle="#cbd5e0"; ctxT.lineWidth=1.2;
+  ctxT.beginPath(); ctxT.moveTo(tM.l,tM.cy); ctxT.lineTo(tM.r,tM.cy); ctxT.stroke();
+  ctxT.beginPath(); ctxT.moveTo(tM.l,tM.t); ctxT.lineTo(tM.l,tM.b); ctxT.stroke();
+  ctxT.fillStyle="#a0aec0"; ctxT.textAlign="left";
+  ctxT.font="italic 13px 'Cambria Math','STIX Two Math',serif"; ctxT.fillText("t",tM.r-22,tM.cy+15);
+  ctxT.font="12px 'Cambria Math',serif"; ctxT.fillText(" →",tM.r-15,tM.cy+15);
+  ctxT.textAlign="right"; ctxT.font="11px 'Cambria Math','STIX Two Math',serif";
+  ctxT.fillText(ymax.toFixed(1),tM.l-4,tM.t+10); ctxT.fillText((-ymax).toFixed(1),tM.l-4,tM.b);
+  ctxT.textAlign="left"; ctxT.fillStyle="#4a5568"; ctxT.font="italic 13px 'Cambria Math','STIX Two Math',serif";
+  ctxT.fillText("h(t)",tM.l+4,tM.t+13);
+  // 包络（共轭模式）
+  if(mode==="conj" && om>1e-6){
+    ctxT.strokeStyle="rgba(183,121,31,.6)"; ctxT.setLineDash([5,4]); ctxT.lineWidth=1.2;
+    for(var sgn=1;sgn>=-1;sgn-=2){
+      ctxT.beginPath();
+      for(i=0;i<=N;i++){ t=i/N*TMAX; var e=sgn*envOf(t); var px=t2px(t),py=y2px(e);
+        if(i===0)ctxT.moveTo(px,py); else ctxT.lineTo(px,py); }
+      ctxT.stroke();
+    }
+    ctxT.setLineDash([]);
+  }
+  // h(t)
+  ctxT.strokeStyle="#2b6cb0"; ctxT.lineWidth=2.4; ctxT.beginPath();
+  for(i=0;i<=N;i++){ t=i/N*TMAX; y=hOf(t); var px2=t2px(t),py2=y2px(y);
+    if(i===0)ctxT.moveTo(px2,py2); else ctxT.lineTo(px2,py2); }
+  ctxT.stroke();
+}
+
+/* ---------- 读数 ---------- */
+function fmt(x,d){ if(!isFinite(x))return "—"; return (x>=0?"":"−")+Math.abs(x).toFixed(d==null?2:d); }
+/* MathML 里嵌数值必须用 <mn> 包住：裸文本节点在 MathML 中不渲染（会显示成空括号/丢系数） */
+function fmtM(x,d){ return "<mn>"+fmt(x,d)+"</mn>"; }
+function updateReadout(){
+  var alpha=-sig;
+  // 常用 MathML 片段
+  var Ms="<mi>s</mi>", Mt="<mi>t</mi>", Mj="<mi>j</mi>";
+  var Res="<mrow><mi>Re</mi><mspace width='0.15em'></mspace><mi>s</mi></mrow>";
+  if(mode==="real"){
+    document.getElementById("oPole").innerHTML="极点：<math><mrow>"+Ms+"<mo>=</mo>"+fmtM(sig)+"</mrow></math>（实轴上一个单极点）";
+    document.getElementById("oF").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mi>s</mi><mo>&#x2212;</mo><mo>(</mo>"+fmtM(sig)+"<mo>)</mo></mrow></mfrac></mrow></math>";
+    document.getElementById("oH").innerHTML="时域：<math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow>"+fmtM(sig)+"<mi>t</mi></mrow></msup></mrow></math>　<math><mrow><mo>(</mo><mi>t</mi><mo>&#x2265;</mo><mn>0</mn><mo>)</mo></mrow></math>";
+    document.getElementById("oDecay").innerHTML = sig<0? ("指数衰减，时间常数 <math><mrow><mi>&#x3C4;</mi><mo>=</mo>"+fmtM(1/alpha,2)+"</mrow></math>") : (sig>0? "指数发散" : "常值（不衰减）");
+  }else{
+    document.getElementById("oPole").innerHTML="极点：<math><mrow>"+Ms+"<mo>=</mo>"+fmtM(sig)+"<mo>&#xB1;</mo>"+Mj+fmtM(om)+"</mrow></math>（一对共轭极点）";
+    document.getElementById("oF").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mo>(</mo><mi>s</mi><mo>&#x2212;</mo>"+fmtM(sig)+"<msup><mo>)</mo><mn>2</mn></msup><mo>+</mo>"+fmtM(om*om)+"</mrow></mfrac></mrow></math>";
+    document.getElementById("oH").innerHTML="时域：<math><mrow><mi>h</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow>"+fmtM(sig)+"<mi>t</mi></mrow></msup><mfrac><mrow><mi>sin</mi><mo>(</mo>"+fmtM(om)+"<mi>t</mi><mo>)</mo></mrow><mrow>"+fmtM(om)+"</mrow></mfrac></mrow></math>";
+    document.getElementById("oDecay").innerHTML="衰减率 <math><mrow><mi>&#x3B1;</mi><mo>=</mo>"+fmtM(alpha)+"</mrow></math>，振荡角频率 <math><mrow><mi>&#x3B2;</mi><mo>=</mo>"+fmtM(om)+"</mrow></math>"+(sig<0?"（阻尼振荡）":(sig>0?"（发散振荡）":"（等幅振荡）"));
+  }
+  var box=document.getElementById("oStab");
+  if(Math.abs(sig)<1e-3){ box.className="stab crit"; box.innerHTML="<b>临界：</b>极点在虚轴上，"+(mode==="conj"?"等幅振荡":"常值")+"，不增不减。"; }
+  else if(sig<0){ box.className="stab ok"; box.innerHTML="<b>稳定：</b>极点在<b>左半平面</b>，时域衰减到 0。"; }
+  else{ box.className="stab bad"; box.innerHTML="<b>发散：</b>极点在<b>右半平面</b>，时域无限增大。"; }
+  var f=document.getElementById("oFourier");
+  var roc="<math><mrow>"+Res+"<mo>&gt;</mo>"+fmtM(sig)+"</mrow></math>";
+  if(sig<-1e-3) f.innerHTML="收敛域 "+roc+" <b>包含虚轴</b> ⇒ 傅里叶变换<b>存在</b>。";
+  else if(Math.abs(sig)<1e-3) f.innerHTML="极点正好在虚轴上（收敛域边界）⇒ 傅里叶变换<b>不存在</b>（需借助 <math><mi>&#x3B4;</mi></math> 函数/广义意义）。";
+  else f.innerHTML="收敛域 "+roc+" <b>不含虚轴</b> ⇒ 傅里叶变换<b>不存在</b>（信号发散）。";
+}
+
+/* ---------- 交互 ---------- */
+function redraw(){ drawSPlane(); drawTime(); updateReadout(); }
+function setFromSliders(){
+  document.getElementById("vSig").textContent=fmt(sig);
+  document.getElementById("vOm").textContent=fmt(om);
+  document.getElementById("sSig").value=sig;
+  document.getElementById("sOm").value=om;
+}
+// 拖动极点
+var dragging=false;
+function pointerToPole(ev){
+  var r=cvS.getBoundingClientRect();
+  var cssx=(ev.clientX!=null?ev.clientX:ev.touches[0].clientX)-r.left;
+  var cssy=(ev.clientY!=null?ev.clientY:ev.touches[0].clientY)-r.top;
+  var px=cssx*(WS/r.width), py=cssy*(HS/r.height);
+  sig=Math.max(-SIG_MAX,Math.min(SIG_MAX,px2sig(px)));
+  if(mode==="conj"){ om=Math.max(0,Math.min(OM_MAX,Math.abs(py2om(py)))); }
+  setFromSliders(); redraw();
+}
+cvS.addEventListener("pointerdown",function(ev){ dragging=true; cvS.setPointerCapture(ev.pointerId); pointerToPole(ev); });
+cvS.addEventListener("pointermove",function(ev){ if(dragging)pointerToPole(ev); });
+cvS.addEventListener("pointerup",function(){ dragging=false; });
+cvS.addEventListener("pointercancel",function(){ dragging=false; });
+
+document.getElementById("sSig").addEventListener("input",function(e){ sig=+e.target.value; setFromSliders(); redraw(); });
+document.getElementById("sOm").addEventListener("input",function(e){ om=+e.target.value; setFromSliders(); redraw(); });
+document.getElementById("btnStable").addEventListener("click",function(){ sig=-0.8; if(mode==="conj"&&om<0.3)om=2; setFromSliders(); redraw(); });
+document.getElementById("btnAxis").addEventListener("click",function(){ sig=0; if(mode==="conj"&&om<0.3)om=2; setFromSliders(); redraw(); });
+
+var segBtns=document.querySelectorAll("#segMode button");
+segBtns.forEach(function(b){ b.addEventListener("click",function(){
+  mode=b.getAttribute("data-m");
+  segBtns.forEach(function(x){ x.classList.toggle("on", x===b); });
+  document.getElementById("omWrap").style.display = mode==="conj"?"block":"none";
+  document.getElementById("modeHint").textContent = mode==="conj"
+    ? "拖动上方叉号，下方极点自动镜像；实部→衰减、虚部→振荡频率。"
+    : "在左图沿实轴拖动叉号，或用滑杆调实部。";
+  redraw();
+}); });
+
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var pw=cvS.parentElement.clientWidth||400;
+  var w=Math.max(260,Math.min(pw, 440));
+  [[cvS,ctxS,"S"],[cvT,ctxT,"T"]].forEach(function(a){
+    var cw=a[0].parentElement.clientWidth||w; if(cw<240)cw=240;
+    var ch=Math.round(cw*0.86);
+    a[0].width=cw*DPR; a[0].height=ch*DPR; a[0].style.width=cw+"px"; a[0].style.height=ch+"px";
+    a[1].setTransform(DPR,0,0,DPR,0,0);
+    if(a[2]==="S"){ WS=cw; HS=ch; } else { WT=cw; HT=ch; }
+  });
+  redraw();
+}
+window.addEventListener("resize",resize);
+document.getElementById("omWrap").style.display = mode==="conj"?"block":"none";
+setFromSliders(); resize();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-laplace-splane";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

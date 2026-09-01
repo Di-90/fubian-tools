@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卷积演示 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  #cvOut{margin-top:12px;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>卷积演示</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T12 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">卷积 <math><mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 的经典四步——<b>翻转 → 平移 → 相乘 → 积分</b>。上图把 <math><mrow><mi>g</mi></mrow></math> 翻转后平移 <math><mi>t</mi></math>，与固定的 <math><mrow><mi>f</mi></mrow></math> <b>逐点相乘</b>，<b>金色阴影（乘积曲线下的面积）</b>就是此刻的卷积值；下图把这个面积随 <math><mi>t</mi></math> 描出来，得到整条卷积曲线。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>卷积在算什么？</h2>
+    <p><math display="block"><mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>&#x3C4;</mi><mo>)</mo><mspace width="0.1em"></mspace><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo><mspace width="0.1em"></mspace><mi>d</mi><mi>&#x3C4;</mi></mrow></math></p>
+    <p>对每个平移量 <math><mi>t</mi></math>，把两条曲线<b>逐点相乘再累加（积分）</b>，得到一个数；<math><mi>t</mi></math> 变化，这些数连成一条新曲线。它衡量的是"<b>把 <math><mi>g</mi></math> 滑过 <math><mi>f</mi></math> 时，两者有多重叠</b>"。</p>
+  </div>
+
+  <div class="main">
+    <canvas id="cv"></canvas>
+    <canvas id="cvOut"></canvas>
+    <p class="lg" style="font-size:12.3px;margin:8px 2px 0;padding:8px 12px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;color:var(--sub);">
+      上图（横轴 <math><mi>&#x3C4;</mi></math>）：<span style="color:#2b6cb0;">▬</span> <math><mrow><mi>f</mi><mo>(</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math> 固定，<span style="color:#2f855a;">▬</span> <math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math> 翻转并右移 <math><mi>t</mi></math>，<span style="color:#b7791f;">▮</span> 阴影 = 乘积 <math><mrow><mi>f</mi><mo>(</mo><mi>&#x3C4;</mi><mo>)</mo><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math>，其面积 = 卷积值。下图（横轴 <math><mi>t</mi></math>）：<span style="color:#6b46c1;">▬</span> 卷积结果 <math><mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，竖线标当前 <math><mi>t</mi></math>。
+      <br><b style="color:#b7791f;">注意</b>：金色是<b>逐点相乘</b>的结果，一般<b>低于</b>两条曲线；只有矩形∗矩形时乘积恰好等于公共重叠区，别把它当成"两曲线相交的面积"。
+    </p>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>控制</h2>
+        <div class="ctrl">
+          <label>信号 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>（固定）</label>
+          <select id="selF">
+            <option value="rect">矩形脉冲</option>
+            <option value="exp">指数衰减</option>
+            <option value="tri">三角</option>
+            <option value="gauss">高斯</option>
+          </select>
+        </div>
+        <div class="ctrl"><label><span id="pLabF">宽度 w</span>：<span class="v" id="pValF">1.0</span></label>
+          <input type="range" id="sPF" min="0.5" max="2.5" step="0.1" value="1"></div>
+        <div class="ctrl">
+          <label>信号 <math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>（被翻转平移）</label>
+          <select id="selG">
+            <option value="rect">矩形脉冲</option>
+            <option value="exp">指数衰减</option>
+            <option value="tri">三角</option>
+            <option value="gauss">高斯</option>
+          </select>
+        </div>
+        <div class="ctrl"><label><span id="pLabG">宽度 w</span>：<span class="v" id="pValG">1.0</span></label>
+          <input type="range" id="sPG" min="0.5" max="2.5" step="0.1" value="1"></div>
+        <div class="ctrl"><label>平移量 <math><mi>t</mi></math>：<span class="v" id="vT">0.50</span></label>
+          <input type="range" id="sT" min="-3" max="5" step="0.02" value="-3"></div>
+        <div class="row">
+          <button class="btn" id="btnPlay">▶ 播放（扫过 t）</button>
+        </div>
+        <div class="row" style="font-size:12.5px;color:var(--sub);">
+          小提示：选“矩形 ∗ 矩形”看它卷出<b>三角形</b>；“矩形 ∗ 指数”看指数被“抹平”。
+        </div>
+      </div>
+
+      <div class="readout">
+        <h2>当前读数</h2>
+        <p>平移量 <math><mrow><mi>t</mi><mo>=</mo></mrow></math> <b id="oT">0.50</b></p>
+        <p>此刻乘积曲线下面积 <math><mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo></mrow></math> <b id="oVal">—</b></p>
+        <p id="oPair" class="lg" style="font-size:12.8px;">—</p>
+        <p class="lg" style="font-size:12.3px;margin-top:8px;">把 <math><mi>t</mi></math> 从很负滑到很正：<math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math> 从左往右扫过 <math><mrow><mi>f</mi><mo>(</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math>。刚接触时面积从 0 涨起，完全重叠时最大，离开后回到 0——这正是卷积曲线的形状。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>为什么要“翻转”？</h2>
+    <p>被积表达式里是 <math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math>。把它看成关于积分变量 <math><mi>&#x3C4;</mi></math> 的函数：<math><mrow><mi>&#x3C4;</mi><mo>&#x2192;</mo><mo>&#x2212;</mo><mi>&#x3C4;</mi></mrow></math> 是<b>沿纵轴翻转</b>（左右镜像），再 <math><mrow><mo>+</mo><mi>t</mi></mrow></math> 是<b>整体右移 <math><mi>t</mi></math></b>。所以 <math><mrow><mi>g</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi><mo>)</mo></mrow></math> 就是“把 <math><mi>g</mi></math> 翻转后放到位置 <math><mi>t</mi></math>”。翻转不是人为规定，而是 <math><mrow><mi>t</mi><mo>&#x2212;</mo><mi>&#x3C4;</mi></mrow></math> 这个自变量自带的几何含义。</p>
+  </div>
+
+  <div class="know">
+    <h2>卷积最有用的性质：变换域里变成相乘</h2>
+    <p>时域卷积换到变换域就成了<b>逐点相乘</b>——傅里叶下 <math><mrow><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo><mo>&#x22C5;</mo><mi>G</mi><mo>(</mo><mi>&#x3C9;</mi><mo>)</mo></mrow></math>、拉普拉斯下 <math><mrow><mi>&#x2112;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>&#x22C5;</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>。这条<b>卷积定理</b>值得单独“看见”，完整的交互演示（傅里叶 / 拉普拉斯两种变换：谱相乘再反变换，正好等于本页的时域卷积结果）见工具 <b>T14 · 卷积定理</b>。</p>
+    <p class="lg"><b>LTI 系统视角：</b>若 <math><mi>g</mi></math> 是系统的<b>冲激响应</b>，则任意输入 <math><mi>f</mi></math> 的输出就是 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math>——本页演示的正是“线性时不变系统如何把输入‘抹’成输出”。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>两条信号 <math><mi>f</mi></math>、<math><mi>g</mi></math> 做卷积。上图演示“翻转—平移—相乘”，金色阴影面积就是当前卷积值；下图是这个面积随平移量 <math><mi>t</mi></math> 变化画出的整条卷积曲线。</p>
+    <p><b>怎么玩：</b>①分别选 <math><mi>f</mi></math>、<math><mi>g</mi></math>，并可拖它们下面的<b>参数滑杆</b>（矩形宽度 <math><mi>w</mi></math> / 指数衰减率 <math><mi>a</mi></math> / 三角半宽 <math><mi>h</mi></math> / 高斯 <math><mi>&#x3C3;</mi></math>）自定形状；②拖“平移量 <math><mi>t</mi></math>”滑杆，看绿线（翻转后的 <math><mi>g</mi></math>）滑过蓝线（<math><mi>f</mi></math>），阴影随重叠变化；③点“播放”自动扫一遍，下图卷积曲线随之描出。</p>
+    <p><b>可手算核对：</b>取默认 <math><mrow><mi>w</mi><mo>=</mo><mn>1</mn></mrow></math> 的“矩形 ∗ 矩形”，结果是底为 <math><mn>2</mn></math>、峰值为 <math><mn>1</mn></math>、峰在 <math><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow></math> 的三角形；试试看下图峰值线是不是标在 <math><mn>1</mn></math>。（一般地，两个宽 <math><mi>w</mi></math> 的矩形卷出峰值为 <math><mi>w</mi></math> 的三角形。）</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var cvOut=document.getElementById("cvOut"), cto=cvOut.getContext("2d");
+var W=900,H=300,DPR=1, WO=900,HO=230;
+
+// ---------- 信号库 ----------
+// 每个信号带一个可调参数（学生用滑杆在范围内设置）；峰值一律归一化为 1，
+// formula 为符号化 MathML（数值另在读数里以“w = …”给出）。
+var SIGS={
+  rect:{ name:"矩形脉冲", param:{label:"宽度 w", min:0.5, max:2.5, step:0.1, def:1},
+    make:function(p){ return function(x){ return (x>=0&&x<=p)?1:0; }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>（<math><mrow><mn>0</mn><mo>&#x2264;</mo><mi>t</mi><mo>&#x2264;</mo><mi>w</mi></mrow></math>）" },
+  exp:{ name:"指数衰减", param:{label:"衰减率 a", min:0.3, max:3, step:0.1, def:1},
+    make:function(p){ return function(x){ return x>=0?Math.exp(-p*x):0; }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup><mi>u</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>" },
+  tri:{ name:"三角", param:{label:"半宽 h", min:0.5, max:1.5, step:0.1, def:1},
+    make:function(p){ return function(x){ return Math.max(0,1-Math.abs(x)/p); }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mo>|</mo><mi>t</mi><mo>|</mo><mo>/</mo><mi>h</mi><mo>)</mo></mrow><mo>+</mo></msub></mrow></math>" },
+  gauss:{ name:"高斯", param:{label:"σ", min:0.3, max:1.5, step:0.05, def:0.5},
+    make:function(p){ return function(x){ return Math.exp(-x*x/(2*p*p)); }; },
+    formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>t</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>&#x3C3;</mi><mn>2</mn></msup></mrow></msup></mrow></math>" }
+};
+var keyF="rect", keyG="rect", tShift=-3, revealMax=-3;   // revealMax：卷积曲线已"描出"到的最右 t（动态生成用）
+var paramF=SIGS.rect.param.def, paramG=SIGS.rect.param.def;
+var fnF=SIGS.rect.make(paramF), fnG=SIGS.rect.make(paramG);
+function fmtP(key,v){ return v.toFixed(SIGS[key].param.step<0.1?2:1); }
+
+// ---------- 数值卷积 ----------
+var TAU0=-4, TAU1=6, DTAU=0.01;                 // 积分变量 τ 的网格
+var TMIN=-3, TMAX=5;                            // 显示 / 平移范围
+var convT=[], convY=[], convMax=1, convPeak=1;   // convMax：坐标轴上限（含留白）；convPeak：卷积曲线真实峰值
+function convAt(t){
+  var s=0;
+  for(var tau=TAU0; tau<=TAU1; tau+=DTAU){ s+=fnF(tau)*fnG(t-tau); }
+  return s*DTAU;
+}
+function recompute(){
+  convT=[]; convY=[]; var mx=1e-6;
+  for(var t=TMIN; t<=TMAX+1e-9; t+=0.02){
+    var v=convAt(t); convT.push(t); convY.push(v); if(v>mx)mx=v;
+  }
+  convPeak=mx; convMax=mx*1.15;
+  revealMax=tShift;   // 换信号后，卷积曲线只显示到当前 t，需重新扫过才描出
+}
+function convInterp(t){
+  if(t<=convT[0])return convY[0];
+  if(t>=convT[convT.length-1])return convY[convY.length-1];
+  var i=Math.floor((t-TMIN)/0.02); if(i<0)i=0; if(i>=convT.length-1)i=convT.length-2;
+  var a=(t-convT[i])/(convT[i+1]-convT[i]);
+  return convY[i]*(1-a)+convY[i+1]*a;
+}
+
+// ---------- 绘图辅助 ----------
+function richText(c,parts,x,y,col,size){
+  size=size||12; c.fillStyle=col; var cx=x;
+  var cn=size+"px 'Microsoft YaHei',sans-serif";
+  var it="italic "+size+"px 'Cambria Math','STIX Two Math',serif";
+  for(var i=0;i<parts.length;i++){ c.font=parts[i].it?it:cn; c.fillText(parts[i].s,cx,y); cx+=c.measureText(parts[i].s).width; }
+}
+var mL=42,mR=14,mT=18,mB=26;
+function xToPx(x,w,x0,x1){ return mL+(x-x0)/(x1-x0)*(w-mL-mR); }
+
+// ---------- 上图：τ 域 ----------
+function drawTop(){
+  ctx.clearRect(0,0,W,H);
+  var x0=TMIN, x1=TMAX;
+  var yMax=1.25;
+  var y0=mT+(1-1/2)*0;   // 基线在底部上方
+  var baseY=H-mB;
+  function Y(v){ return baseY-(v/yMax)*(H-mT-mB); }
+  // 坐标轴
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.1;
+  ctx.beginPath(); ctx.moveTo(mL,baseY); ctx.lineTo(W-mR,baseY); ctx.stroke();      // τ 轴
+  ctx.beginPath(); ctx.moveTo(mL,mT); ctx.lineTo(mL,baseY); ctx.stroke();
+  // 幅值参考线 y=1（矩形/三角/高斯/指数各信号峰值都归一化为 1）
+  var oneY=Y(1);
+  ctx.strokeStyle="rgba(160,174,192,.55)"; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(mL,oneY); ctx.lineTo(W-mR,oneY); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#a0aec0"; ctx.font="11px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="right";
+  ctx.fillText("1",mL-4,oneY+4); ctx.textAlign="left";
+  // τ 刻度
+  ctx.fillStyle="#a0aec0"; ctx.font="11px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="center";
+  for(var xt=Math.ceil(x0); xt<=x1; xt++){ var px=xToPx(xt,W,x0,x1);
+    ctx.beginPath(); ctx.strokeStyle="#edf2f7"; ctx.moveTo(px,mT); ctx.lineTo(px,baseY); ctx.stroke();
+    ctx.fillStyle="#a0aec0"; ctx.fillText(xt,px,baseY+15);
+  }
+  ctx.textAlign="left"; richText(ctx,[{s:"τ",it:1}],W-mR-16,baseY+15,"#a0aec0",12);
+
+  // 阴影：乘积 f(τ)g(t-τ)
+  ctx.fillStyle="rgba(183,121,31,.30)";
+  ctx.beginPath(); var started=false;
+  for(var px2=mL; px2<=W-mR; px2+=1){
+    var tau=x0+(px2-mL)/(W-mL-mR)*(x1-x0);
+    var prod=fnF(tau)*fnG(tShift-tau);
+    var py=Y(prod);
+    if(!started){ ctx.moveTo(px2,baseY); started=true; }
+    ctx.lineTo(px2,py);
+  }
+  ctx.lineTo(W-mR,baseY); ctx.closePath(); ctx.fill();
+
+  // f(τ) 蓝
+  drawCurve(ctx,function(tau){return fnF(tau);},x0,x1,W,Y,"#2b6cb0",2.4,false);
+  // g(t-τ) 绿 虚线
+  drawCurve(ctx,function(tau){return fnG(tShift-tau);},x0,x1,W,Y,"#2f855a",2.2,true);
+
+  // 图例
+  richText(ctx,[{s:"f",it:1},{s:"(τ)"}],mL+6,mT+12,"#2b6cb0",13);
+  richText(ctx,[{s:"g",it:1},{s:"(t−τ) 翻转+平移"}],mL+56,mT+12,"#2f855a",13);
+}
+function drawCurve(c,fn,x0,x1,w,Y,col,lw,dash){
+  c.strokeStyle=col; c.lineWidth=lw; if(dash)c.setLineDash([6,4]); c.beginPath();
+  var first=true;
+  for(var px=mL; px<=w-mR; px+=1){
+    var x=x0+(px-mL)/(w-mL-mR)*(x1-x0);
+    var py=Y(fn(x));
+    if(first){ c.moveTo(px,py); first=false; } else c.lineTo(px,py);
+  }
+  c.stroke(); c.setLineDash([]);
+}
+
+// ---------- 下图：t 域卷积曲线 ----------
+function drawOut(){
+  cto.clearRect(0,0,WO,HO);
+  var x0=TMIN, x1=TMAX, baseY=HO-mB;
+  function Y(v){ return baseY-(v/convMax)*(HO-mT-mB); }
+  cto.strokeStyle="#cbd5e0"; cto.lineWidth=1.1;
+  cto.beginPath(); cto.moveTo(mL,baseY); cto.lineTo(WO-mR,baseY); cto.stroke();
+  cto.beginPath(); cto.moveTo(mL,mT); cto.lineTo(mL,baseY); cto.stroke();
+  cto.fillStyle="#a0aec0"; cto.font="11px 'Cambria Math','STIX Two Math',serif"; cto.textAlign="center";
+  for(var xt=Math.ceil(x0); xt<=x1; xt++){ var px=xToPx(xt,WO,x0,x1);
+    cto.beginPath(); cto.strokeStyle="#edf2f7"; cto.moveTo(px,mT); cto.lineTo(px,baseY); cto.stroke();
+    cto.fillStyle="#a0aec0"; cto.fillText(xt,px,baseY+15);
+  }
+  cto.textAlign="left"; richText(cto,[{s:"t",it:1}],WO-mR-14,baseY+15,"#a0aec0",12);
+  // 峰值参考线 + 数值（卷积结果的真实峰值，非坐标轴上限）
+  var pkY=Y(convPeak);
+  cto.strokeStyle="rgba(107,70,193,.35)"; cto.lineWidth=1; cto.setLineDash([4,3]);
+  cto.beginPath(); cto.moveTo(mL,pkY); cto.lineTo(WO-mR,pkY); cto.stroke(); cto.setLineDash([]);
+  cto.fillStyle="#6b46c1"; cto.font="11px 'Cambria Math','STIX Two Math',serif"; cto.textAlign="right";
+  cto.fillText(convPeak.toFixed(3),mL-4,pkY+4); cto.textAlign="left";
+  cto.fillStyle="rgba(107,70,193,.7)"; cto.font="10.5px 'Microsoft YaHei',sans-serif"; cto.textAlign="right";
+  cto.fillText("峰值",WO-mR-2,pkY-4); cto.textAlign="left";
+
+  // 卷积曲线（紫）——只描到 revealMax，随扫描/拖动动态生成
+  cto.strokeStyle="#6b46c1"; cto.lineWidth=2.6; cto.beginPath();
+  var drew=false;
+  for(var i=0;i<convT.length;i++){
+    if(convT[i]>revealMax+1e-9)break;
+    var px2=xToPx(convT[i],WO,x0,x1), py=Y(convY[i]);
+    if(!drew){cto.moveTo(px2,py); drew=true;} else cto.lineTo(px2,py);
+  }
+  if(drew)cto.lineTo(xToPx(revealMax,WO,x0,x1),Y(convInterp(revealMax)));  // 补到精确当前端点
+  cto.stroke();
+
+  // 当前 t 竖线 + 点
+  var pxT=xToPx(tShift,WO,x0,x1), val=convInterp(tShift);
+  cto.strokeStyle="rgba(183,121,31,.8)"; cto.lineWidth=1.4; cto.setLineDash([5,4]);
+  cto.beginPath(); cto.moveTo(pxT,mT); cto.lineTo(pxT,baseY); cto.stroke(); cto.setLineDash([]);
+  cto.fillStyle="#b7791f"; cto.beginPath(); cto.arc(pxT,Y(val),4,0,2*Math.PI); cto.fill();
+
+  richText(cto,[{s:"("},{s:"f",it:1},{s:"∗"},{s:"g",it:1},{s:")("},{s:"t",it:1},{s:")"}],mL+6,mT+12,"#6b46c1",13);
+}
+
+function draw(){ drawTop(); drawOut(); }
+
+// ---------- 读数 ----------
+function updateReadout(){
+  var val=convInterp(tShift);
+  document.getElementById("oT").textContent=tShift.toFixed(2);
+  document.getElementById("vT").textContent=tShift.toFixed(2);
+  document.getElementById("oVal").textContent=val.toFixed(4);
+  var gFormula=SIGS[keyG].formula.replace("<mi>f</mi>","<mi>g</mi>");
+  document.getElementById("oPair").innerHTML=
+    "<span style='color:#2b6cb0;'>"+SIGS[keyF].formula+"</span>　<b>"+SIGS[keyF].param.label+" = "+fmtP(keyF,paramF)+"</b><br>"+
+    "<span style='color:#2f855a;'>"+gFormula+"</span>　<b>"+SIGS[keyG].param.label+" = "+fmtP(keyG,paramG)+"</b>";
+}
+
+// ---------- 动画 ----------
+var playing=false, lastTs=null;
+function tick(ts){
+  if(lastTs==null)lastTs=ts; var dt=(ts-lastTs)/1000; lastTs=ts;
+  if(playing){
+    tShift+=dt*1.6;
+    if(tShift>TMAX){ tShift=TMAX; playing=false; document.getElementById("btnPlay").textContent="▶ 播放（扫过 t）"; }
+    if(tShift>revealMax)revealMax=tShift;
+    document.getElementById("sT").value=tShift;
+    draw(); updateReadout();
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------- 控件 ----------
+// 切换信号 / 拖参数滑杆后，把该信号的参数滑杆范围、标签、数值同步到 UI
+function applyParamUI(which){
+  var key=which==="F"?keyF:keyG, pr=SIGS[key].param, val=which==="F"?paramF:paramG;
+  var s=document.getElementById(which==="F"?"sPF":"sPG");
+  s.min=pr.min; s.max=pr.max; s.step=pr.step; s.value=val;
+  document.getElementById(which==="F"?"pLabF":"pLabG").textContent=pr.label;
+  document.getElementById(which==="F"?"pValF":"pValG").textContent=fmtP(key,val);
+}
+document.getElementById("selF").addEventListener("change",function(e){ keyF=e.target.value; paramF=SIGS[keyF].param.def; fnF=SIGS[keyF].make(paramF); applyParamUI("F"); recompute(); draw(); updateReadout(); });
+document.getElementById("selG").addEventListener("change",function(e){ keyG=e.target.value; paramG=SIGS[keyG].param.def; fnG=SIGS[keyG].make(paramG); applyParamUI("G"); recompute(); draw(); updateReadout(); });
+document.getElementById("sPF").addEventListener("input",function(e){ paramF=+e.target.value; fnF=SIGS[keyF].make(paramF); document.getElementById("pValF").textContent=fmtP(keyF,paramF); recompute(); draw(); updateReadout(); });
+document.getElementById("sPG").addEventListener("input",function(e){ paramG=+e.target.value; fnG=SIGS[keyG].make(paramG); document.getElementById("pValG").textContent=fmtP(keyG,paramG); recompute(); draw(); updateReadout(); });
+document.getElementById("sT").addEventListener("input",function(e){ tShift=+e.target.value; if(tShift>revealMax)revealMax=tShift; draw(); updateReadout(); });
+document.getElementById("btnPlay").addEventListener("click",function(){
+  if(playing){ playing=false; this.textContent="▶ 播放（扫过 t）"; }
+  else{ if(tShift>=TMAX){ tShift=TMIN; revealMax=TMIN; } playing=true; this.textContent="⏸ 暂停"; }
+});
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth; if(w<320)w=320; if(w>896)w=896;
+  W=w; H=Math.round(Math.max(240,w*0.34));
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  WO=w; HO=Math.round(Math.max(190,w*0.26));
+  cvOut.width=WO*DPR; cvOut.height=HO*DPR; cvOut.style.width=WO+"px"; cvOut.style.height=HO+"px";
+  cto.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+window.addEventListener("resize",resize);
+document.getElementById("sT").value=tShift; applyParamUI("F"); applyParamUI("G");
+recompute(); resize(); updateReadout(); requestAnimationFrame(tick);
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-convolution";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

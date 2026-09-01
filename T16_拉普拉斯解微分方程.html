@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拉普拉斯变换解微分方程 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  input[type=number]{width:70px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:14.5px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .step{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:8px 11px; margin:8px 0; font-size:12.8px;}
+  .step .n{display:inline-block; background:var(--blue); color:#fff; border-radius:50%; width:18px; height:18px; text-align:center; line-height:18px; font-size:11px; margin-right:6px; font-weight:700;}
+  .damp{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:13px; font-weight:600;}
+  .damp.under{background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .damp.crit{background:#fffaf0; border:1px solid #f6e05e; color:#744210;}
+  .damp.over{background:#ebf8ff; border:1px solid #90cdf4; color:#2a4365;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>拉普拉斯变换解微分方程</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T16 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">拉普拉斯变换的看家本领：把带初值的<b>常系数微分方程</b>一步变成 <math><mi>s</mi></math> 的<b>代数方程</b>，解出 <math><mrow><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math> 再逆变换回时域。这里以一个二阶系统（可看作串联 <b>RLC 电路的暂态</b>）为例：拖动<b>阻尼比 <math><mi>ζ</mi></math></b> 与<b>固有频率 <math><msub><mi>ω</mi><mi>n</mi></msub></math></b>，看特征根（极点）位置如何决定响应是<b>过阻尼 / 临界 / 欠阻尼</b>。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>为什么拉氏变换能"解"微分方程？</h2>
+    <p>关键是<b>微分法则</b>：在时域求导 <math><mrow><mi>d</mi><mo>/</mo><mi>d</mi><mi>t</mi></mrow></math>，到了 <math><mi>s</mi></math> 域就变成<b>乘 <math><mi>s</mi></math></b>，而且<b>初值自动进入</b>：</p>
+    <p style="text-align:center;"><math display="block"><mrow><mi>L</mi><mo>{</mo><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>}</mo><mo>=</mo><mi>s</mi><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>&#x2212;</mo><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>,</mo><mspace width="1.4em"></mspace><mi>L</mi><mo>{</mo><msup><mi>y</mi><mrow><mo>&#x2033;</mo></mrow></msup><mo>}</mo><mo>=</mo><msup><mi>s</mi><mn>2</mn></msup><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>&#x2212;</mo><mi>s</mi><mspace width="0.1em"></mspace><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>&#x2212;</mo><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math></p>
+    <p>于是整条微分方程 <math><mrow><msup><mi>y</mi><mrow><mo>&#x2033;</mo></mrow></msup><mo>+</mo><mn>2</mn><mi>ζ</mi><msub><mi>ω</mi><mi>n</mi></msub><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>+</mo><msubsup><mi>ω</mi><mi>n</mi><mn>2</mn></msubsup><mi>y</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 变成一个只含 <math><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo></math> 的代数方程，移项即得 <math><mrow><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>。分母 <math><mrow><msup><mi>s</mi><mn>2</mn></msup><mo>+</mo><mn>2</mn><mi>ζ</mi><msub><mi>ω</mi><mi>n</mi></msub><mi>s</mi><mo>+</mo><msubsup><mi>ω</mi><mi>n</mi><mn>2</mn></msubsup></mrow></math> 的根就是<b>特征根（极点）</b>，它们钉死了响应的形状。</p>
+  </div>
+
+  <div class="main">
+    <canvas id="cv"></canvas>
+    <p class="lg" style="font-size:12.3px;margin:8px 2px 0;padding:8px 12px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;color:var(--sub);">
+      <span style="color:#2b6cb0;">▬</span> 响应 <math><mrow><mi>y</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>
+      <span style="color:#b7791f;">┄</span> 衰减包络 <math><mrow><mo>&#xB1;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>ζ</mi><msub><mi>ω</mi><mi>n</mi></msub><mi>t</mi></mrow></msup></mrow></math>（欠阻尼时）
+      <span style="color:#a0aec0;">┄</span> 稳态值（阶跃时）。右侧读数区的小图为<b>特征根在 <math><mi>s</mi></math> 平面的位置</b>。
+    </p>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>控制</h2>
+        <div class="ctrl">
+          <label>输入 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math></label>
+          <select id="selIn">
+            <option value="step">单位阶跃 &#8594; 稳态、看超调（DC 增益归一）</option>
+            <option value="impulse">单位冲激 &#8594; 自由响应（脉冲激励）</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>阻尼比 <math><mi>ζ</mi></math>：<span class="v" id="vZeta">0.30</span></label>
+          <input type="range" id="sZeta" min="0" max="2.5" step="0.01" value="0.3"></div>
+        <div class="ctrl"><label>固有频率 <math><msub><mi>ω</mi><mi>n</mi></msub></math>：<span class="v" id="vWn">2.0</span> rad/s</label>
+          <input type="range" id="sWn" min="0.3" max="6" step="0.1" value="2"></div>
+        <div class="row">
+          <label class="chk">初值 <math><mrow><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math><input type="number" id="ny0" value="0" step="0.1"></label>
+          <label class="chk"><math><mrow><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math><input type="number" id="ny1" value="0" step="0.1"></label>
+        </div>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="chkEnv" checked> 显示衰减包络</label>
+        </div>
+        <p class="lg" style="font-size:12px;margin:10px 0 0;">对应串联 RLC：<math><mrow><msub><mi>ω</mi><mi>n</mi></msub><mo>=</mo><mn>1</mn><mo>/</mo><msqrt><mrow><mi>L</mi><mi>C</mi></mrow></msqrt></mrow></math>、<math><mrow><mi>ζ</mi><mo>=</mo><mfrac><mi>R</mi><mn>2</mn></mfrac><msqrt><mrow><mi>C</mi><mo>/</mo><mi>L</mi></mrow></msqrt></mrow></math>。</p>
+      </div>
+
+      <div class="readout">
+        <h2>拉氏求解三步</h2>
+        <div class="step"><span class="n">1</span>两边取拉氏变换（初值代入）：<div id="oStep1" style="margin-top:5px;"></div></div>
+        <div class="step"><span class="n">2</span>解出 <math><mrow><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>：<div id="oStep2" style="margin-top:5px;"></div></div>
+        <div class="step"><span class="n">3</span>逆变换回时域 <math><mrow><mi>y</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>：<div id="oStep3" style="margin-top:5px;"></div></div>
+        <canvas id="cvS" style="display:block; width:100%; max-width:260px; height:auto; margin:6px auto 4px; background:#fbfdff; border:1px solid var(--line); border-radius:8px;"></canvas>
+        <p style="margin:2px 0;">特征根：<b id="oRoots">—</b></p>
+        <div class="damp under" id="oDamp">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>极点位置 ↔ 响应形状（承接 T15）</h2>
+    <p><b>实根（过阻尼）</b> <math><mrow><mi>s</mi><mo>=</mo><mo>&#x2212;</mo><mi>a</mi></mrow></math>：对应纯<b>指数</b>项 <math><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup></math>，不振荡、慢慢爬到稳态。</p>
+    <p><b>共轭复根（欠阻尼）</b> <math><mrow><mi>s</mi><mo>=</mo><mo>&#x2212;</mo><mi>σ</mi><mo>&#xB1;</mo><mi>j</mi><msub><mi>ω</mi><mi>d</mi></msub></mrow></math>：实部 <math><mrow><mo>&#x2212;</mo><mi>σ</mi></mrow></math> 给出衰减速率 <math><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>σ</mi><mi>t</mi></mrow></msup></math>，虚部 <math><msub><mi>ω</mi><mi>d</mi></msub></math> 给出振荡频率 —— <b>衰减振荡</b>。</p>
+    <p><b>根越靠左</b>（实部越负）衰减越快；越靠<b>虚轴</b>衰减越慢；落在<b>右半平面</b>则发散（本二阶系统 <math><mrow><mi>ζ</mi><mo>&gt;</mo><mn>0</mn></mrow></math> 时两根都在左半平面，稳定）。把 <math><mi>ζ</mi></math> 从大调到 0，盯着读数区的 <math><mi>s</mi></math> 平面小图里两个根怎样从实轴上相向移动、汇合于 <math><mrow><mo>&#x2212;</mo><msub><mi>ω</mi><mi>n</mi></msub></mrow></math>，再分开、沿半径为 <math><msub><mi>ω</mi><mi>n</mi></msub></math> 的圆爬向虚轴。</p>
+  </div>
+
+  <div class="know">
+    <h2>三种阻尼的物理意义</h2>
+    <p><b>过阻尼</b> <math><mrow><mi>ζ</mi><mo>&gt;</mo><mn>1</mn></mrow></math>：像在很稠的油里运动，慢慢逼近终值、<b>不冲过头</b>（两个不同实根）。</p>
+    <p><b>临界阻尼</b> <math><mrow><mi>ζ</mi><mo>=</mo><mn>1</mn></mrow></math>：<b>最快</b>到达终值又不振荡的分界（重根 <math><mrow><mo>&#x2212;</mo><msub><mi>ω</mi><mi>n</mi></msub></mrow></math>）。汽车悬架、仪表阻尼常瞄准这里。</p>
+    <p><b>欠阻尼</b> <math><mrow><mn>0</mn><mo>&lt;</mo><mi>ζ</mi><mo>&lt;</mo><mn>1</mn></mrow></math>：会<b>冲过头再回摆</b>、逐渐衰减的振荡。<math><mi>ζ</mi></math> 越小超调越大、振得越久（<math><mrow><mi>ζ</mi><mo>=</mo><mn>0</mn></mrow></math> 时等幅不衰减）。阶跃超调量 <math><mrow><msub><mi>M</mi><mi>p</mi></msub><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>ζ</mi><mi>π</mi><mo>/</mo><msqrt><mrow><mn>1</mn><mo>&#x2212;</mo><msup><mi>ζ</mi><mn>2</mn></msup></mrow></msqrt></mrow></msup></mrow></math>。</p>
+  </div>
+
+  <div class="know">
+    <h2>和 T8 相量法有什么不同？</h2>
+    <p>T8 的<b>相量法</b>只给<b>稳态</b>：假定电路已经被同一频率的正弦驱动了很久，只关心最终那条同频正弦的幅值与相位，用一个复数 <math><mrow><mi>Z</mi><mo>=</mo><mi>R</mi><mo>+</mo><mi>j</mi><mi>X</mi></mrow></math> 就搞定。</p>
+    <p>而<b>拉氏变换</b>给的是<b>完整响应 = 暂态 + 稳态</b>：从合闸/加激励那一刻起、含初值的全过程都算得出来（这里的衰减振荡就是相量法看不到的<b>暂态</b>）。<math><mrow><mi>s</mi><mo>=</mo><mi>j</mi><mi>ω</mi></mrow></math>（极点落回虚轴、只剩稳态正弦）时，拉氏就退化回傅里叶/相量那一套。</p>
+    <p class="lg">一句话：<b>相量看"最后稳成什么样"，拉氏看"从头到尾怎么变"</b>。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>一个二阶系统 <math><mrow><msup><mi>y</mi><mrow><mo>&#x2033;</mo></mrow></msup><mo>+</mo><mn>2</mn><mi>ζ</mi><msub><mi>ω</mi><mi>n</mi></msub><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>+</mo><msubsup><mi>ω</mi><mi>n</mi><mn>2</mn></msubsup><mi>y</mi><mo>=</mo><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，用拉氏变换求它对阶跃/冲激的响应。</p>
+    <p><b>怎么玩：</b>①选输入（阶跃或冲激）；②拖阻尼比 <math><mi>ζ</mi></math>、固有频率 <math><msub><mi>ω</mi><mi>n</mi></msub></math>；③可填初值 <math><mrow><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math>、<math><mrow><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math>。右边三步展开随参数实时更新，其下的小图标出特征根。</p>
+    <p><b>重点看：</b>把 <math><mi>ζ</mi></math> 从 &gt;1 调到 &lt;1，响应从"慢慢爬升不振荡"变成"冲过头再回摆"；同时 <math><mi>s</mi></math> 平面里两个根从实轴相向而行、在 <math><mrow><mo>&#x2212;</mo><msub><mi>ω</mi><mi>n</mi></msub></mrow></math> 汇合后分成一对共轭复根。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var cvS=document.getElementById("cvS"), ctxS=cvS?cvS.getContext("2d"):null;
+var W=900,H=380,DPR=1, WS=240,HS=180;
+var PI=Math.PI;
+
+// 参数
+var input="step", zeta=0.3, wn=2.0, y0=0, y1=0, showEnv=true;
+
+/* ---------- 数学核心 ---------- */
+// 二阶系统 y'' + 2ζωn y' + ωn² y = f(t)
+// 阶跃：f = ωn²·1(t)（DC 增益归一，稳态=1），特解 yp=1
+// 冲激：f = δ(t)，特解 yp=0，冲激把 y'(0+) 抬高 1（面积）
+function sysModel(){
+  var sigma=zeta*wn;                     // 衰减率 = 共轭根实部大小
+  var disc=zeta*zeta-1;
+  var m={sigma:sigma, yp:(input==="step")?1:0};
+  // 初值（含冲激对 y' 的跳变）
+  m.yh0 = y0 - m.yp;
+  m.yh1 = (y1 + (input==="impulse"?1:0)) - 0; // yp'(0)=0
+  var eps=1e-4;
+  if(disc < -eps){                       // 欠阻尼：共轭复根
+    m.type="under";
+    m.wd = wn*Math.sqrt(1-zeta*zeta);
+    m.C1 = m.yh0;
+    m.C2 = (m.yh1 + sigma*m.C1)/m.wd;
+    m.roots=[{re:-sigma,im:m.wd},{re:-sigma,im:-m.wd}];
+  } else if(disc <= eps){                // 临界阻尼：重根 -ωn
+    m.type="crit";
+    m.C1 = m.yh0;
+    m.C2 = m.yh1 + wn*m.C1;
+    m.roots=[{re:-wn,im:0},{re:-wn,im:0}];
+  } else {                               // 过阻尼：两个实根
+    m.type="over";
+    var rt=wn*Math.sqrt(disc);
+    m.s1=-sigma+rt; m.s2=-sigma-rt;
+    m.C1=(m.yh1 - m.s2*m.yh0)/(m.s1-m.s2);
+    m.C2=m.yh0 - m.C1;
+    m.roots=[{re:m.s1,im:0},{re:m.s2,im:0}];
+  }
+  return m;
+}
+function yOf(m,t){
+  var h;
+  if(m.type==="under") h=Math.exp(-m.sigma*t)*(m.C1*Math.cos(m.wd*t)+m.C2*Math.sin(m.wd*t));
+  else if(m.type==="crit") h=Math.exp(-wn*t)*(m.C1+m.C2*t);
+  else h=m.C1*Math.exp(m.s1*t)+m.C2*Math.exp(m.s2*t);
+  return m.yp + h;
+}
+// 包络幅值（欠阻尼）：yp ± A e^{-σt}
+function envAmp(m){ return Math.hypot(m.C1,m.C2); }
+
+/* ---------- 时间窗口 & 采样 ---------- */
+function timeWindow(m){
+  var settle = m.sigma>1e-3 ? 6.5/m.sigma : 50;
+  var osc = (m.type==="under" && m.wd>1e-3) ? 6*(2*PI/m.wd) : 0;
+  var t=Math.max(settle, osc, 4);
+  return Math.min(t, 60);
+}
+
+/* ---------- 主图 ---------- */
+var mL=44,mR=16,mT=20,mB=28;
+function draw(){
+  var m=sysModel();
+  ctx.clearRect(0,0,W,H);
+  var tMax=timeWindow(m);
+  // 采样求 y 范围
+  var ns=600, ys=[], ymin=Infinity, ymax=-Infinity;
+  for(var i=0;i<=ns;i++){ var t=i/ns*tMax, v=yOf(m,t); ys.push(v); if(v<ymin)ymin=v; if(v>ymax)ymax=v; }
+  if(m.yp<ymin)ymin=m.yp; if(m.yp>ymax)ymax=m.yp; if(0<ymin)ymin=0; if(0>ymax)ymax=0;
+  var pad=(ymax-ymin)*0.12+1e-3; ymin-=pad; ymax+=pad;
+  function X(t){ return mL+t/tMax*(W-mL-mR); }
+  function Y(v){ return mT+(1-(v-ymin)/(ymax-ymin))*(H-mT-mB); }
+  // 网格/轴
+  ctx.strokeStyle="#edf2f7"; ctx.lineWidth=1;
+  for(var g=0;g<=5;g++){ var xg=mL+g/5*(W-mL-mR); ctx.beginPath(); ctx.moveTo(xg,mT); ctx.lineTo(xg,H-mB); ctx.stroke(); }
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.2;
+  var yz=Y(0);
+  ctx.beginPath(); ctx.moveTo(mL,yz); ctx.lineTo(W-mR,yz); ctx.stroke(); // t 轴
+  ctx.beginPath(); ctx.moveTo(mL,mT); ctx.lineTo(mL,H-mB); ctx.stroke(); // y 轴
+  ctx.fillStyle="#a0aec0";
+  ctx.textAlign="center"; ctx.font="italic 12px 'Cambria Math','STIX Two Math',serif";
+  ctx.fillText("t = "+tMax.toFixed(1)+" s", W-mR-30, yz+15);
+  ctx.textAlign="right"; ctx.font="11px 'Cambria Math','STIX Two Math',serif";
+  ctx.fillText(ymax.toFixed(1),mL-5,mT+9); ctx.fillText(ymin.toFixed(1),mL-5,H-mB);
+  ctx.textAlign="left"; ctx.font="italic 13px 'Cambria Math','STIX Two Math',serif"; ctx.fillText("y",mL+4,mT+10);
+  // 稳态线（阶跃）
+  if(input==="step"){
+    ctx.strokeStyle="#a0aec0"; ctx.setLineDash([4,4]); ctx.beginPath();
+    ctx.moveTo(mL,Y(m.yp)); ctx.lineTo(W-mR,Y(m.yp)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#a0aec0"; ctx.textAlign="left"; ctx.fillText("稳态 "+m.yp.toFixed(0),W-mR-52,Y(m.yp)-4);
+  }
+  // 包络（欠阻尼）
+  if(showEnv && m.type==="under"){
+    var A=envAmp(m);
+    ctx.strokeStyle="#b7791f"; ctx.setLineDash([5,4]); ctx.lineWidth=1.3;
+    for(var sgn=-1;sgn<=1;sgn+=2){
+      ctx.beginPath();
+      for(var k=0;k<=ns;k++){ var tk=k/ns*tMax, ev=m.yp+sgn*A*Math.exp(-m.sigma*tk);
+        if(k===0)ctx.moveTo(X(tk),Y(ev)); else ctx.lineTo(X(tk),Y(ev)); }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+  // y(t)
+  ctx.strokeStyle="#2b6cb0"; ctx.lineWidth=2.4; ctx.beginPath();
+  for(var j=0;j<=ns;j++){ var tj=j/ns*tMax; if(j===0)ctx.moveTo(X(tj),Y(ys[j])); else ctx.lineTo(X(tj),Y(ys[j])); }
+  ctx.stroke();
+  drawSPlane(m);
+  updateReadout(m);
+}
+
+/* ---------- s 平面小图 ---------- */
+function drawSPlane(m){
+  if(!ctxS) return;
+  ctxS.clearRect(0,0,WS,HS);
+  var cx=WS*0.62, cy=HS*0.5;
+  // 视野半径按实际特征根的模取，保证任何 ζ 下两根都在画布内
+  var rmax=1;
+  for(var ri=0;ri<m.roots.length;ri++){ rmax=Math.max(rmax,Math.abs(m.roots[ri].re),Math.abs(m.roots[ri].im)); }
+  var maxr=rmax*1.25;
+  var sc=Math.min(WS*0.34, HS*0.4)/maxr;
+  // 轴
+  ctxS.strokeStyle="#cbd5e0"; ctxS.lineWidth=1;
+  ctxS.beginPath(); ctxS.moveTo(6,cy); ctxS.lineTo(WS-6,cy); ctxS.stroke();
+  ctxS.beginPath(); ctxS.moveTo(cx,8); ctxS.lineTo(cx,HS-8); ctxS.stroke();
+  ctxS.fillStyle="#a0aec0"; ctxS.font="10px 'Cambria Math',serif"; ctxS.textAlign="left";
+  ctxS.fillText("Re",WS-20,cy-4); ctxS.fillText("Im",cx+4,14);
+  ctxS.fillText("s 平面",8,14);
+  // 左半平面淡色
+  ctxS.fillStyle="rgba(154,230,180,.12)"; ctxS.fillRect(6,8,cx-6,HS-16);
+  // 极点（×）
+  ctxS.strokeStyle="#c53030"; ctxS.lineWidth=2;
+  for(var i=0;i<m.roots.length;i++){
+    var r=m.roots[i], px=cx+r.re*sc, py=cy-r.im*sc, d=5;
+    ctxS.beginPath(); ctxS.moveTo(px-d,py-d); ctxS.lineTo(px+d,py+d);
+    ctxS.moveTo(px-d,py+d); ctxS.lineTo(px+d,py-d); ctxS.stroke();
+  }
+}
+
+/* ---------- 读数 ---------- */
+function fmt(x,d){ if(!isFinite(x))return "—"; return x.toFixed(d==null?2:d); }
+function updateReadout(m){
+  var twz=fmt(2*zeta*wn,2), wn2=fmt(wn*wn,2);
+  var Fs = (input==="step") ? "<math><mrow><msubsup><mi>ω</mi><mi>n</mi><mn>2</mn></msubsup><mo>/</mo><mi>s</mi></mrow></math> = <math><mrow><mn>"+wn2+"</mn><mo>/</mo><mi>s</mi></mrow></math>"
+                            : "<math><mn>1</mn></math>（冲激）";
+  document.getElementById("oStep1").innerHTML =
+    "<math><mrow><mo>(</mo><msup><mi>s</mi><mn>2</mn></msup><mo>+</mo><mn>"+twz+"</mn><mi>s</mi><mo>+</mo><mn>"+wn2+"</mn><mo>)</mo><mi>Y</mi><mo>=</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>+</mo><mo>(</mo><mi>s</mi><mo>+</mo><mn>"+twz+"</mn><mo>)</mo><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math>，其中 <math><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo></math>="+Fs;
+  document.getElementById("oStep2").innerHTML =
+    "<math><mrow><mi>Y</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>+</mo><mo>(</mo><mi>s</mi><mo>+</mo><mn>"+twz+"</mn><mo>)</mo><mi>y</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>+</mo><msup><mi>y</mi><mo>&#x2032;</mo></msup><mo>(</mo><mn>0</mn><mo>)</mo></mrow><mrow><msup><mi>s</mi><mn>2</mn></msup><mo>+</mo><mn>"+twz+"</mn><mi>s</mi><mo>+</mo><mn>"+wn2+"</mn></mrow></mfrac></mrow></math>";
+  var s3="", sig=fmt(m.sigma,2);
+  if(m.type==="under"){
+    s3="<math><mrow><mi>y</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>"+fmt(m.yp,0)+"</mn><mo>+</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mn>"+sig+"</mn><mi>t</mi></mrow></msup><mo>(</mo><mn>"+fmt(m.C1)+"</mn><mi>cos</mi><mn>"+fmt(m.wd)+"</mn><mi>t</mi><mo>+</mo><mn>"+fmt(m.C2)+"</mn><mi>sin</mi><mn>"+fmt(m.wd)+"</mn><mi>t</mi><mo>)</mo></mrow></math>";
+  } else if(m.type==="crit"){
+    s3="<math><mrow><mi>y</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>"+fmt(m.yp,0)+"</mn><mo>+</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mn>"+fmt(wn)+"</mn><mi>t</mi></mrow></msup><mo>(</mo><mn>"+fmt(m.C1)+"</mn><mo>+</mo><mn>"+fmt(m.C2)+"</mn><mi>t</mi><mo>)</mo></mrow></math>";
+  } else {
+    s3="<math><mrow><mi>y</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>"+fmt(m.yp,0)+"</mn><mo>+</mo><mn>"+fmt(m.C1)+"</mn><msup><mi>e</mi><mrow><mn>"+fmt(m.s1)+"</mn><mi>t</mi></mrow></msup><mo>+</mo><mn>"+fmt(m.C2)+"</mn><msup><mi>e</mi><mrow><mn>"+fmt(m.s2)+"</mn><mi>t</mi></mrow></msup></mrow></math>";
+  }
+  document.getElementById("oStep3").innerHTML=s3;
+  // 根（MathML）
+  var rtxt;
+  if(m.type==="under") rtxt="<math><mrow><mi>s</mi><mo>=</mo><mo>&#x2212;</mo><mn>"+fmt(m.sigma)+"</mn><mo>&#xB1;</mo><mi>j</mi><mn>"+fmt(m.wd)+"</mn></mrow></math>（一对共轭复根）";
+  else if(m.type==="crit") rtxt="<math><mrow><mi>s</mi><mo>=</mo><mo>&#x2212;</mo><mn>"+fmt(wn)+"</mn></mrow></math>（二重实根）";
+  else rtxt="<math><mrow><msub><mi>s</mi><mn>1</mn></msub><mo>=</mo><mn>"+fmt(m.s1)+"</mn></mrow></math>，<math><mrow><msub><mi>s</mi><mn>2</mn></msub><mo>=</mo><mn>"+fmt(m.s2)+"</mn></mrow></math>（两个实根）";
+  document.getElementById("oRoots").innerHTML=rtxt;
+  // 阻尼类型（MathML）
+  var box=document.getElementById("oDamp"), txt="";
+  if(m.type==="under"){
+    box.className="damp under";
+    var Mp=Math.exp(-zeta*PI/Math.sqrt(1-zeta*zeta))*100;
+    txt="欠阻尼（<math><mrow><mn>0</mn><mo>&lt;</mo><mi>&#x3B6;</mi><mo>&lt;</mo><mn>1</mn></mrow></math>）：衰减振荡，<math><mrow><msub><mi>&#x3C9;</mi><mi>d</mi></msub><mo>=</mo><mn>"+fmt(m.wd)+"</mn></mrow></math> rad/s";
+    if(input==="step") txt+="，阶跃超调 ≈ "+fmt(Mp,1)+"%";
+  } else if(m.type==="crit"){ box.className="damp crit"; txt="临界阻尼（<math><mrow><mi>&#x3B6;</mi><mo>=</mo><mn>1</mn></mrow></math>）：不振荡、最快到稳态的分界。"; }
+  else { box.className="damp over"; txt="过阻尼（<math><mrow><mi>&#x3B6;</mi><mo>&gt;</mo><mn>1</mn></mrow></math>）：两个实指数叠加，缓慢无振荡地逼近稳态。"; }
+  box.innerHTML=txt;
+}
+
+/* ---------- 控件 ---------- */
+document.getElementById("selIn").addEventListener("change",function(e){ input=e.target.value; draw(); });
+document.getElementById("sZeta").addEventListener("input",function(e){ zeta=+e.target.value; document.getElementById("vZeta").textContent=zeta.toFixed(2); draw(); });
+document.getElementById("sWn").addEventListener("input",function(e){ wn=+e.target.value; document.getElementById("vWn").textContent=wn.toFixed(1); draw(); });
+document.getElementById("ny0").addEventListener("input",function(e){ y0=+e.target.value||0; draw(); });
+document.getElementById("ny1").addEventListener("input",function(e){ y1=+e.target.value||0; draw(); });
+document.getElementById("chkEnv").addEventListener("change",function(e){ showEnv=e.target.checked; draw(); });
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth; if(w<320)w=320; if(w>896)w=896;
+  W=w; H=Math.round(Math.max(320,w*0.42));
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  if(cvS){
+    var ws=Math.min((cvS.parentElement.clientWidth||240)-2,260); if(ws<180)ws=180;
+    WS=ws; HS=Math.round(ws*0.75);
+    cvS.width=WS*DPR; cvS.height=HS*DPR; cvS.style.width=WS+"px"; cvS.style.height=HS+"px";
+    ctxS.setTransform(DPR,0,0,DPR,0,0);
+  }
+  draw();
+}
+window.addEventListener("resize",resize);
+resize();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-laplace-ode";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

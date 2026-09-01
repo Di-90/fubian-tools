@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>频谱与傅里叶变换对 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1;
+    --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .back{display:block; font-size:13px; color:var(--blue); text-decoration:none; padding:12px 22px 0;}
+  .back:hover{text-decoration:underline;}
+  .lead{color:var(--sub); font-size:14px; padding:6px 22px 0;}
+  .main{padding:12px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:none;}
+  .panel{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;}
+  @media(max-width:680px){ .panel{grid-template-columns:1fr;} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13.5px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .chk{font-size:13px; color:var(--sub); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout h2{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .recip{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:12.8px; background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .recip.off{background:#f7fafc; border:1px solid var(--line); color:var(--sub);}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px; color:#2d3748;}
+  .know math{font-size:15px;}
+  .know .lg{color:var(--sub);}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:#718096;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:600px; width:90%; max-height:82vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p{font-size:13.8px; color:#2d3748; margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>频谱与傅里叶变换对</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <span class="tag">T11 · 复变函数与积分变换</span>
+  </div>
+  <a class="back" href="./index.html">← 返回工具首页</a>
+  <p class="lead">左边是<b>时域信号</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，右边是它的<b>傅里叶变换</b> <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math> 的<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（可切到<b>相位谱</b>）。换信号、拖参数，重点体会<b>时域越窄、频域越宽</b>这条铁律。</p>
+
+  <div class="know" style="border-left:4px solid var(--gold);">
+    <h2>从"级数"到"变换"：谱为什么变成连续的？</h2>
+    <p>在工具 <a href="./T10_傅里叶级数合成器.html">T10</a> 里，<b>周期</b>信号的谱是一根根<b>离散谱线</b>——只在基频的整数倍 <math><mrow><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处有值。当周期 <math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math>（信号不再重复、变成<b>非周期</b>）时，相邻谱线的间隔 <math><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mn>2</mn><mi>π</mi><mo>/</mo><mi>T</mi><mo>&#x2192;</mo><mn>0</mn></mrow></math>，谱线越挤越密，最后连成一条<b>连续</b>的曲线。这条连续谱就是<b>傅里叶变换</b>：</p>
+    <p style="text-align:center;"><math display="block"><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math></p>
+    <p class="lg">它一般是<b>复数</b>，所以要分两张图看：<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（各频率成分的强弱）与<b>相位谱</b> <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>（各成分的相位）。实偶信号相位恒为 0；像单边指数这种非对称信号，相位谱才有内容。</p>
+  </div>
+
+  <div class="main">
+    <canvas id="cv"></canvas>
+    <p class="lg" style="font-size:12.3px;margin:8px 2px 0;padding:8px 12px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;color:var(--sub);">
+      左图横轴为时间 <math><mi>t</mi></math>；右图横轴为角频率 <math><mi>ω</mi></math>。右图默认画<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（蓝），勾选后改画<b>相位谱</b> <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>（紫）。冲激用箭头示意。
+    </p>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h2>控制</h2>
+        <div class="ctrl">
+          <label>信号 / 变换对</label>
+          <select id="selSig">
+            <option value="rect">矩形脉冲 ↔ Sa（sinc）</option>
+            <option value="gauss">高斯 ↔ 高斯</option>
+            <option value="dexp">双边指数 e^(−a|t|) ↔ 洛伦兹</option>
+            <option value="sexp">单边指数 e^(−at)u(t) ↔ 1/(a+jω)（有相位）</option>
+            <option value="delta">冲激 δ(t) ↔ 常数 1</option>
+            <option value="const">常数 1 ↔ 2πδ(ω)</option>
+            <option value="cos">余弦 cos(ω₀t) ↔ 两根冲激</option>
+          </select>
+        </div>
+        <div class="ctrl" id="paramWrap">
+          <label><span id="pLabel">参数</span>：<span class="v" id="pVal">—</span></label>
+          <input type="range" id="sParam" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="chkPhase"> 显示相位谱 <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math></label>
+        </div>
+      </div>
+
+      <div class="readout">
+        <h2>当前变换对</h2>
+        <p id="oPair">—</p>
+        <p id="oNote" class="lg" style="font-size:12.8px;">—</p>
+        <div class="recip off" id="oRecip">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>看什么？三个要点</h2>
+    <p><b>① 幅度谱 = 各频率成分的"分量表"。</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math> 在某个 <math><mi>ω</mi></math> 处越高，说明信号里该频率的成分越强。矩形脉冲的谱是 <math><mrow><mi>Sa</mi></mrow></math> 函数（一主瓣 + 两侧衰减旁瓣）；高斯的谱还是高斯；双边指数的谱是洛伦兹型 <math><mrow><mn>2</mn><mi>a</mi><mo>/</mo><mo>(</mo><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>ω</mi><mn>2</mn></msup><mo>)</mo></mrow></math>。</p>
+    <p><b>② 相位谱：非对称信号才"有戏"。</b> 选<b>单边指数</b>看相位谱——它是 <math><mrow><mo>&#x2212;</mo><mi>arctan</mi><mo>(</mo><mi>ω</mi><mo>/</mo><mi>a</mi><mo>)</mo></mrow></math>，随 <math><mi>ω</mi></math> 由 <math><mrow><mo>+</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math> 平滑扫到 <math><mrow><mo>&#x2212;</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math>；而矩形、高斯、双边指数是实偶函数，幅度谱全部信息、相位恒为 0。</p>
+    <p><b>③ 时窄 ↔ 频宽（尺度 / 测不准）。</b> 拖矩形宽度 <math><mi>τ</mi></math> 或高斯 <math><mi>σ</mi></math>：<b>时域压得越窄，频谱铺得越宽</b>，反之亦然——想在时间上"很集中"，就必须在频率上"很分散"。读数区给出<b>时宽 × 频宽 ≈ 常数</b>的定量对照。极限情形：冲激 <math><mrow><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>（时域一个点）的谱是<b>全频段常数 1</b>；常数 1（时域铺满）的谱是<b>单根冲激</b> <math><mrow><mn>2</mn><mi>π</mi><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>。</p>
+    <p style="margin-top:12px; padding:11px 14px; background:#faf5ff; border:1px solid #d6bcfa; border-radius:8px; font-size:12.8px; color:#44337a;">
+      <b style="color:#6b46c1;">✦ 延伸（选讲 · 不考）：这就是海森堡测不准原理的数学原型。</b>
+      你拖矩形看到的"时窄频宽"，本质是傅里叶变换的一条定理：均方时宽 <math><mrow><mi>Δ</mi><mi>t</mi></mrow></math> 与均方频宽 <math><mrow><mi>Δ</mi><mi>ω</mi></mrow></math> 满足 <math><mrow><mi>Δ</mi><mi>t</mi><mo>&#x22C5;</mo><mi>Δ</mi><mi>ω</mi><mo>&#x2265;</mo><mfrac><mn>1</mn><mn>2</mn></mfrac></mrow></math>（下界，<b>高斯取等号</b>——所以它是"时频占地最省"的信号）。
+      量子力学里，粒子的位置波函数 <math><mrow><mi>ψ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math> 与动量波函数 <math><mrow><mi>φ</mi><mo>(</mo><mi>p</mi><mo>)</mo></mrow></math> 恰好也是一对傅里叶变换，同一条不等式就写成 <math><mrow><mi>Δ</mi><mi>x</mi><mo>&#x22C5;</mo><mi>Δ</mi><mi>p</mi><mo>&#x2265;</mo><mfrac><mi>&#x210F;</mi><mn>2</mn></mfrac></mrow></math>——<b>与你拖出来的时频互易是同一个不等式，只差普朗克常数 <math><mi>&#x210F;</mi></math> 做单位换算</b>。测不准不是一条独立的物理奥秘，而是傅里叶互易套在"位置↔动量"这对共轭变量上的结果。
+      <br><span style="color:#805ad5;">（注：严格版用二阶矩定义宽度、给出的是不等式下界；本页读数用主瓣宽 / 标准差这类朴素宽度，只作定性对照，不是测不准的严格证明。）</span>
+    </p>
+  </div>
+
+  <div class="know">
+    <h2>周期信号的谱：一串冲激</h2>
+    <p>选<b>余弦</b> <math><mrow><mi>cos</mi><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>：它的谱是位于 <math><mrow><mo>&#xB1;</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 的<b>两根冲激</b> <math><mrow><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>。这正好回到 T10 的<b>离散谱线</b>观点：<b>周期信号 = 离散谱（冲激串），非周期信号 = 连续谱</b>。拖 <math><msub><mi>ω</mi><mn>0</mn></msub></math> 看两根谱线一起向外移。</p>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>左右并置一个时域信号和它的傅里叶频谱，帮你把"时域长相"与"频域长相"对上号。</p>
+    <p><b>怎么玩：</b>①下拉选一个变换对；②拖参数滑杆（矩形的宽度 <math><mi>τ</mi></math>、高斯的 <math><mi>σ</mi></math>、指数的衰减率 <math><mi>a</mi></math>、余弦的 <math><msub><mi>ω</mi><mn>0</mn></msub></math>），盯着两张图<b>一起</b>怎么变；③勾"显示相位谱"看 <math><mrow><mi>arg</mi><mi>F</mi></mrow></math>。</p>
+    <p><b>重点：</b>把矩形 <math><mi>τ</mi></math> 调小 → 时域变窄，右边主瓣立刻变宽；调大则相反。高斯同理。这就是"时窄频宽"。冲激与常数是它的两个极端。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var W=900,H=380,DPR=1;
+var PI=Math.PI;
+function Sa(x){ return Math.abs(x)<1e-9?1:Math.sin(x)/x; }
+
+// ---- 变换对定义 ----
+// tRange/wRange: 半轴范围; time(t,p); mag(w,p); phase(w,p);
+// timeSpikes/freqSpikes: [{x,label,h}] 用箭头画冲激; flat: 时域/频域常值线
+var SIGS={
+  rect:{
+    name:"矩形脉冲 ↔ Sa（sinc）",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>（|t|&lt;τ/2）　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mi>τ</mi><mtext> Sa</mtext><mo>(</mo><mi>ω</mi><mi>τ</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow></math>",
+    note:"矩形的谱是 Sa 函数：中间一个主瓣、两侧越来越矮的旁瓣，零点在 ω=2kπ/τ。",
+    p:{label:"脉冲宽度 τ",min:0.5,max:6,step:0.1,val:2,unit:""},
+    tRange:function(p){return 7;},   // 固定坐标轴：拖 τ 才能真看到时域变窄/变宽
+    wRange:function(p){return 16;},  // 频率轴固定，Sa 主瓣随 τ 缩小而铺开
+    time:function(t,p){return Math.abs(t)<=p/2?1:0;},
+    mag:function(w,p){return Math.abs(p*Sa(w*p/2));},
+    phase:function(w,p){return (p*Sa(w*p/2))>=0?0:PI;},
+    recip:function(p){var dw=2*PI/p;return "时宽 τ = <b>"+p.toFixed(1)+"</b>，主瓣半宽 Δω = 2π/τ = <b>"+dw.toFixed(2)+"</b>，乘积 τ·Δω = <b>2π ≈ 6.28</b>（恒定）。τ 越小，主瓣越宽。";}
+  },
+  gauss:{
+    name:"高斯 ↔ 高斯",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>t</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></msup></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mi>σ</mi><msqrt><mrow><mn>2</mn><mi>π</mi></mrow></msqrt><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>σ</mi><mn>2</mn></msup><msup><mi>ω</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn></mrow></msup></mrow></math>",
+    note:"高斯的傅里叶变换还是高斯——它是唯一“形状不变”的一类信号；时域标准差 σ，频域标准差 1/σ。",
+    p:{label:"时域宽度 σ",min:0.3,max:3,step:0.05,val:1,unit:""},
+    tRange:function(p){return 10;},   // 固定坐标轴：σ 越小时域越窄、频域越宽
+    wRange:function(p){return 10;},
+    time:function(t,p){return Math.exp(-t*t/(2*p*p));},
+    mag:function(w,p){return p*Math.sqrt(2*PI)*Math.exp(-p*p*w*w/2);},
+    phase:function(w,p){return 0;},
+    recip:function(p){return "时域宽度 σ = <b>"+p.toFixed(2)+"</b>，频域宽度 1/σ = <b>"+(1/p).toFixed(2)+"</b>，乘积 = <b>1</b>（恒定）。σ 越小，频谱越宽。";}
+  },
+  dexp:{
+    name:"双边指数 ↔ 洛伦兹",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mo>|</mo><mi>t</mi><mo>|</mo></mrow></msup></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mn>2</mn><mi>a</mi></mrow><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>ω</mi><mn>2</mn></msup></mrow></mfrac></mrow></math>",
+    note:"双边指数（实偶）的谱是洛伦兹型峰，实值非负、相位为 0。",
+    p:{label:"衰减率 a",min:0.3,max:3,step:0.05,val:1,unit:""},
+    tRange:function(p){return 12;},   // 固定坐标轴：a 越大时域衰减越快（越窄）、洛伦兹峰越宽
+    wRange:function(p){return 12;},
+    time:function(t,p){return Math.exp(-p*Math.abs(t));},
+    mag:function(w,p){return 2*p/(p*p+w*w);},
+    phase:function(w,p){return 0;},
+    recip:function(p){return "衰减率 a = <b>"+p.toFixed(2)+"</b>：a 越大，时域衰减越快（越窄），洛伦兹峰越宽。";}
+  },
+  sexp:{
+    name:"单边指数 ↔ 1/(a+jω)",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup><mi>u</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mi>a</mi><mo>+</mo><mi>j</mi><mi>ω</mi></mrow></mfrac></mrow></math>",
+    note:"单边指数不对称，F(ω) 是复数：幅度 1/√(a²+ω²)，相位 −arctan(ω/a)（勾选相位谱看）。",
+    p:{label:"衰减率 a",min:0.3,max:3,step:0.05,val:1,unit:""},
+    tRange:function(p){return 12;},   // 固定坐标轴：a 越大时域衰减越快、频谱越宽
+    wRange:function(p){return 12;},
+    time:function(t,p){return t>=0?Math.exp(-p*t):0;},
+    mag:function(w,p){return 1/Math.sqrt(p*p+w*w);},
+    phase:function(w,p){return -Math.atan2(w,p);},
+    recip:function(p){return "衰减率 a = <b>"+p.toFixed(2)+"</b>：这是唯一相位谱非平凡的例子。相位由 +π/2 扫到 −π/2。";}
+  },
+  delta:{
+    name:"冲激 δ(t) ↔ 常数 1",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>",
+    note:"极端①：时域集中成一个点（冲激），频域铺成全频段等强度的常数——含有一切频率。",
+    p:null,
+    tRange:function(p){return 4;},
+    wRange:function(p){return 16;},
+    time:function(t,p){return 0;}, timeSpikes:[{x:0,label:"δ(t)",h:1}],
+    mag:function(w,p){return 1;},
+    phase:function(w,p){return 0;},
+    recip:function(p){return "时域一个点 → 频域全平的常数 1：最“宽”的频谱。与“常数↔冲激”正好互为镜像。";}
+  },
+  const:{
+    name:"常数 1 ↔ 2πδ(ω)",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mn>2</mn><mi>π</mi><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>",
+    note:"极端②：时域铺满（直流），频域集中成 ω=0 处一根冲激——只含零频。",
+    p:null,
+    tRange:function(p){return 6;},
+    wRange:function(p){return 8;},
+    time:function(t,p){return 1;}, flatTime:1,
+    mag:function(w,p){return 0;}, freqSpikes:[{x:0,label:"2πδ(ω)",h:1}],
+    phase:function(w,p){return 0;},
+    recip:function(p){return "时域铺满 → 频域一根冲激：最“窄”的频谱。与“冲激↔常数”互为镜像。";}
+  },
+  cos:{
+    name:"余弦 ↔ 两根冲激",
+    pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>cos</mi><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>　↔　<math><mrow><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>",
+    note:"周期信号的谱是离散冲激（回到 T10 的谱线观点）：余弦对应 ±ω₀ 两根。",
+    p:{label:"频率 ω₀",min:1,max:8,step:0.1,val:3,unit:""},
+    tRange:function(p){return 13;},   // 固定坐标轴：ω₀ 越大时域振荡越密、两根谱线越向外
+    wRange:function(p){return 10;},
+    time:function(t,p){return Math.cos(p*t);},
+    mag:function(w,p){return 0;},
+    phase:function(w,p){return 0;},
+    freqSpikesFn:function(p){return [{x:p,label:"ω₀",h:1},{x:-p,label:"−ω₀",h:1}];},
+    recip:function(p){return "频率 ω₀ = <b>"+p.toFixed(1)+"</b>：两根谱线在 ±ω₀。ω₀ 越大，谱线越向外。";}
+  }
+};
+
+var key="rect", sig=SIGS[key], pval=2, showPhase=false;
+
+/* ---------- 绘图 ---------- */
+var mT=24,mB=28;
+function richText(parts,x,y,col,size){
+  size=size||12; ctx.fillStyle=col; var cx=x;
+  var cn=size+"px 'Microsoft YaHei',sans-serif";
+  var it="italic "+size+"px 'Cambria Math','STIX Two Math',serif";
+  for(var i=0;i<parts.length;i++){ ctx.font=parts[i].it?it:cn; ctx.fillText(parts[i].s,cx,y); cx+=ctx.measureText(parts[i].s).width; }
+}
+function arrow(x0,y0,x1,y1,col,lw){
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw||2;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  var a=Math.atan2(y1-y0,x1-x0),h=8;
+  ctx.beginPath(); ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-h*Math.cos(a-0.45),y1-h*Math.sin(a-0.45));
+  ctx.lineTo(x1-h*Math.cos(a+0.45),y1-h*Math.sin(a+0.45));
+  ctx.closePath(); ctx.fill();
+}
+// 一个子图区域
+function Region(x0,x1){ this.x0=x0; this.x1=x1; }
+
+function drawSubplot(px0,px1,xr,ymin,ymax,titleParts,xlab){
+  // 轴
+  var w=px1-px0, hpx=H-mT-mB;
+  function X(x){ return px0+(x+xr)/(2*xr)*w; }
+  function Y(y){ return mT+(1-(y-ymin)/(ymax-ymin))*hpx; }
+  // 边框零轴
+  ctx.strokeStyle="#edf2f7"; ctx.lineWidth=1;
+  ctx.strokeRect(px0,mT,w,hpx);
+  var yz=Y(0);
+  ctx.strokeStyle="#cbd5e0"; ctx.lineWidth=1.1;
+  ctx.beginPath(); ctx.moveTo(px0,yz); ctx.lineTo(px1,yz); ctx.stroke();       // x 轴
+  var xz=X(0);
+  ctx.beginPath(); ctx.moveTo(xz,mT); ctx.lineTo(xz,H-mB); ctx.stroke();       // y 轴(0)
+  // 标题与轴标签
+  richText(titleParts,px0+6,mT-8,"#4a5568",12);
+  ctx.fillStyle="#a0aec0"; ctx.font="11px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="right";
+  ctx.fillText(xlab,px1-4,yz+14); ctx.textAlign="left";
+  return {X:X,Y:Y};
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  var gap=34, half=(W-gap)/2;
+  var Lx0=6, Lx1=Lx0+half-6;
+  var Rx0=W-half+6, Rx1=W-6;
+
+  // ---- 左：时域 ----
+  var tR=sig.tRange(pval);
+  var tymin=0, tymax=1.15;
+  // 采样求范围
+  var tmn=0,tmx=0;
+  for(var s=0;s<=200;s++){ var tt=-tR+2*tR*s/200; var vv=sig.time(tt,pval); if(vv<tmn)tmn=vv; if(vv>tmx)tmx=vv; }
+  if(sig.timeSpikes){ tmx=Math.max(tmx,1); }
+  tymax=Math.max(1.15,tmx*1.15); tymin=Math.min(0,tmn*1.15);
+  var Lp=drawSubplot(Lx0,Lx1,tR,tymin,tymax,[{s:"时域 "},{s:"f",it:1},{s:"(",it:0},{s:"t",it:1},{s:")",it:0}],"t");
+  // flat 时域常值
+  if(sig.flatTime!=null){
+    ctx.strokeStyle="#2f855a"; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(Lx0,Lp.Y(sig.flatTime)); ctx.lineTo(Lx1,Lp.Y(sig.flatTime)); ctx.stroke();
+  } else if(sig.timeSpikes){
+    // 无连续曲线 (只有0)，画冲激
+  } else {
+    ctx.strokeStyle="#2f855a"; ctx.lineWidth=2.2; ctx.beginPath();
+    for(var pxx=Lx0;pxx<=Lx1;pxx++){ var x=-tR+(pxx-Lx0)/(Lx1-Lx0)*2*tR; var y=Lp.Y(sig.time(x,pval));
+      if(pxx===Lx0)ctx.moveTo(pxx,y); else ctx.lineTo(pxx,y); }
+    ctx.stroke();
+  }
+  // 时域冲激
+  if(sig.timeSpikes){ for(var i=0;i<sig.timeSpikes.length;i++){ var sp=sig.timeSpikes[i];
+    var xp=Lp.X(sp.x); arrow(xp,Lp.Y(0),xp,Lp.Y(1),"#2f855a",2.4);
+    ctx.fillStyle="#2f855a"; ctx.font="italic 12px 'Cambria Math','STIX Two Math',serif"; ctx.fillText(sp.label,xp+5,Lp.Y(1)+4); } }
+
+  // ---- 右：频域 ----
+  var wR=sig.wRange(pval);
+  var freqSpikes = sig.freqSpikesFn?sig.freqSpikesFn(pval):(sig.freqSpikes||null);
+  if(showPhase){
+    var Rp=drawSubplot(Rx0,Rx1,wR,-PI*1.1,PI*1.1,[{s:"相位谱 arg "},{s:"F",it:1},{s:"(",it:0},{s:"ω",it:1},{s:")",it:0}],"ω");
+    // π 刻度
+    ctx.fillStyle="#a0aec0"; ctx.font="10px 'Cambria Math','STIX Two Math',serif"; ctx.textAlign="left";
+    ctx.fillText("π",Rp.X(0)+3,Rp.Y(PI)+3); ctx.fillText("−π",Rp.X(0)+3,Rp.Y(-PI)+3);
+    ctx.strokeStyle="#6b46c1"; ctx.lineWidth=2.2; ctx.beginPath(); var started=false;
+    for(var pxr=Rx0;pxr<=Rx1;pxr++){ var wv=-wR+(pxr-Rx0)/(Rx1-Rx0)*2*wR; var ph=sig.phase(wv,pval);
+      var yy=Rp.Y(ph);
+      // 相位跳变处断开(如矩形的0/π)
+      if(pxr>Rx0){ var wprev=-wR+(pxr-1-Rx0)/(Rx1-Rx0)*2*wR; if(Math.abs(sig.phase(wprev,pval)-ph)>PI*0.9){ started=false; } }
+      if(!started){ ctx.moveTo(pxr,yy); started=true; } else ctx.lineTo(pxr,yy);
+    }
+    ctx.stroke();
+  } else {
+    // 幅度谱
+    var mmax=0.001;
+    if(freqSpikes){ mmax=1; }
+    else{ for(var s2=0;s2<=300;s2++){ var w2=-wR+2*wR*s2/300; var m=sig.mag(w2,pval); if(m>mmax)mmax=m; } }
+    var Rp2=drawSubplot(Rx0,Rx1,wR,0,mmax*1.15,[{s:"幅度谱 |"},{s:"F",it:1},{s:"(",it:0},{s:"ω",it:1},{s:")|",it:0}],"ω");
+    if(freqSpikes){ for(var j=0;j<freqSpikes.length;j++){ var fs=freqSpikes[j]; var xf=Rp2.X(fs.x);
+      arrow(xf,Rp2.Y(0),xf,Rp2.Y(mmax),"#2b6cb0",2.4);
+      ctx.fillStyle="#2b6cb0"; ctx.font="italic 12px 'Cambria Math','STIX Two Math',serif"; ctx.fillText(fs.label,xf+4,Rp2.Y(mmax)+12); } }
+    else{
+      ctx.strokeStyle="#2b6cb0"; ctx.lineWidth=2.2; ctx.beginPath();
+      for(var pxr2=Rx0;pxr2<=Rx1;pxr2++){ var wv2=-wR+(pxr2-Rx0)/(Rx1-Rx0)*2*wR; var yy2=Rp2.Y(sig.mag(wv2,pval));
+        if(pxr2===Rx0)ctx.moveTo(pxr2,yy2); else ctx.lineTo(pxr2,yy2); }
+      ctx.stroke();
+    }
+  }
+}
+
+/* ---------- 读数 ---------- */
+function updateReadout(){
+  document.getElementById("oPair").innerHTML=sig.pair;
+  document.getElementById("oNote").textContent=sig.note;
+  var r=document.getElementById("oRecip");
+  r.innerHTML=sig.recip(pval);
+  r.className="recip"+((key==="rect"||key==="gauss")?"":" off");
+}
+
+/* ---------- 控件 ---------- */
+function setSignal(k){
+  key=k; sig=SIGS[k];
+  var pw=document.getElementById("paramWrap");
+  if(sig.p){
+    pw.style.display="";
+    var s=document.getElementById("sParam");
+    s.min=sig.p.min; s.max=sig.p.max; s.step=sig.p.step; s.value=sig.p.val; pval=sig.p.val;
+    document.getElementById("pLabel").textContent=sig.p.label;
+    document.getElementById("pVal").textContent=pval.toFixed(2)+sig.p.unit;
+  } else {
+    pw.style.display="none"; pval=0;
+  }
+  refresh();
+}
+function refresh(){ draw(); updateReadout(); }
+document.getElementById("selSig").addEventListener("change",function(e){ setSignal(e.target.value); });
+document.getElementById("sParam").addEventListener("input",function(e){
+  pval=+e.target.value; document.getElementById("pVal").textContent=pval.toFixed(2)+(sig.p?sig.p.unit:""); refresh();
+});
+document.getElementById("chkPhase").addEventListener("change",function(e){ showPhase=e.target.checked; draw(); });
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  var w=cv.parentElement.clientWidth; if(w<320)w=320; if(w>896)w=896;
+  W=w; H=Math.round(Math.max(320,w*0.42));
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  refresh();
+}
+window.addEventListener("resize",resize);
+setSignal("rect"); resize();
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL="fb-fourier-spectrum";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

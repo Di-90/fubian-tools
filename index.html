@@ -110,18 +110,60 @@
     </a>
   </div>
 
-  <div class="sect">时频对应类（积分变换）</div>
+  <div class="sect">时频对应类（积分变换 · 傅里叶）</div>
   <div class="grid">
-    <div class="card soon"><span class="tag">T10</span><h3>傅里叶时频并置</h3><p>时域信号与频谱并排对照。</p><div class="foot">建设中</div></div>
-    <div class="card soon"><span class="tag">T11</span><h3>卷积演示</h3><p>卷积的“翻转—平移—叠加”过程。</p><div class="foot">建设中</div></div>
-    <div class="card soon"><span class="tag">T12</span><h3>频域去噪</h3><p>在频域滤波并观察时域效果。</p><div class="foot">建设中</div></div>
-    <div class="card soon"><span class="tag">T13</span><h3>拉普拉斯 s 平面</h3><p>极点分布与系统响应。</p><div class="foot">建设中</div></div>
+    <a class="card" href="./T10_傅里叶级数合成器.html">
+      <span class="tag">T10</span>
+      <h3>傅里叶级数合成器</h3>
+      <p>周期波形（方波/锯齿波/三角波/半波整流）如何由正弦、余弦逐项叠加拼出：拖“项数 <math><mi>N</mi></math>”看部分和 <math><msub><mi>S</mi><mi>N</mi></msub></math> 逼近目标，下方是各次谐波振幅谱；直观看懂吉布斯现象、连续/跳变波形谱衰减快慢之别。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+    <a class="card" href="./T11_频谱与傅里叶变换对.html">
+      <span class="tag">T11</span>
+      <h3>频谱与傅里叶变换对</h3>
+      <p>从周期到非周期：周期信号的离散谱线（T10）随 <math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math> 挤密成连续频谱，即傅里叶变换 <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>。左时域、右频谱并置，内置矩形/高斯/双边指数/单边指数/冲激/常数/余弦七组常见变换对；可切幅度谱与相位谱，拖参数体会<b>时窄↔频宽</b>与时宽×频宽≈常数。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+    <a class="card" href="./T12_卷积演示.html">
+      <span class="tag">T12</span>
+      <h3>卷积演示</h3>
+      <p>卷积 <math><mrow><mo>(</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 的“翻转—平移—相乘—求积分”动画：拖平移量看重叠面积如何生成结果曲线；并演示卷积定理——时域卷积等于频域相乘。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+    <a class="card" href="./T13_傅里叶变换的性质.html">
+      <span class="tag">T13</span>
+      <h3>傅里叶变换的性质</h3>
+      <p>把变换性质“看见”：时移 → 相位旋转、频移 → 调制、尺度伸缩 → 时窄频宽、微分 → 乘 <math><mrow><mi>j</mi><mi>ω</mi></mrow></math>。左右同看信号与频谱随操作的联动变化。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+    <a class="card" href="./T14_卷积定理.html">
+      <span class="tag">T14</span>
+      <h3>卷积定理</h3>
+      <p>把<b>时域卷积 = 变换域相乘</b>"看见"：用两条独立算出的曲线是否重合来验证定理。<b>傅里叶</b>版看频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math> 与卷积结果的谱重合；<b>拉普拉斯</b>版看 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>}</mo></mrow></math> 与直接卷积重合，并给出 <math><mi>s</mi></math> 域代数式（承接 T12 卷积、通向 T16 解方程）。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+  </div>
+
+  <div class="sect">时频对应类（积分变换 · 拉普拉斯）</div>
+  <div class="grid">
+    <a class="card" href="./T15_复频率s平面与时域响应.html">
+      <span class="tag">T15</span>
+      <h3>复频率 s 平面与时域响应</h3>
+      <p>在复频率 <math><mrow><mi>s</mi><mo>=</mo><mi>σ</mi><mo>+</mo><mi>j</mi><mi>ω</mi></mrow></math> 平面上拖动极点，实时看对应时域响应：左半平面 → 衰减、虚轴 → 等幅振荡、右半平面 → 发散；标注收敛域，并说明 <math><mrow><mi>σ</mi><mo>=</mo><mn>0</mn></mrow></math> 时与傅里叶变换的关系。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
+    <a class="card" href="./T16_拉普拉斯解微分方程.html">
+      <span class="tag">T16</span>
+      <h3>拉普拉斯解微分方程 / 电路暂态</h3>
+      <p>拉氏变换解常系数微分方程的“变换 → 代数求解 → 逆变换”三步走，以二阶系统（RLC 电路暂态）为例，拖参数看<b>欠阻尼 / 临界阻尼 / 过阻尼</b>三种响应与极点位置的对应。</p>
+      <div class="foot">▶ 打开使用</div>
+    </a>
   </div>
 
   <div class="sect">拓展与名例欣赏（选学 · 非考试内容）</div>
   <div class="grid">
-    <a class="card" href="./T14_茹科夫斯基翼型绕流.html">
-      <span class="tag">T14<span class="ext">兴趣拓展</span></span>
+    <a class="card" href="./T17_茹科夫斯基翼型绕流.html">
+      <span class="tag">T17<span class="ext">兴趣拓展</span></span>
       <h3>飞机为什么能飞</h3>
       <p>复变函数的一次著名应用：一百年前，数学家用你正在学的<b>解析函数、调和函数</b>描述机翼周围的气流，再借一个“把圆捏成机翼”的映射，算清了升力。分幕向导 + 圆↔机翼变形动画，带你一步步看懂，还能手算几个点看圆怎么“压”成机翼。<br>（核心用到的<b>保角映射</b>属课外拓展，了解即可、不考；真正挂钩大纲的解析 / 调和函数见 T9、留数见 T5。）</p>
       <div class="foot">▶ 打开使用</div>
