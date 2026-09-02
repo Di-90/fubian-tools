@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T7 泰勒 / 洛朗收敛域</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --red:#c53030; --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:14px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  .panel{width:330px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap;}
+  .row label{font-size:13px; color:var(--sub);}
+  .row input[type=number]{width:66px; padding:4px 6px; border:1px solid var(--line);
+       border-radius:6px; font-size:14px;}
+  .row input[type=range]{flex:1; min-width:110px;}
+  .fbtns,.dbtns{display:flex; flex-wrap:wrap; gap:6px;}
+  .fbtns button,.dbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13.5px; padding:5px 9px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover,.dbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel,.dbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .dbtns button.sel{background:#fffaf0; border-color:var(--orange); color:#9c4221;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .val{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin:6px 0;}
+  .val .t{font-size:11.5px; color:var(--sub); display:block; margin-bottom:2px;}
+  .corr{margin-top:8px; padding:8px 10px; border-radius:8px; background:#f0fff4;
+        border:1px solid #c6f6d5; font-size:13px; color:#22543d;}
+  .corr.warn{background:#fffaf0; border-color:#feebc8; color:#7b341e;}
+  .corr.bad{background:#fff5f5; border-color:#fed7d7; color:#822727;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .bar{width:16px; height:3px; border-radius:2px; display:inline-block;}
+  .sw{width:13px; height:13px; border-radius:3px; display:inline-block;}
+  .dot{width:11px; height:11px; border-radius:50%; display:inline-block; border:2px solid #2563eb; background:#fff;}
+  .xmk{color:var(--red); font-weight:700; font-size:15px;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(720px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.12em;}
+  .fbtns button math{font-size:1.02em;}
+  /* 通项公式可能较宽：每行独立横向滚动，避免超出面板被截断 */
+  #seriesBody > div{ overflow-x:auto; overflow-y:hidden; max-width:100%; }
+  #seriesBody > div::-webkit-scrollbar{ height:6px; }
+  #seriesBody > div::-webkit-scrollbar-thumb{ background:#cbd5e0; border-radius:3px; }
+  #seriesBody math{ white-space:nowrap; }
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>泰勒 / 洛朗收敛域</h1>
+    <span class="hint">拖展开中心 <math><msub><mi>z</mi><mn>0</mn></msub></math>，看收敛域如何被最近的奇点“卡”住；热图验证这组展开真正在哪里收敛</span>
+    <span class="tag">T7 · 复变函数与积分变换</span>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>函数 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <div class="fbtns" id="funcBtns"></div>
+      </div>
+
+      <div class="box" id="customBox" style="display:none;">
+        <h2>自定义 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <input id="customIn" type="text" spellcheck="false" autocomplete="off"
+               style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+                      font-size:15px; font-family:Consolas,'Courier New',monospace;" value="1/(z^2+1)">
+        <div id="customPrev" style="margin:9px 0 2px; font-size:16px; min-height:24px; color:var(--ink);"></div>
+        <div id="customErr" style="font-size:12px; color:#c53030; min-height:0;"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:6px 0 0;line-height:1.55;">
+          奇点由数值探测（找 <math><mo>|</mo><mi>f</mi><mo>|</mo></math> 发散处），适合有理式；
+          用 <b>z　i　e　pi</b>，运算 <b>+ − * / ^</b>。例：<code>1/(z^2+1)</code>　<code>z/((z-1)(z-2))</code>
+        </p>
+      </div>
+
+      <div class="box">
+        <h2>展开中心 <math><msub><mi>z</mi><mn>0</mn></msub></math>（金点，可拖）</h2>
+        <div class="row">
+          <label>Re</label><input id="z0re" type="number" step="0.1" value="0">
+          <label>Im</label><input id="z0im" type="number" step="0.1" value="0">
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>选一个展开域</h2>
+        <div class="dbtns" id="domBtns"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:8px 0 0;line-height:1.5;">
+          泰勒圆盘只用非负幂 <math><msup><mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow><mi>n</mi></msup></math>；洛朗环还含负幂项。
+        </p>
+      </div>
+
+      <div class="box" id="seriesBox">
+        <h2>当前域的展开式（通项）</h2>
+        <div id="seriesBody" style="font-size:13.5px;color:var(--ink);"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:8px 0 0;line-height:1.5;">
+          同一 <math><mi>f</mi></math> 换一个域，通项就变——泰勒圆盘只有非负幂，洛朗环里冒出负幂项。切换上面的展开域看它怎么变。
+        </p>
+      </div>
+
+      <div class="box">
+        <h2>级数逼近</h2>
+        <div class="row">
+          <label>项数 <math><mi>N</mi></math></label>
+          <input id="nRange" type="range" min="1" max="40" value="12">
+          <span id="nVal" style="font-size:14px;font-weight:700;color:var(--blue);width:26px;text-align:right;">12</span>
+        </div>
+        <div class="row">
+          <label>测试点 <math><mi>z</mi></math>　Re</label><input id="ztre" type="number" step="0.1" value="0.5">
+          <label>Im</label><input id="ztim" type="number" step="0.1" value="0">
+        </div>
+        <p style="font-size:11.5px;color:var(--sub);margin:2px 0 0;">绿点即测试点，可拖；看部分和 <math><msub><mi>S</mi><mi>N</mi></msub><mo>(</mo><mi>z</mi><mo>)</mo></math> 逼近 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math>。</p>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tHeat" checked> 收敛热图（这组展开实际收敛处）</label>
+        <label><input type="checkbox" id="tCirc" checked> 各奇点的临界半径圆</label>
+        <label><input type="checkbox" id="tPole" checked> 标注奇点</label>
+        <label><input type="checkbox" id="tGrid" checked> 参考网格与坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="sw" style="background:rgba(56,161,105,.45)"></i>收敛（<math><msub><mi>S</mi><mi>N</mi></msub></math> 逼近 <math><mi>f</mi></math>）</span>
+          <span><i class="sw" style="background:rgba(197,48,48,.45)"></i>发散</span>
+          <span><i class="xmk">✕</i>奇点</span>
+          <span><i class="dot" style="border-color:#b7791f"></i><math><msub><mi>z</mi><mn>0</mn></msub></math> 展开中心</span>
+          <span><i class="dot" style="border-color:#2f855a"></i>测试点 <math><mi>z</mi></math></span>
+        </div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bReset">复位视图</button>
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点 ============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T7"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T7_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ MathML ============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*1000)/1000; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+function mmlComplex(re,im){
+  let r=Math.round(re*1000)/1000, i=Math.round(im*1000)/1000;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(!isFinite(r)||!isFinite(i)) return `<mi>&#x221E;</mi>`;
+  if(i===0) return `<mn>${fmt(r)}</mn>`;
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${fmt(ai)}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}<mi>i</mi>`;
+  return `<mn>${fmt(r)}</mn><mo>${i<0?"&#x2212;":"+"}</mo>${coef}<mi>i</mi>`;
+}
+function round3(v){ return Math.round(v*1000)/1000; }
+
+/* ============ 复数运算 ============ */
+const ONE={x:1,y:0};
+function cadd(a,b){return{x:a.x+b.x,y:a.y+b.y};}
+function csub(a,b){return{x:a.x-b.x,y:a.y-b.y};}
+function cmul(a,b){return{x:a.x*b.x-a.y*b.y,y:a.x*b.y+a.y*b.x};}
+function cdiv(a,b){const d=b.x*b.x+b.y*b.y;return{x:(a.x*b.x+a.y*b.y)/d,y:(a.y*b.x-a.x*b.y)/d};}
+function cscale(a,k){return{x:a.x*k,y:a.y*k};}
+function cconj(a){return{x:a.x,y:-a.y};}
+function cexp(a){const e=Math.exp(a.x);return{x:e*Math.cos(a.y),y:e*Math.sin(a.y)};}
+function csin(a){return{x:Math.sin(a.x)*Math.cosh(a.y),y:Math.cos(a.x)*Math.sinh(a.y)};}
+function ccos(a){return{x:Math.cos(a.x)*Math.cosh(a.y),y:-Math.sin(a.x)*Math.sinh(a.y)};}
+function ctan(a){return cdiv(csin(a),ccos(a));}
+function csinh(a){return{x:Math.sinh(a.x)*Math.cos(a.y),y:Math.cosh(a.x)*Math.sin(a.y)};}
+function ccosh(a){return{x:Math.cosh(a.x)*Math.cos(a.y),y:Math.sinh(a.x)*Math.sin(a.y)};}
+function ctanh(a){return cdiv(csinh(a),ccosh(a));}
+function clog(a){return{x:Math.log(Math.hypot(a.x,a.y)),y:Math.atan2(a.y,a.x)};}
+function csqrt(a){const r=Math.hypot(a.x,a.y),t=Math.atan2(a.y,a.x),sr=Math.sqrt(r);return{x:sr*Math.cos(t/2),y:sr*Math.sin(t/2)};}
+function cpow(a,b){
+  if(Math.abs(b.y)<1e-12 && Math.abs(b.x-Math.round(b.x))<1e-12){
+    let n=Math.round(b.x); if(n===0) return {x:1,y:0};
+    const neg=n<0; n=Math.abs(n); let r={x:1,y:0};
+    for(let k=0;k<n;k++) r=cmul(r,a);
+    return neg?cdiv(ONE,r):r;
+  }
+  if(a.x===0&&a.y===0) return {x:0,y:0};
+  return cexp(cmul(b,clog(a)));
+}
+function cabs(a){return Math.hypot(a.x,a.y);}
+
+/* ============ 表达式解析器（自定义 f，不用 eval）============ */
+const CFUNCS={ exp:cexp, ln:clog, log:clog, sin:csin, cos:ccos, tan:ctan,
+  sinh:csinh, cosh:ccosh, tanh:ctanh, sqrt:csqrt, conj:cconj,
+  abs:a=>({x:cabs(a),y:0}), re:a=>({x:a.x,y:0}), im:a=>({x:a.y,y:0}) };
+const CFUNC_ML={ sqrt:1 };
+function parseCFunc(src){
+  const s=String(src||""); let i=0;
+  const toks=[];
+  while(i<s.length){
+    const c=s[i];
+    if(c===" "||c==="\t"){ i++; continue; }
+    if(/[0-9.]/.test(c)){ let j=i+1; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num",v:s.slice(i,j)}); i=j; continue; }
+    if(/[a-zA-Zπ]/.test(c)){ let j=i+1; while(j<s.length&&/[a-zA-Z]/.test(s[j])) j++; toks.push({t:"id",v:s.slice(i,j)}); i=j; continue; }
+    if("+-*/^(),".indexOf(c)>=0){ toks.push({t:c}); i++; continue; }
+    if(c==="×"){ toks.push({t:"*"}); i++; continue; }
+    if(c==="÷"){ toks.push({t:"/"}); i++; continue; }
+    if(c==="−"){ toks.push({t:"-"}); i++; continue; }
+    throw new Error("无法识别的字符：“"+c+"”");
+  }
+  let p=0;
+  const peek=()=>toks[p], next=()=>toks[p++];
+  const startsPrimary=tk=>tk&&(tk.t==="num"||tk.t==="id"||tk.t==="(");
+  function wrap(node,need){ return node.prec<need ? `<mrow><mo>(</mo>${node.ml}<mo>)</mo></mrow>` : node.ml; }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    let L=parseMul();
+    while(peek()&&(peek().t==="+"||peek().t==="-")){
+      const op=next().t, R=parseMul(), Lml=wrap(L,1), Rml=wrap(R,op==="-"?2:1), lev=L.ev, rev=R.ev;
+      L={ prec:1, ev: op==="+" ? z=>cadd(lev(z),rev(z)) : z=>csub(lev(z),rev(z)),
+          ml: Lml+`<mo>${op==="+"?"+":"&#x2212;"}</mo>`+Rml };
+    }
+    return L;
+  }
+  function parseMul(){
+    let L=parseUnary();
+    while(true){
+      const tk=peek(); let op=null;
+      if(tk&&(tk.t==="*"||tk.t==="/")){ op=next().t; }
+      else if(startsPrimary(tk)){ op="*"; }
+      else break;
+      const R=parseUnary(), lev=L.ev, rev=R.ev;
+      if(op==="/"){ L={ prec:2, ev:z=>cdiv(lev(z),rev(z)), ml:`<mfrac><mrow>${L.ml}</mrow><mrow>${R.ml}</mrow></mfrac>` }; }
+      else{ L={ prec:2, ev:z=>cmul(lev(z),rev(z)), ml: wrap(L,2)+wrap(R,2) }; }
+    }
+    return L;
+  }
+  function parseUnary(){
+    const tk=peek();
+    if(tk&&tk.t==="-"){ next(); const R=parseUnary(); const rev=R.ev;
+      return { prec:3, isIntConst:R.isIntConst, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
+    if(tk&&tk.t==="+"){ next(); return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    const base=parsePrimary();
+    if(peek()&&peek().t==="^"){
+      next(); const ex=parseUnary(), bev=base.ev, eev=ex.ev;
+      return { prec:4, ev:z=>cpow(bev(z),eev(z)), ml:`<msup><mrow>${wrap(base,4)}</mrow><mrow>${ex.ml}</mrow></msup>` };
+    }
+    return base;
+  }
+  function parsePrimary(){
+    const tk=next();
+    if(!tk) throw new Error("表达式不完整");
+    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:e.prec,isIntConst:e.isIntConst,ev:e.ev,ml:e.ml}; }
+    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,isIntConst:Number.isInteger(v),ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
+    if(tk.t==="id"){
+      const nm=tk.v;
+      if(nm==="z") return {prec:5,ev:z=>z,ml:`<mi>z</mi>`};
+      if(nm==="i") return {prec:5,ev:()=>({x:0,y:1}),ml:`<mi>i</mi>`};
+      if(nm==="e") return {prec:5,ev:()=>({x:Math.E,y:0}),ml:`<mi>e</mi>`};
+      if(nm==="pi"||nm==="π") return {prec:5,ev:()=>({x:Math.PI,y:0}),ml:`<mi>&#x3C0;</mi>`};
+      const fn=CFUNCS[nm];
+      if(!fn) throw new Error("未知的名称：“"+nm+"”");
+      if(!peek()||next().t!=="(") throw new Error("函数 "+nm+" 后要跟括号");
+      const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("函数 "+nm+" 缺少右括号 )");
+      const aev=arg.ev;
+      const ml = CFUNC_ML[nm]==1 ? `<msqrt>${arg.ml}</msqrt>`
+                : `<mi>${nm}</mi><mo>&#x2061;</mo><mrow><mo>(</mo>${arg.ml}<mo>)</mo></mrow>`;
+      return {prec:5, ev:z=>fn(aev(z)), ml};
+    }
+    throw new Error("无法解析：附近有多余符号");
+  }
+  const root=parseExpr();
+  if(p<toks.length) throw new Error("表达式末尾有多余内容");
+  root.ev({x:0.3,y:0.4});
+  return { fn: z=>root.ev(z), ml: root.ml };
+}
+
+/* ============ 函数库（解析奇点已知）============ */
+// pf: 部分分式 f = Σ c/(z−a)（单极点），供符号通项推导；entire: 整函数（泰勒处处收敛）
+const LIB=[
+  {src:"1/(1-z)",            sing:[{x:1,y:0}],
+    pf:[{c:{x:-1,y:0},a:{x:1,y:0}}]},
+  {src:"1/(z^2+1)",          sing:[{x:0,y:1},{x:0,y:-1}],
+    pf:[{c:{x:0,y:-0.5},a:{x:0,y:1}},{c:{x:0,y:0.5},a:{x:0,y:-1}}]},
+  {src:"1/((z-1)*(z+1))",    sing:[{x:1,y:0},{x:-1,y:0}],
+    pf:[{c:{x:0.5,y:0},a:{x:1,y:0}},{c:{x:-0.5,y:0},a:{x:-1,y:0}}]},
+  {src:"1/(z*(z-2))",        sing:[{x:0,y:0},{x:2,y:0}],
+    pf:[{c:{x:-0.5,y:0},a:{x:0,y:0}},{c:{x:0.5,y:0},a:{x:2,y:0}}]},
+  {src:"z/((z-1)*(z-2))",    sing:[{x:1,y:0},{x:2,y:0}],
+    pf:[{c:{x:-1,y:0},a:{x:1,y:0}},{c:{x:2,y:0},a:{x:2,y:0}}]},
+  {src:"1/((z-0.6-0.8*i)*(z+1.2))", sing:[{x:0.6,y:0.8},{x:-1.2,y:0}],
+    pf:[]},   // 复数残数在下方按 1/[(a1−a2)] 计算填充
+  {src:"exp(z)",             sing:[], entire:true}
+];
+// 补算第 6 个的复数部分分式残数：A=1/(a1−a2), B=−A
+(function(){
+  const a1={x:0.6,y:0.8}, a2={x:-1.2,y:0};
+  const A=cdiv(ONE,csub(a1,a2));
+  LIB[5].pf=[{c:A,a:a1},{c:{x:-A.x,y:-A.y},a:a2}];
+})();
+LIB.forEach(e=>{ const c=parseCFunc(e.src); e.fn=c.fn; e.ml=c.ml; });
+
+/* ============ 状态 ============ */
+let viewHalf=3, cx=0, cy=0, scale=1, W=0, H=0, dpr=1;
+let z0w={x:0,y:0}, ztw={x:0.5,y:0};
+let mode="lib", libIdx=2, custom=null;   // 默认 1/((z-1)(z+1))
+let domSel=0, N=12;
+let coeff=null;   // {b:Map, rho, nmin, nmax, ok}
+let domains=[], critR=[], minDist=Infinity;
+
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+
+function curFn(){ return mode==="custom" ? (custom&&custom.fn) : LIB[libIdx].fn; }
+function curML(){ return mode==="custom" ? (custom&&custom.ml) : LIB[libIdx].ml; }
+function curSing(){
+  if(mode==="custom") return (custom&&custom.sing)||[];
+  return LIB[libIdx].sing;
+}
+
+/* ============ 坐标 ============ */
+function resize(){
+  const r=cv.getBoundingClientRect(); dpr=window.devicePixelRatio||1;
+  W=r.width; H=r.height; cv.width=W*dpr; cv.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  cx=W/2; cy=H/2; scale=Math.min(W,H)/(2*viewHalf);
+  draw();
+}
+function toScreen(z){ return {x:cx+z.x*scale, y:cy-z.y*scale}; }
+function toWorld(px,py){ return {x:(px-cx)/scale, y:(cy-py)/scale}; }
+
+/* ============ 奇点数值探测（自定义）============ */
+function detectPoles(fn){
+  const out=[]; const span=viewHalf*1.15, Ng=64, step=2*span/Ng;
+  for(let i=0;i<=Ng;i++)for(let j=0;j<=Ng;j++){
+    const z0={x:-span+i*step, y:-span+j*step};
+    let v; try{ v=cabs(fn(z0)); }catch(e){ continue; }
+    if(!(v>3)) continue;
+    let p={x:z0.x,y:z0.y}, h=step*0.6;
+    for(let it=0;it<28;it++){
+      let bx=p.x,by=p.y,bv=cabs(fn(p)),moved=false;
+      const dirs=[[h,0],[-h,0],[0,h],[0,-h],[h,h],[h,-h],[-h,h],[-h,-h]];
+      for(const d of dirs){ const q={x:p.x+d[0],y:p.y+d[1]}; const qv=cabs(fn(q)); if(qv>bv){bv=qv;bx=q.x;by=q.y;moved=true;} }
+      if(moved){ p={x:bx,y:by}; } else { h*=0.5; }
+      if(h<1e-4) break;
+    }
+    if(out.some(o=>Math.hypot(o.x-p.x,o.y-p.y)<0.06)) continue;
+    if(cabs(fn(p))<300) continue;
+    out.push({x:round3(p.x),y:round3(p.y)});
+    if(out.length>=8) return out;
+  }
+  return out;
+}
+
+/* ============ 收敛域与系数 ============ */
+function buildDomains(){
+  const fn=curFn(); const sing=curSing();
+  const dists=sing.map(p=>Math.hypot(p.x-z0w.x,p.y-z0w.y)).filter(d=>isFinite(d)).sort((a,b)=>a-b);
+  // 合并近似相等的距离（等距奇点 → 同一临界半径）
+  critR=[]; dists.forEach(d=>{ if(!critR.length||d-critR[critR.length-1]>1e-3) critR.push(d); });
+  minDist = critR.length ? critR[0] : Infinity;
+  domains=[];
+  if(!critR.length){
+    domains.push({type:"disk", rIn:0, rOut:Infinity, label:"泰勒（全平面）"});
+  }else{
+    domains.push({type:"disk", rIn:0, rOut:critR[0], label:"泰勒圆盘"});
+    for(let k=0;k<critR.length-1;k++)
+      domains.push({type:"annulus", rIn:critR[k], rOut:critR[k+1], label:"洛朗环 "+(k+1)});
+    domains.push({type:"annulus", rIn:critR[critR.length-1], rOut:Infinity, label:"外部洛朗环"});
+  }
+  if(domSel>=domains.length) domSel=0;
+}
+function chooseRho(dom){
+  if(dom.type==="disk"){ return isFinite(dom.rOut) ? dom.rOut*0.5 : Math.max(1, cabs(csub(ztw,z0w))*1.1); }
+  if(!isFinite(dom.rOut)) return dom.rIn*1.6 + 0.01;
+  return Math.sqrt(dom.rIn*dom.rOut);
+}
+// b_n = (1/K) Σ f(z0+ρe^{iθk}) e^{-i n θk}   (与 ρ 幂无关的傅里叶系数)
+function computeCoeffs(){
+  const dom=domains[domSel]; if(!dom){ coeff=null; return; }
+  if(minDist<0.04){ coeff={ok:false, reason:"z0 落在奇点上"}; return; }
+  const fn=curFn(); const rho=chooseRho(dom);
+  const K=256; const samp=[];
+  for(let k=0;k<K;k++){
+    const th=2*Math.PI*k/K;
+    const w={x:z0w.x+rho*Math.cos(th), y:z0w.y+rho*Math.sin(th)};
+    let f; try{ f=fn(w); }catch(e){ f={x:NaN,y:NaN}; }
+    samp.push(isFinite(f.x)&&isFinite(f.y)?f:{x:0,y:0});
+  }
+  const nmin = dom.type==="disk" ? 0 : -N, nmax=N;
+  const b=new Map();
+  for(let n=nmin;n<=nmax;n++){
+    let sx=0, sy=0;
+    for(let k=0;k<K;k++){
+      const th=-2*Math.PI*n*k/K, c=Math.cos(th), s=Math.sin(th);
+      const f=samp[k];
+      sx += f.x*c - f.y*s; sy += f.x*s + f.y*c;
+    }
+    b.set(n, {x:sx/K, y:sy/K});
+  }
+  coeff={ok:true, b, rho, nmin, nmax, dom};
+}
+// S_N(z) = Σ b_n ((z-z0)/ρ)^n   （M 指定截断阶数，默认取满 nmax）
+function partialSum(z, M){
+  if(!coeff||!coeff.ok) return {x:NaN,y:NaN};
+  const hi = (M==null) ? coeff.nmax : Math.min(M, coeff.nmax);
+  const u=cdiv(csub(z,z0w),{x:coeff.rho,y:0});
+  let sum={x:0,y:0}, upow={x:1,y:0};
+  for(let n=0;n<=hi;n++){
+    if(n>0) upow=cmul(upow,u);
+    const bn=coeff.b.get(n); if(bn) sum=cadd(sum,cmul(bn,upow));
+  }
+  if(coeff.nmin<0){
+    const loMax=Math.min(hi, -coeff.nmin);
+    const uinv=cdiv(ONE,u); let upn=uinv;
+    for(let n=1;n<=loMax;n++){
+      const bn=coeff.b.get(-n); if(bn) sum=cadd(sum,cmul(bn,upn));
+      upn=cmul(upn,uinv);
+    }
+  }
+  return sum;
+}
+function nearSing(z,tol){
+  const s=curSing();
+  for(const p of s) if(Math.hypot(z.x-p.x,z.y-p.y)<tol) return true;
+  return false;
+}
+
+/* ============ 绘制 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size,anchor){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px";
+  if(anchor==="left") d.style.transform="translate(4px,-50%)";
+  d.innerHTML=html; overlay.appendChild(d);
+}
+function drawGridAxis(){
+  ctx.save();
+  ctx.strokeStyle="#eef2f7"; ctx.lineWidth=1;
+  const g=Math.ceil(viewHalf);
+  for(let k=-g;k<=g;k++){
+    let a=toScreen({x:k,y:-viewHalf}), b=toScreen({x:k,y:viewHalf});
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    a=toScreen({x:-viewHalf,y:k}); b=toScreen({x:viewHalf,y:k});
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1.4;
+  let o=toScreen({x:0,y:0});
+  ctx.beginPath(); ctx.moveTo(0,o.y); ctx.lineTo(W,o.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(o.x,0); ctx.lineTo(o.x,H); ctx.stroke();
+  ctx.restore();
+  addLabel(mml("<mi>Re</mi>"), W-22, o.y-12, "#64748b", 13);
+  addLabel(mml("<mi>Im</mi>"), o.x+16, 14, "#64748b", 13);
+}
+function drawHeat(){
+  if(!coeff||!coeff.ok) return;
+  const dom=domains[domSel]; if(!dom) return;
+  const step=2*viewHalf/58, cell=step*scale;
+  // 铺满整块可见画布（不只中央 viewHalf 方形），避免宽画布下边角留白、与所选域不一致
+  const i0=Math.floor(((0-cx)/scale)/step)-1, i1=Math.ceil(((W-cx)/scale)/step)+1;
+  const j0=Math.floor(((cy-H)/scale)/step)-1, j1=Math.ceil(((cy-0)/scale)/step)+1;
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){
+    // 收敛域由奇点位置解析确定，与项数 N 无关：|z−z0| 落在所选域 [rIn,rOut) 内即收敛（绿），否则发散（红）。
+    // 每点非绿即红，无中间色（收敛/发散本就是二值），边界锐利压在临界半径圆上。
+    const wx=(i+0.5)*step, wy=(j+0.5)*step;
+    const r=Math.hypot(wx-z0w.x, wy-z0w.y);
+    const conv = (r>=dom.rIn-1e-9 && r<dom.rOut);
+    const p=toScreen({x:i*step, y:(j+1)*step});
+    ctx.fillStyle = conv ? "rgba(56,161,105,0.42)" : "rgba(197,48,48,0.40)";
+    ctx.fillRect(p.x, p.y, cell+1, cell+1);
+  }
+}
+function circle(rw, stroke, dash, width){
+  if(!isFinite(rw)||rw<=0) return;
+  const o=toScreen({x:z0w.x,y:z0w.y}), rs=rw*scale;
+  ctx.save(); ctx.strokeStyle=stroke; ctx.lineWidth=width||1.5;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.arc(o.x,o.y,rs,0,7); ctx.stroke(); ctx.restore();
+}
+function drawDomain(){
+  const dom=domains[domSel]; if(!dom) return;
+  // 所选域的收敛区已由绿色热图标出，这里只强调它的边界圆（蓝=泰勒圆盘 / 橙=洛朗环），
+  // 不再叠半透明填充——那层与绿色热图重复，且叠色会发闷（肉色）。
+  const col = dom.type==="disk" ? "#2b6cb0" : "#dd6b20";
+  if(isFinite(dom.rOut)) circle(dom.rOut, col, null, 2.6);
+  if(dom.rIn>0) circle(dom.rIn, col, null, 2.6);
+}
+function drawSing(){
+  if(!document.getElementById("tPole").checked) return;
+  const s=curSing();
+  s.forEach(p=>{
+    const q=toScreen(p);
+    ctx.save(); ctx.strokeStyle="#c53030"; ctx.lineWidth=2.6; const r=6.5;
+    ctx.beginPath(); ctx.moveTo(q.x-r,q.y-r); ctx.lineTo(q.x+r,q.y+r);
+    ctx.moveTo(q.x-r,q.y+r); ctx.lineTo(q.x+r,q.y-r); ctx.stroke(); ctx.restore();
+  });
+}
+function drawPoint(z, color){
+  const q=toScreen(z);
+  ctx.save();
+  // 空心圈：中心不填充，露出底下热图的收敛/发散颜色；白色光晕保证在绿/红上都可见
+  ctx.lineWidth=4.4; ctx.strokeStyle="rgba(255,255,255,.92)";
+  ctx.beginPath(); ctx.arc(q.x,q.y,6,0,7); ctx.stroke();
+  ctx.lineWidth=2.4; ctx.strokeStyle=color;
+  ctx.beginPath(); ctx.arc(q.x,q.y,6,0,7); ctx.stroke();
+  ctx.restore();
+  return q;
+}
+function draw(){
+  ctx.clearRect(0,0,W,H); clearLabels();
+  if(document.getElementById("tGrid").checked) drawGridAxis();
+  if(document.getElementById("tHeat").checked) drawHeat();
+  // 临界半径圆
+  if(document.getElementById("tCirc").checked){
+    critR.forEach((r,idx)=>{ circle(r,"#a0aec0",[4,4],1.3);
+      const lp=toScreen({x:z0w.x, y:z0w.y+r});
+      addLabel(mml(`<msub><mi>d</mi><mn>${idx+1}</mn></msub><mo>=</mo><mn>${fmt(r)}</mn>`), lp.x, lp.y-10, "#718096", 12);
+    });
+  }
+  drawDomain();
+  drawSing();
+  // z0 与 测试点
+  const q0=drawPoint(z0w,"#b7791f");
+  addLabel(mml("<msub><mi>z</mi><mn>0</mn></msub>"), q0.x, q0.y-14, "#b7791f", 14);
+  const qt=drawPoint(ztw,"#2f855a");
+  addLabel(mml("<mi>z</mi>"), qt.x, qt.y-14, "#2f855a", 14);
+}
+
+/* ============ 读数 ============ */
+function whichDomain(z){
+  const r=cabs(csub(z,z0w));
+  for(let k=0;k<domains.length;k++){
+    const d=domains[k];
+    if(r>=d.rIn-1e-9 && r<d.rOut) return k;
+  }
+  return domains.length-1;
+}
+function updateReadout(){
+  const el=document.getElementById("readout");
+  const dom=domains[domSel];
+  let html="";
+  html += `<div><span class="k">函数：</span>${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+curML())}</div>`;
+  html += `<div><span class="k">展开中心：</span>${mml("<msub><mi>z</mi><mn>0</mn></msub><mo>=</mo>"+mmlComplex(z0w.x,z0w.y))}</div>`;
+
+  if(minDist<0.04){
+    html += `<div class="corr bad">展开中心正落在奇点上，这里无法展开。请把 <b>z₀</b> 移开奇点。</div>`;
+    el.innerHTML=html; return;
+  }
+  // 收敛半径 / 域说明
+  if(!critR.length){
+    html += `<div class="corr">该函数在全平面解析（无奇点），泰勒级数处处收敛，收敛半径 ${mml("<mi>R</mi><mo>=</mo><mi>&#x221E;</mi>")}。</div>`;
+  }else{
+    html += `<div><span class="k">到各奇点距离：</span>${critR.map(r=>fmt(r)).join("，").replace(/-/g,"−")}</div>`;
+    if(dom.type==="disk"){
+      html += `<div class="val"><span class="t">泰勒收敛半径 = 到最近奇点的距离</span>${mml("<mi>R</mi><mo>=</mo><mn>"+fmt(dom.rOut)+"</mn>")}</div>`;
+    }
+  }
+  // 当前域
+  let domDesc;
+  if(dom.type==="disk"){
+    domDesc = isFinite(dom.rOut)
+      ? mml("<mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><mn>"+fmt(dom.rOut)+"</mn>")
+      : mml("<mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><mi>&#x221E;</mi>");
+  }else{
+    const hi = isFinite(dom.rOut) ? "<mn>"+fmt(dom.rOut)+"</mn>" : "<mi>&#x221E;</mi>";
+    domDesc = mml("<mn>"+fmt(dom.rIn)+"</mn><mo>&lt;</mo><mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo>"+hi);
+  }
+  html += `<div><span class="k">当前展开域（${dom.label}）：</span>${domDesc}　${dom.type==="disk"?"仅非负幂":"含负幂项"}</div>`;
+
+  // 测试点
+  const fn=curFn(); let fz; try{ fz=fn(ztw); }catch(e){ fz={x:NaN,y:NaN}; }
+  const r=cabs(csub(ztw,z0w));
+  const inDom = r>=dom.rIn-1e-9 && r<dom.rOut;
+  html += `<div class="val"><span class="t">测试点 z（|z−z₀| = ${fmt(r)}）</span>`;
+  if(inDom){
+    const s=partialSum(ztw);
+    const err=cabs(csub(s,fz));
+    html += `${mml("<msub><mi>S</mi><mi>N</mi></msub><mo>=</mo>"+mmlComplex(s.x,s.y))}<br>`;
+    html += `${mml("<mi>f</mi><mo>=</mo>"+mmlComplex(fz.x,fz.y))}<br>`;
+    html += `<span class="k">误差 </span>${mml("<mo>|</mo><msub><mi>S</mi><mi>N</mi></msub><mo>&#x2212;</mo><mi>f</mi><mo>|</mo><mo>=</mo><mn>"+(err<1e-3?"&lt;0.001":fmt(err))+"</mn>")}</div>`;
+    html += `<div class="corr">测试点在当前展开域内 ✓　加大 N，误差应持续减小（收敛）。</div>`;
+  }else{
+    const kk=whichDomain(ztw);
+    html += `<span class="k">测试点不在当前域</span></div>`;
+    html += `<div class="corr warn">测试点落在 <b>${domains[kk].label}</b>，用当前这组系数在此处<b>不收敛</b>（加大 N 误差不降反增）。要在此点收敛，请切换到它所在的域。</div>`;
+  }
+  el.innerHTML=html;
+}
+
+/* ============ 展开式通项 ============ */
+// 数值围道积分求单极点留数：Res_a f = (1/2π)∫ f(a+re^{iθ})·r e^{iθ} dθ
+function residuesAt(fn, poles){
+  const out=[];
+  for(const a of poles){
+    let r=0.5;
+    for(const b of poles){ if(b===a) continue; const d=Math.hypot(a.x-b.x,a.y-b.y); if(d>0) r=Math.min(r,d*0.35); }
+    r=Math.max(0.03, Math.min(r,0.5));
+    const K=256; let sx=0, sy=0;
+    for(let k=0;k<K;k++){
+      const th=2*Math.PI*k/K, re=r*Math.cos(th), im=r*Math.sin(th);
+      let f; try{ f=fn({x:a.x+re, y:a.y+im}); }catch(e){ f={x:0,y:0}; }
+      if(!isFinite(f.x)||!isFinite(f.y)) f={x:0,y:0};
+      sx += f.x*re - f.y*im; sy += f.x*im + f.y*re;   // f·(r e^{iθ})
+    }
+    out.push({c:{x:sx/K, y:sy/K}, a:{x:a.x,y:a.y}});
+  }
+  return out;
+}
+// 回代验证 Σ cₖ/(z−aₖ) ≈ f（远离极点的几个点），通过才认为是简单极点有理式
+function verifyPF(fn, pf){
+  const pts=[{x:0.31,y:0.42},{x:-0.63,y:0.27},{x:0.85,y:-0.55},{x:1.4,y:1.1}];
+  let tested=0;
+  for(const z of pts){
+    if(pf.some(t=>Math.hypot(z.x-t.a.x,z.y-t.a.y)<0.2)) continue;
+    let s={x:0,y:0}; for(const t of pf) s=cadd(s,cdiv(t.c,csub(z,t.a)));
+    let f; try{ f=fn(z); }catch(e){ return false; }
+    if(!isFinite(f.x)||!isFinite(f.y)) continue;
+    if(cabs(csub(s,f))/(cabs(f)+1) > 0.02) return false;
+    tested++;
+  }
+  return tested>=2;
+}
+function isOneC(c){ return Math.abs(c.x-1)<1e-9 && Math.abs(c.y)<1e-9; }
+function numML(c){ return mmlComplex(c.x,c.y); }
+function parenML(c){ return (c.y===0 && c.x>=0) ? numML(c) : `<mo>(</mo>${numML(c)}<mo>)</mo>`; }
+function WmlNow(){
+  return (Math.hypot(z0w.x,z0w.y)<1e-9)
+    ? `<mi>z</mi>`
+    : `<mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow>`;
+}
+function sumML(){ return `<munderover><mo>&#x2211;</mo><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow><mi>&#x221E;</mi></munderover>`; }
+function powWn(n,W){
+  if(n===0) return "";
+  if(n===1) return W;
+  const wr = W.indexOf("<mrow")===0 ? W : `<mrow>${W}</mrow>`;
+  return `<msup>${wr}<mrow>${n<0?"<mo>&#x2212;</mo>":""}<mn>${Math.abs(n)}</mn></mrow></msup>`;
+}
+// 单极点 c/(z−a) 在当前域的展开（factored 几何级数，直观体现幂次来源）
+function pfTermML(c, a, dom, W){
+  const alpha=csub(a,z0w);                    // α = a − z0
+  const absA=cabs(alpha);
+  const outside = absA >= dom.rOut-1e-9;      // 极点在域外（域被它套住）→ 非负幂；否则 → 负幂
+  if(outside){
+    const coef=cdiv({x:-c.x,y:-c.y}, alpha);  // −c/α
+    const wr = W.indexOf("<mrow")===0 ? W : `<mrow>${W}</mrow>`;
+    // 比值 w/α 的显示：把负号折进分子/系数，避免出现 z/−1、z/−2 这种负分母
+    let base, needParen;
+    if(Math.abs(alpha.y)<1e-9){          // α 为实数
+      const av=alpha.x;
+      if(Math.abs(av-1)<1e-9){ base=wr; needParen=false; }                       // w
+      else if(Math.abs(av+1)<1e-9){ base=`<mrow><mo>&#x2212;</mo>${wr}</mrow>`; needParen=true; } // −w
+      else{ const numer = av<0 ? `<mo>&#x2212;</mo>${W}` : W;
+        base=`<mfrac><mrow>${numer}</mrow><mrow><mn>${fmt(Math.abs(av))}</mn></mrow></mfrac>`; needParen=true; }
+    }else{                                // α 为复数：保留 w/α
+      base=`<mfrac><mrow>${W}</mrow><mrow>${numML(alpha)}</mrow></mfrac>`; needParen=true;
+    }
+    const pw = needParen
+      ? `<msup><mrow><mo>(</mo>${base}<mo>)</mo></mrow><mi>n</mi></msup>`
+      : `<msup>${base}<mi>n</mi></msup>`;
+    const cf = isOneC(coef) ? "" : parenML(coef);
+    return { ml: cf+sumML()+pw, neg:false };
+  }else{
+    // c/w · Σ (α/w)^n  →  含负幂
+    const factorC = `<mfrac><mrow>${numML(c)}</mrow><mrow>${W}</mrow></mfrac>`;
+    const ratioBase = isOneC(alpha)
+      ? `<mfrac><mn>1</mn><mrow>${W}</mrow></mfrac>`
+      : `<mfrac><mrow>${numML(alpha)}</mrow><mrow>${W}</mrow></mfrac>`;
+    const pw = `<msup><mrow><mo>(</mo>${ratioBase}<mo>)</mo></mrow><mi>n</mi></msup>`;
+    return { ml: factorC+sumML()+pw, neg:true };
+  }
+}
+// 数值识别自定义函数是否为已知初等整函数（无奇点）
+function matchEntire(fn){
+  const pts=[{x:0.4,y:0.3},{x:-0.7,y:0.5},{x:1.1,y:-0.6},{x:0.2,y:1.3},{x:-1.4,y:-0.2}];
+  const cand=[["exp",cexp],["sin",csin],["cos",ccos],["sinh",csinh],["cosh",ccosh]];
+  for(const [name,g] of cand){
+    let ok=true;
+    for(const z of pts){ let a,b; try{a=fn(z);b=g(z);}catch(e){ok=false;break;}
+      if(!isFinite(a.x)||!isFinite(a.y)||cabs(csub(a,b))/(cabs(b)+1)>1e-4){ ok=false; break; } }
+    if(ok) return name;
+  }
+  return null;
+}
+// 已知初等整函数的标准通项（z0=0 给经典闭式；exp 任意 z0 均可）
+function entireSeriesML(name, W){
+  const wr = W.indexOf("<mrow")===0 ? W : `<mrow>${W}</mrow>`;
+  if(name==="exp"){
+    const ez=cexp(z0w); const cf=isOneC(ez)?"":parenML(ez);
+    return { ml: cf+sumML()+`<mfrac><mrow><msup>${wr}<mi>n</mi></msup></mrow><mrow><mi>n</mi><mo>!</mo></mrow></mfrac>`, ok:true };
+  }
+  if(Math.hypot(z0w.x,z0w.y)>=1e-9) return { ml:null, ok:false };  // 三角/双曲的闭式通项只在 z0=0 给出
+  const alt=`<msup><mrow><mo>(</mo><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mi>n</mi></msup>`;
+  const odd=`<msup>${wr}<mrow><mn>2</mn><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup>`;
+  const even=`<msup>${wr}<mrow><mn>2</mn><mi>n</mi></mrow></msup>`;
+  const foddF=`<mrow><mo>(</mo><mn>2</mn><mi>n</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>!</mo></mrow>`;
+  const fevenF=`<mrow><mo>(</mo><mn>2</mn><mi>n</mi><mo>)</mo><mo>!</mo></mrow>`;
+  const map={
+    sin:  sumML()+`<mfrac><mrow>${alt}${odd}</mrow><mrow>${foddF}</mrow></mfrac>`,
+    cos:  sumML()+`<mfrac><mrow>${alt}${even}</mrow><mrow>${fevenF}</mrow></mfrac>`,
+    sinh: sumML()+`<mfrac><mrow>${odd}</mrow><mrow>${foddF}</mrow></mfrac>`,
+    cosh: sumML()+`<mfrac><mrow>${even}</mrow><mrow>${fevenF}</mrow></mfrac>`,
+  };
+  return { ml: map[name]||null, ok: !!map[name] };
+}
+function updateSeries(){
+  const el=document.getElementById("seriesBody");
+  const dom=domains[domSel];
+  if(!dom){ el.innerHTML=""; return; }
+  if(minDist<0.04){ el.innerHTML=`<div class="corr bad">z₀ 落在奇点上，无法展开。</div>`; return; }
+  const W=WmlNow();
+  let html="";
+  // —— 整函数（无奇点）：内置 exp 或可识别的初等整函数（exp/sin/cos/sinh/cosh）——
+  const entireName = (mode==="lib" && LIB[libIdx].entire) ? "exp"
+    : (mode==="custom" && custom && custom.sing && custom.sing.length===0) ? matchEntire(custom.fn)
+    : null;
+  let entireHint="";
+  if(entireName){
+    const es=entireSeriesML(entireName, W);
+    if(es.ok){
+      html += `<div class="val"><span class="t">泰勒（全平面，处处收敛）</span>`
+            + mml(`<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>`+es.ml) + `</div>`;
+      html += `<div class="corr">整函数在全平面解析，泰勒级数处处收敛（R = ∞）。</div>`;
+      el.innerHTML=html; return;
+    }
+    // 识别为 sin/cos/… 但 z0≠0：闭式通项不便直接写，改数值系数（下方）并提示
+    entireHint = `识别为 ${entireName}(z)：在 z₀=0 处有标准通项，非零中心改用数值系数。`;
+  }
+  // —— 简单极点有理式：符号通项（部分分式逐项展开）——
+  //    内置库用解析残数；自定义函数用数值围道积分求残数、且回代验证通过时同样给出通项
+  const isCustom = mode==="custom";
+  const pf = isCustom ? (custom && custom.pfOk ? custom.pf : null)
+                      : (LIB[libIdx].pf || null);
+  if(pf && pf.length){
+    // 自定义函数：显式列出数值识别到的残数 cₖ 及对应极点 aₖ（说明里引用了 cₖ，这里给出实际值）
+    if(isCustom){
+      const items = pf.map((t,k)=>
+        mml(`<msub><mi>c</mi><mn>${k+1}</mn></msub><mo>=</mo>${numML(t.c)}`)
+        + `<span style="color:var(--sub)">（在 </span>`
+        + mml(`<mi>z</mi><mo>=</mo>${numML(t.a)}`) + `<span style="color:var(--sub)">）</span>`
+      ).join("<span style='color:var(--sub)'>，</span>　");
+      html += `<div class="val"><span class="t">部分分式系数 cₖ</span>${items}</div>`;
+    }
+    // 部分分式头（仅在有多项时展示，帮助学生看清来源）
+    if(pf.length>1){
+      let pfml="<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>";
+      pf.forEach((t,k)=>{
+        if(k>0) pfml+="<mo>+</mo>";
+        pfml+=`<mfrac><mrow>${parenML(t.c)}</mrow><mrow>${denML(t.a)}</mrow></mfrac>`;
+      });
+      html += `<div class="val"><span class="t">部分分式</span>${mml(pfml)}</div>`;
+    }
+    // 逐项展开
+    let hasNeg=false;
+    pf.forEach((t,k)=>{
+      const r=pfTermML(t.c,t.a,dom,W);
+      if(r.neg) hasNeg=true;
+      const head=`<mfrac><mrow>${parenML(t.c)}</mrow><mrow>${denML(t.a)}</mrow></mfrac><mo>=</mo>`;
+      // 自定义单极点也显示 cₖ/(z−aₖ) 头（残数是数值识别出来的，值得展示）；内置单极点仍用 f(z)=
+      const useHead = (pf.length>1) || isCustom;
+      html += `<div style="margin:6px 0;">${mml((useHead?head:"<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>")+r.ml)}</div>`;
+    });
+    html += `<div class="corr ${hasNeg?"warn":""}">`
+          + (dom.type==="disk"
+              ? "当前域全是<b>非负幂</b>（泰勒型）。"
+              : "当前域出现<b>负幂项</b>（洛朗型）——套住 z₀ 的奇点贡献负幂。")
+          + "</div>";
+    el.innerHTML=html; return;
+  }
+  // —— 自定义函数：数值系数回退 aₙ（无符号部分分式）——
+  if(!coeff||!coeff.ok){ el.innerHTML=`<div class="corr warn">无法计算系数。</div>`; return; }
+  const rho=coeff.rho;
+  function aOf(n){ const b=coeff.b.get(n); if(!b) return {x:0,y:0}; const s=Math.pow(rho,-n); return {x:b.x*s,y:b.y*s}; }
+  const parts=[];
+  const negList = dom.type==="disk" ? [] : [-1,-2,-3];
+  negList.slice().reverse().forEach(n=>{ const a=aOf(n); if(cabs(a)>1e-4) parts.push(parenML(a)+powWn(n,W)); });
+  [0,1,2,3].forEach(n=>{ const a=aOf(n); if(cabs(a)>1e-4 || n===0) parts.push(parenML(a)+powWn(n,W)); });
+  const why = entireHint ? ("（"+entireHint+"）")
+            : (mode==="custom" && custom && custom.sing && custom.sing.length && !custom.pfOk)
+                ? "（含高阶极点或非有理式，无法给出符号通项）" : "";
+  html += `<div class="val"><span class="t">数值系数 aₙ（取前几项）${why}</span>`
+        + mml(`<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>&#x2248;</mo>`+parts.join("<mo>+</mo>")+`<mo>+</mo><mo>&#x22EF;</mo>`) + `</div>`;
+  html += `<div class="corr">${dom.type==="disk"?"非负幂（泰勒型）":"含负幂项（洛朗型）"}；系数由柯西积分数值近似，仅示意低阶项。</div>`;
+  el.innerHTML=html;
+}
+function denML(a){ // 分母 (z − a)：a=0 → z；a 为负实数 → z+|a|；复数加括号
+  if(Math.hypot(a.x,a.y)<1e-9) return `<mi>z</mi>`;
+  if(Math.abs(a.y)<1e-9 && a.x<0) return `<mi>z</mi><mo>+</mo><mn>${fmt(-a.x)}</mn>`;
+  const ap=(a.y===0 && a.x>=0) ? numML(a) : `<mo>(</mo>${numML(a)}<mo>)</mo>`;
+  return `<mi>z</mi><mo>&#x2212;</mo>${ap}`;
+}
+
+/* ============ 面板 ============ */
+function renderFuncBtns(){
+  const host=document.getElementById("funcBtns"); host.innerHTML="";
+  LIB.forEach((e,idx)=>{
+    const b=document.createElement("button");
+    b.innerHTML=mml(e.ml);
+    if(mode==="lib"&&idx===libIdx) b.className="sel";
+    b.onclick=()=>{ mode="lib"; libIdx=idx; document.getElementById("customBox").style.display="none";
+      EduTelemetry.log("func", e.src); recompute(true); renderFuncBtns(); };
+    host.appendChild(b);
+  });
+  const bc=document.createElement("button");
+  bc.textContent="✎ 自定义";
+  if(mode==="custom") bc.className="sel";
+  bc.onclick=()=>{ mode="custom"; document.getElementById("customBox").style.display="block";
+    applyCustom(); renderFuncBtns(); };
+  host.appendChild(bc);
+}
+function applyCustom(){
+  const src=document.getElementById("customIn").value;
+  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev");
+  try{
+    const c=parseCFunc(src);
+    const sing=detectPoles(c.fn);
+    let pf=[], pfOk=false;
+    if(sing.length){ pf=residuesAt(c.fn, sing); pfOk=verifyPF(c.fn, pf); }
+    custom={fn:c.fn, ml:c.ml, sing, pf, pfOk};
+    prevEl.innerHTML=mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+c.ml);
+    errEl.textContent = sing.length
+      ? ("探测到奇点 "+sing.length+" 个"+(pfOk?"，可给出符号通项":"（非简单极点，用数值系数）"))
+      : "未探测到奇点（按整函数处理）";
+    errEl.style.color = "#718096";
+    recompute(true);
+  }catch(e){
+    errEl.style.color="#c53030"; errEl.textContent=e.message;
+  }
+}
+function renderDomBtns(){
+  const host=document.getElementById("domBtns"); host.innerHTML="";
+  domains.forEach((d,idx)=>{
+    const b=document.createElement("button");
+    b.textContent=d.label;
+    if(idx===domSel) b.className="sel";
+    b.onclick=()=>{ domSel=idx; EduTelemetry.log("domain", d.label); recompute(false); };
+    host.appendChild(b);
+  });
+}
+function recompute(rebuildDomains){
+  if(rebuildDomains){ buildDomains(); }
+  computeCoeffs();
+  renderDomBtns();
+  updateReadout();
+  updateSeries();
+  draw();
+}
+
+/* ============ 交互 ============ */
+let dragging=null;
+function pick(px,py){
+  const q0=toScreen(z0w), qt=toScreen(ztw);
+  if(Math.hypot(px-qt.x,py-qt.y)<14) return "zt";
+  if(Math.hypot(px-q0.x,py-q0.y)<14) return "z0";
+  return null;
+}
+cv.addEventListener("pointerdown",e=>{
+  const r=cv.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+  dragging=pick(px,py);
+  if(dragging){ cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing"); }
+});
+cv.addEventListener("pointermove",e=>{
+  if(!dragging) return;
+  const r=cv.getBoundingClientRect(), w=toWorld(e.clientX-r.left, e.clientY-r.top);
+  const wz={x:Math.round(w.x*20)/20, y:Math.round(w.y*20)/20};
+  if(dragging==="z0"){ z0w=wz; document.getElementById("z0re").value=wz.x; document.getElementById("z0im").value=wz.y; recompute(true); }
+  else{ ztw=wz; document.getElementById("ztre").value=wz.x; document.getElementById("ztim").value=wz.y; updateReadout(); draw(); }
+});
+function endDrag(e){ if(dragging){ EduTelemetry.log("drag",dragging); dragging=null; cv.classList.remove("grabbing"); } }
+cv.addEventListener("pointerup",endDrag);
+cv.addEventListener("pointercancel",endDrag);
+cv.addEventListener("wheel",e=>{
+  e.preventDefault(); viewHalf=Math.max(1.2, Math.min(8, viewHalf*(e.deltaY>0?1.1:0.9)));
+  scale=Math.min(W,H)/(2*viewHalf); recompute(false);
+},{passive:false});
+
+document.getElementById("z0re").addEventListener("input",e=>{ z0w.x=parseFloat(e.target.value)||0; recompute(true); });
+document.getElementById("z0im").addEventListener("input",e=>{ z0w.y=parseFloat(e.target.value)||0; recompute(true); });
+document.getElementById("ztre").addEventListener("input",e=>{ ztw.x=parseFloat(e.target.value)||0; updateReadout(); draw(); });
+document.getElementById("ztim").addEventListener("input",e=>{ ztw.y=parseFloat(e.target.value)||0; updateReadout(); draw(); });
+document.getElementById("nRange").addEventListener("input",e=>{
+  N=parseInt(e.target.value,10); document.getElementById("nVal").textContent=N;
+  computeCoeffs(); updateReadout(); updateSeries(); draw();
+});
+document.getElementById("customIn").addEventListener("input",()=>{ if(mode==="custom") applyCustom(); });
+["tHeat","tCirc","tPole","tGrid"].forEach(id=>document.getElementById(id).addEventListener("change",draw));
+document.getElementById("bReset").addEventListener("click",()=>{ viewHalf=3; scale=Math.min(W,H)/(2*viewHalf); draw(); });
+document.getElementById("bExport").addEventListener("click",EduTelemetry.exportCSV);
+
+/* ============ 帮助 ============ */
+document.getElementById("helpBody").innerHTML = `
+  <h2>泰勒 / 洛朗收敛域</h2>
+  <p>解析函数可以在展开中心 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 附近展成幂级数。奇点决定了收敛区域——本工具让你把这件事“看见”。</p>
+  <h3>① 泰勒圆盘</h3>
+  <p>若 ${mml("<mi>f</mi>")} 在 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 处解析，则泰勒级数 ${mml("<mo>&#x2211;</mo><msub><mi>a</mi><mi>n</mi></msub><msup><mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow><mi>n</mi></msup>")} 在圆盘 ${mml("<mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><mi>R</mi>")} 内收敛，收敛半径 ${mml("<mi>R</mi>")} = 到<b>最近奇点</b>的距离。拖动 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 靠近某奇点，看圆盘缩小。</p>
+  <h3>② 洛朗环</h3>
+  <p>相邻两个临界半径之间是一个圆环。在圆环 ${mml("<msub><mi>d</mi><mi>k</mi></msub><mo>&lt;</mo><mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><msub><mi>d</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub>")} 内，${mml("<mi>f</mi>")} 展成含<b>负幂项</b>的洛朗级数。同一个函数在不同圆环里有<b>不同的展开</b>——点“选一个展开域”切换感受。</p>
+  <h3>③ 收敛热图（本工具的重点）</h3>
+  <p>选定域后，程序用柯西积分公式 ${mml("<msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>1</mn><mrow><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi></mrow></mfrac><mo>&#x222E;</mo><mfrac><mrow><mi>f</mi><mo>(</mo><mi>w</mi><mo>)</mo></mrow><mrow><msup><mrow><mo>(</mo><mi>w</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow></mfrac><mi>d</mi><mi>w</mi>")} 数值求出展开系数（供下方测试点计算部分和）。热图则直接标出这组展开的<b>收敛域</b>：<b>绿=收敛、红=发散，每点非绿即红没有中间色</b>（收敛与否本就是二值的）。收敛域由<b>奇点位置解析确定</b>（泰勒圆盘 ${mml("<mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><mi>R</mi>")}、洛朗圆环 ${mml("<msub><mi>d</mi><mi>k</mi></msub><mo>&lt;</mo><mo>|</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>|</mo><mo>&lt;</mo><msub><mi>d</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub>")}），绿色正好铺满所选圆盘/圆环、边界压在临界半径圆上，<b>与项数 ${mml("<mi>N</mi>")} 无关——${mml("<mi>N</mi>")} 再大收敛域也不变</b>。</p>
+  <h3>④ 测试点与项数</h3>
+  <p>拖绿色测试点 ${mml("<mi>z</mi>")}、拉项数 ${mml("<mi>N</mi>")}：在域内加大 ${mml("<mi>N</mi>")} 误差持续减小；域外则怎么加都发散。</p>
+  <p style="color:#7b341e;background:#fffaf0;border:1px solid #feebc8;border-radius:8px;padding:8px 10px;">数值说明：系数由圆周上采样的柯西积分近似（自适应取半径 ρ 落在所选域内），项数很大时高阶系数的数值误差会累积，属数值现象；教学重点是收敛<b>区域</b>的形状，不是极高精度的求和。</p>
+`;
+function openHelp(){ document.getElementById("mask").style.display="block"; document.getElementById("modal").style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ document.getElementById("mask").style.display="none"; document.getElementById("modal").style.display="none"; }
+document.getElementById("helpBtn").addEventListener("click",openHelp);
+document.getElementById("modalX").addEventListener("click",closeHelp);
+document.getElementById("mask").addEventListener("click",closeHelp);
+
+/* ============ 启动 ============ */
+window.addEventListener("resize",resize);
+renderFuncBtns();
+resize();
+recompute(true);
+EduTelemetry.log("open");
+
+/* ============ 访问计数（腾讯云 CloudBase）============ */
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-series-region";
+  var TOOL_PREV = "";
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL;
+    if(!localStorage.getItem(seenKey) && TOOL_PREV && localStorage.getItem("fbtool_seen:"+TOOL_PREV)) localStorage.setItem(seenKey,"1");
+    var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url);
+    else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
