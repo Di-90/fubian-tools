@@ -84,7 +84,7 @@
   <div class="top">
     <h1>卷积定理</h1>
     <button class="help" id="helpBtn">？使用说明</button>
-    <span class="tag">T14 · 复变函数与积分变换</span>
+    <span class="tag">T15 · 复变函数与积分变换</span>
   </div>
   <a class="back" href="./index.html">← 返回工具首页</a>
   <p class="lead">卷积定理说：<b>时域的卷积，换到变换域就变成逐点相乘</b>。本页把它"看见"——分别用<b>两条独立的路线</b>算出同一条曲线，看它们是否<b>严丝合缝地重合</b>。上方按钮切换<b>傅里叶</b>与<b>拉普拉斯</b>两个版本。</p>
@@ -151,7 +151,7 @@
   <div class="know">
     <h2>为什么"卷积 = 相乘"这么重要？</h2>
     <p>一个原本要做积分的卷积，换到频域 / 复频域就成了两条变换<b>逐点相乘</b>——这正是<b>频域滤波</b>、<b>用变换法解微分方程</b>之所以好用的根本原因：把难算的卷积（或微分）搬到变换域变成代数运算，算完再反变换回来。</p>
-    <p class="lg"><b>与其它工具的关系：</b>卷积本身的"翻转—平移—相乘—积分"机理见 <b>T12 卷积演示</b>；各信号的频谱与变换对见 <b>T11</b>；变换的其它性质见 <b>T13</b>；s 平面极点与时域响应见 <b>T15</b>；用拉氏变换解方程见 <b>T16</b>。</p>
+    <p class="lg"><b>与其它工具的关系：</b>卷积本身的"翻转—平移—相乘—积分"机理见 <b>T13 卷积演示</b>；各信号的频谱与变换对见 <b>T12</b>；变换的其它性质见 <b>T14</b>；s 平面极点与时域响应见 <b>T16</b>；用拉氏变换解方程见 <b>T17</b>。</p>
   </div>
 
   <footer>
@@ -412,7 +412,7 @@ function updateThmCard(){
   }else{
     document.getElementById("thmTitle").textContent="拉普拉斯卷积定理";
     document.getElementById("thmFormula").innerHTML="<math display=\"block\"><mrow><mi>&#x2112;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>&#x22C5;</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo></mrow></math>";
-    document.getElementById("thmText").innerHTML="对<b>因果（右边）信号</b>，时域卷积的拉氏变换等于两个像函数<b>相乘</b>。这正是“变换 → 相乘 / 代数求解 → 反变换”解方程的基础（见 T16）。时域右图紫实线（直接卷积）与橙虚线（相乘后反变换）重合即为证据；s 平面幅度图上则表现为亮斑（极点）的合并。";
+    document.getElementById("thmText").innerHTML="对<b>因果（右边）信号</b>，时域卷积的拉氏变换等于两个像函数<b>相乘</b>。这正是“变换 → 相乘 / 代数求解 → 反变换”解方程的基础（见 T17）。时域右图紫实线（直接卷积）与橙虚线（相乘后反变换）重合即为证据；s 平面幅度图上则表现为亮斑（极点）的合并。";
   }
 }
 
@@ -435,7 +435,7 @@ function applyParamUI(which){
 function setLegend(){
   document.getElementById("legend").innerHTML = mode==="F"
     ? "<b>上排时域</b>：左＝原信号 <math><mi>f</mi></math>(蓝)、<math><mi>g</mi></math>(绿)；右＝卷积 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math>(紫)。<b>下排频域</b>：左＝原频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math>、<math><mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow></math>；右＝<span style='color:#6b46c1;'>两谱相乘</span> 叠 <span style='color:#dd6b20;'>先卷积再变换</span>——<b>两者重合即定理成立</b>。"
-    : "<b>时域</b>：左＝原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>；右＝<span style='color:#6b46c1;'>直接卷积</span> 叠 <span style='color:#dd6b20;'>相乘后反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow></math></span>，重合即定理成立。<b>s 平面</b>：热力图是 <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 的幅度——<b>越亮越大</b>，极点(×)处冲向无穷成<b>亮斑</b>、零点(○)处为暗点。相乘 ⇒ 极点/零点合并；亮斑都在左半平面 ⇒ <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math> 衰减稳定（参见 T15）。";
+    : "<b>时域</b>：左＝原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>；右＝<span style='color:#6b46c1;'>直接卷积</span> 叠 <span style='color:#dd6b20;'>相乘后反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow></math></span>，重合即定理成立。<b>s 平面</b>：热力图是 <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 的幅度——<b>越亮越大</b>，极点(×)处冲向无穷成<b>亮斑</b>、零点(○)处为暗点。相乘 ⇒ 极点/零点合并；亮斑都在左半平面 ⇒ <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math> 衰减稳定（参见 T16）。";
 }
 function setPlotLabels(){
   function sp(col,ml){ return "<span style='color:"+col+"'><math>"+ml+"</math></span>"; }

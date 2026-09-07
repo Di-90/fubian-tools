@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T4 区域与曲线映射</title>
+<title>T5 区域与曲线映射</title>
 <style>
   :root{
     --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
@@ -90,7 +90,7 @@
   <div class="top">
     <h1>区域与曲线映射</h1>
     <span class="hint">左图选定区域/曲线并拖动控制点，右图画出经 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math> 变形后的像</span>
-    <span class="tag">T4 · 复变函数与积分变换</span>
+    <span class="tag">T5 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -176,7 +176,7 @@
 <script>
 /* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
 const EduTelemetry = (function(){
-  const KEY="edu_telemetry_T4"; let buf=[];
+  const KEY="edu_telemetry_T5"; let buf=[];
   try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
   function log(type,detail){
     buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
@@ -188,7 +188,7 @@ const EduTelemetry = (function(){
     const csv=rows.map(r=>r.join(",")).join("\n");
     const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download="T4_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+    a.download="T5_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   return {log, exportCSV};
 })();

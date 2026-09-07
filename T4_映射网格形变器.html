@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T3 映射网格形变器</title>
+<title>T4 映射网格形变器</title>
 <style>
   :root{
     --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
@@ -93,7 +93,7 @@
   <div class="top">
     <h1>映射网格形变器</h1>
     <span class="hint">左图拖动＝移动 <math><msub><mi>z</mi><mn>0</mn></msub></math>；拖动形变滑杆看网格弯曲</span>
-    <span class="tag">T3 · 复变函数与积分变换</span>
+    <span class="tag">T4 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -185,7 +185,7 @@
 <script>
 /* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
 const EduTelemetry = (function(){
-  const KEY="edu_telemetry_T3"; let buf=[];
+  const KEY="edu_telemetry_T4"; let buf=[];
   try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
   function log(type,detail){
     buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
@@ -197,7 +197,7 @@ const EduTelemetry = (function(){
     const csv=rows.map(r=>r.join(",")).join("\n");
     const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download="T3_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+    a.download="T4_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   return {log, exportCSV};
 })();

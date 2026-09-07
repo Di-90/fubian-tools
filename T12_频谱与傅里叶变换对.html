@@ -72,14 +72,14 @@
   <div class="top">
     <h1>频谱与傅里叶变换对</h1>
     <button class="help" id="helpBtn">？使用说明</button>
-    <span class="tag">T11 · 复变函数与积分变换</span>
+    <span class="tag">T12 · 复变函数与积分变换</span>
   </div>
   <a class="back" href="./index.html">← 返回工具首页</a>
   <p class="lead">左边是<b>时域信号</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，右边是它的<b>傅里叶变换</b> <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math> 的<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（可切到<b>相位谱</b>）。换信号、拖参数，重点体会<b>时域越窄、频域越宽</b>这条铁律。</p>
 
   <div class="know" style="border-left:4px solid var(--gold);">
     <h2>从"级数"到"变换"：谱为什么变成连续的？</h2>
-    <p>在工具 <a href="./T10_傅里叶级数合成器.html">T10</a> 里，<b>周期</b>信号的谱是一根根<b>离散谱线</b>——只在基频的整数倍 <math><mrow><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处有值。当周期 <math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math>（信号不再重复、变成<b>非周期</b>）时，相邻谱线的间隔 <math><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mn>2</mn><mi>π</mi><mo>/</mo><mi>T</mi><mo>&#x2192;</mo><mn>0</mn></mrow></math>，谱线越挤越密，最后连成一条<b>连续</b>的曲线。这条连续谱就是<b>傅里叶变换</b>：</p>
+    <p>在工具 <a href="./T11_傅里叶级数合成器.html">T11</a> 里，<b>周期</b>信号的谱是一根根<b>离散谱线</b>——只在基频的整数倍 <math><mrow><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处有值。当周期 <math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math>（信号不再重复、变成<b>非周期</b>）时，相邻谱线的间隔 <math><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mn>2</mn><mi>π</mi><mo>/</mo><mi>T</mi><mo>&#x2192;</mo><mn>0</mn></mrow></math>，谱线越挤越密，最后连成一条<b>连续</b>的曲线。这条连续谱就是<b>傅里叶变换</b>：</p>
     <p style="text-align:center;"><math display="block"><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math></p>
     <p class="lg">它一般是<b>复数</b>，所以要分两张图看：<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（各频率成分的强弱）与<b>相位谱</b> <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>（各成分的相位）。实偶信号相位恒为 0；像单边指数这种非对称信号，相位谱才有内容。</p>
   </div>
@@ -138,7 +138,7 @@
 
   <div class="know">
     <h2>周期信号的谱：一串冲激</h2>
-    <p>选<b>余弦</b> <math><mrow><mi>cos</mi><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>：它的谱是位于 <math><mrow><mo>&#xB1;</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 的<b>两根冲激</b> <math><mrow><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>。这正好回到 T10 的<b>离散谱线</b>观点：<b>周期信号 = 离散谱（冲激串），非周期信号 = 连续谱</b>。拖 <math><msub><mi>ω</mi><mn>0</mn></msub></math> 看两根谱线一起向外移。</p>
+    <p>选<b>余弦</b> <math><mrow><mi>cos</mi><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>：它的谱是位于 <math><mrow><mo>&#xB1;</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 的<b>两根冲激</b> <math><mrow><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>。这正好回到 T11 的<b>离散谱线</b>观点：<b>周期信号 = 离散谱（冲激串），非周期信号 = 连续谱</b>。拖 <math><msub><mi>ω</mi><mn>0</mn></msub></math> 看两根谱线一起向外移。</p>
   </div>
 
   <footer>
@@ -243,7 +243,7 @@ var SIGS={
   cos:{
     name:"余弦 ↔ 两根冲激",
     pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>cos</mi><mo>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>)</mo></mrow></math>　↔　<math><mrow><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>",
-    note:"周期信号的谱是离散冲激（回到 T10 的谱线观点）：余弦对应 ±ω₀ 两根。",
+    note:"周期信号的谱是离散冲激（回到 T11 的谱线观点）：余弦对应 ±ω₀ 两根。",
     p:{label:"频率 ω₀",min:1,max:8,step:0.1,val:3,unit:""},
     tRange:function(p){return 13;},   // 固定坐标轴：ω₀ 越大时域振荡越密、两根谱线越向外
     wRange:function(p){return 10;},

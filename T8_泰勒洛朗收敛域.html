@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>T7 泰勒 / 洛朗收敛域</title>
+<title>T8 泰勒 / 洛朗收敛域</title>
 <style>
   :root{
     --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
@@ -98,7 +98,7 @@
   <div class="top">
     <h1>泰勒 / 洛朗收敛域</h1>
     <span class="hint">拖展开中心 <math><msub><mi>z</mi><mn>0</mn></msub></math>，看收敛域如何被最近的奇点“卡”住；热图验证这组展开真正在哪里收敛</span>
-    <span class="tag">T7 · 复变函数与积分变换</span>
+    <span class="tag">T8 · 复变函数与积分变换</span>
     <button id="helpBtn">？使用说明</button>
   </div>
 
@@ -203,7 +203,7 @@
 <script>
 /* ============ 匿名使用埋点 ============ */
 const EduTelemetry = (function(){
-  const KEY="edu_telemetry_T7"; let buf=[];
+  const KEY="edu_telemetry_T8"; let buf=[];
   try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
   function log(type,detail){
     buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
@@ -215,7 +215,7 @@ const EduTelemetry = (function(){
     const csv=rows.map(r=>r.join(",")).join("\n");
     const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download="T7_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+    a.download="T8_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
   return {log, exportCSV};
 })();
