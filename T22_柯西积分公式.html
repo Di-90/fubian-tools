@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T22 柯西积分公式</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --orange:#dd6b20; --green:#2f855a; --purple:#6b46c1;
+    --red:#c53030; --ink:#1a202c; --sub:#4a5568; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif; color:var(--ink);
+       background:var(--bg); line-height:1.55;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .top{display:flex; align-items:center; justify-content:flex-start; gap:12px; flex-wrap:wrap;
+       padding:12px 18px; background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;}
+  .top h1{font-size:18px; margin:0; letter-spacing:.5px; font-weight:600;}
+  .top .hint{font-size:12.5px; color:rgba(255,255,255,.85);}
+  .top .tag{margin-left:auto; font-size:12px; background:rgba(255,255,255,.18);
+       padding:3px 10px; border-radius:999px; white-space:nowrap;}
+  #helpBtn{border:none; background:rgba(255,255,255,.18); border-radius:999px; cursor:pointer;
+           font-size:12.5px; padding:5px 13px; color:#fff;}
+  #helpBtn:hover{background:rgba(255,255,255,.3);}
+  .main{display:flex; gap:16px; padding:16px; align-items:stretch; height:calc(100% - 55px);}
+  .cv-wrap{position:relative; flex:1; min-width:0; background:#fdfdfe;
+           border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  #cv{display:block; width:100%; height:100%; cursor:crosshair;}
+  #cv.grabbing{cursor:grabbing;}
+  #cvOverlay{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+  #cvOverlay .lbl{position:absolute; white-space:nowrap; line-height:1; font-size:15px;
+       font-family:"Cambria Math","STIX Two Math",serif;
+       text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff; transform:translate(-50%,-50%);}
+  .panel{width:330px; flex:none; display:flex; flex-direction:column; gap:12px; overflow:auto;}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 14px;}
+  .box h2{font-size:13px; margin:0 0 9px; color:var(--sub); letter-spacing:1px; font-weight:700;}
+  .row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .row label{font-size:13px; min-width:52px; color:var(--sub);}
+  .row input[type=number]{width:70px; padding:4px 6px; border:1px solid var(--line);
+       border-radius:6px; font-size:14px;}
+  .fbtns,.cbtns{display:flex; flex-wrap:wrap; gap:6px;}
+  .fbtns button,.cbtns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13.5px; padding:5px 9px; color:var(--ink); min-height:32px;}
+  .fbtns button:hover,.cbtns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .fbtns button.sel,.cbtns button.sel{background:#ebf4ff; border-color:var(--blue); color:var(--blue); font-weight:700;}
+  .btns{display:flex; flex-wrap:wrap; gap:7px;}
+  .btns button{border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer;
+       font-size:13px; padding:6px 10px; color:var(--ink);}
+  .btns button:hover{background:#f0f5fa; border-color:var(--blue);}
+  .btns button.go{background:#f0fff4; border-color:#9ae6b4; color:#22643a; font-weight:600;}
+  .btns button.go:hover{background:#c6f6d5;}
+  .toggles label{display:flex; align-items:center; gap:6px; font-size:13px; margin:5px 0; color:var(--ink); cursor:pointer;}
+  .readout{font-size:13.5px; color:var(--ink);}
+  .readout .k{color:var(--sub);}
+  .readout div{margin:5px 0;}
+  .val{background:#f7fafc; border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin:6px 0;}
+  .val .t{font-size:11.5px; color:var(--sub); display:block; margin-bottom:2px;}
+  .val.num{border-left:4px solid #2563eb;}
+  .val.tru{border-left:4px solid #2f855a;}
+  .verdict{margin-top:6px; padding:9px 11px; border-radius:9px; font-size:14px; font-weight:600;}
+  .verdict.ok{background:#ebf8ff; border:1px solid #90cdf4; color:#2a4365;}
+  .verdict.zero{background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .verdict.warn{background:#fff5f5; border:1px solid #feb2b2; color:#742a2a;}
+  .note{margin-top:6px; padding:8px 10px; border-radius:8px; background:#fffaf0;
+        border:1px solid #feebc8; font-size:12.5px; color:#7b341e;}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .bar{width:16px; height:3px; border-radius:2px; display:inline-block;}
+  .dotr{width:11px; height:11px; border-radius:50%; display:inline-block; background:#c53030;}
+  .foot{font-size:11.5px; color:#a0aec0; text-align:center;}
+  #mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; z-index:50;}
+  #modal{position:fixed; z-index:51; left:50%; top:50%; transform:translate(-50%,-50%);
+         width:min(720px,92vw); max-height:86vh; overflow:auto; background:#fff;
+         border-radius:14px; padding:22px 26px; box-shadow:0 12px 40px rgba(0,0,0,.25); display:none;}
+  #modal h2{margin:0 0 6px; font-size:19px;}
+  #modal h3{font-size:15px; margin:16px 0 4px; color:var(--blue);}
+  #modal p,#modal li{font-size:14px; color:#2d3748; margin:5px 0;}
+  #modal .x{position:absolute; right:16px; top:12px; border:none; background:none;
+            font-size:22px; cursor:pointer; color:var(--sub);}
+  math{font-size:1.08em;}
+  .readout math{font-size:1.12em;}
+  .verdict math,.note math{font-size:1.02em;}
+  .fbtns button math{font-size:1.05em;}
+  .rangewrap{display:flex; align-items:center; gap:10px;}
+  .rangewrap input[type=range]{flex:1;}
+
+  @media (max-width:820px){
+    html,body{height:auto;}
+    .top{flex-wrap:wrap; gap:6px 10px; padding:10px 14px;}
+    .top h1{font-size:16px;}
+    .main{flex-direction:column; height:auto; padding:12px; gap:12px;}
+    .cv-wrap{flex:none; width:100%; height:56vh; min-height:340px;}
+    .panel{width:100%; flex:none; overflow:visible;}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>柯西积分公式</h1>
+    <span class="hint">拖动 <math><msub><mi>z</mi><mn>0</mn></msub></math> 与圆周 C，验证 <math><msup><mi>f</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></math> 由边界积分决定</span>
+    <a class="tag" href="./index.html" style="color:#fff;text-decoration:none;cursor:pointer">← 返回主页</a>
+    <button id="helpBtn">？使用说明</button>
+  </div>
+
+  <div class="main">
+    <div class="cv-wrap">
+      <canvas id="cv"></canvas>
+      <div id="cvOverlay"></div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>解析函数 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math></h2>
+        <div class="fbtns" id="funcBtns"></div>
+      </div>
+
+      <div class="box" id="customBox" style="display:none;">
+        <h2>自定义 <math><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></math>（须在 C 内解析）</h2>
+        <input id="customIn" type="text" spellcheck="false" autocomplete="off"
+               style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+                      font-size:15px; font-family:Consolas,'Courier New',monospace;" value="z^2+1">
+        <div id="customPrev" style="margin:9px 0 2px; font-size:16px; min-height:24px; color:var(--ink);"></div>
+        <div id="customErr" style="font-size:12px; color:#c53030; min-height:0;"></div>
+        <p style="font-size:11.5px;color:var(--sub);margin:6px 0 0;line-height:1.55;">
+          高阶导数取<b>数值差分</b>，仅供对照。可用 <b>z　i　e　pi</b>，函数
+          <b>exp　sin　cos　sinh　cosh</b> 等。避免在 C 内含奇点（如 <code>1/z</code>）。
+        </p>
+      </div>
+
+      <div class="box">
+        <h2>阶数 <math><mi>n</mi></math></h2>
+        <div class="cbtns" id="nBtns"></div>
+        <p style="font-size:12px;color:var(--sub);margin:7px 0 0;">
+          <math><mi>n</mi><mo>=</mo><mn>0</mn></math> 即柯西积分公式；<math><mi>n</mi><mo>&#x2265;</mo><mn>1</mn></math> 为高阶导数公式。</p>
+      </div>
+
+      <div class="box">
+        <h2>圆周 C 与取值点</h2>
+        <div class="row"><label>圆心</label>
+          <input id="ccx" type="number" step="0.1"> + <input id="ccy" type="number" step="0.1"> i</div>
+        <div class="row"><label>半径 R</label><input id="rr" type="number" step="0.1" min="0.2"></div>
+        <div class="row"><label><math><msub><mi>z</mi><mn>0</mn></msub></math></label>
+          <input id="z0x" type="number" step="0.1"> + <input id="z0y" type="number" step="0.1"> i</div>
+        <p style="font-size:12px;color:var(--sub);margin:4px 0 0;">拖动图上红点 <math><msub><mi>z</mi><mn>0</mn></msub></math>、圆心、圆周控制点。</p>
+      </div>
+
+      <div class="box">
+        <div class="btns">
+          <button id="bAnim" class="go">▶ 沿 C 积分</button>
+          <button id="bReset">复位视图</button>
+        </div>
+      </div>
+
+      <div class="box readout" id="readout"></div>
+
+      <div class="box toggles">
+        <h2>显示选项</h2>
+        <label><input type="checkbox" id="tMean" checked> <math><mi>n</mi><mo>=</mo><mn>0</mn></math> 时显示“圆心值 = 圆周平均”</label>
+        <label><input type="checkbox" id="tGrid" checked> 参考网格</label>
+        <label><input type="checkbox" id="tAxis" checked> 坐标轴</label>
+      </div>
+
+      <div class="box">
+        <h2>图例</h2>
+        <div class="legend">
+          <span><i class="bar" style="background:#2563eb"></i>积分路径 C（正向）</span>
+          <span><i class="dotr"></i>取值点 z₀</span>
+          <span><i class="bar" style="background:#2f855a"></i>圆心</span>
+        </div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="bExport">导出使用数据</button>
+        </div>
+      </div>
+
+      <div class="foot">复变函数与积分变换 · 教学可视化</div>
+    </div>
+  </div>
+
+  <div id="mask"></div>
+  <div id="modal">
+    <button class="x" id="modalX">×</button>
+    <div id="helpBody"></div>
+  </div>
+
+<script>
+/* ============ 匿名使用埋点 ============ */
+const EduTelemetry = (function(){
+  const KEY="edu_telemetry_T22"; let buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    const rows=[["time","type","detail"]].concat(buf.map(r=>[r.t,r.type,r.detail.replace(/[,\n]/g,";")]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T22_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log, exportCSV};
+})();
+
+/* ============ 公式（MathML）============ */
+function mml(inner){ return `<math xmlns="http://www.w3.org/1998/Math/MathML">${inner}</math>`; }
+function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*1000)/1000; if(Object.is(r,-0))r=0; return String(r).replace("-","−"); }
+function mmlComplex(re,im){
+  let r=Math.round(re*1000)/1000, i=Math.round(im*1000)/1000;
+  if(Object.is(r,-0))r=0; if(Object.is(i,-0))i=0;
+  if(!isFinite(r)||!isFinite(i)) return `<mi>&#x221E;</mi>`;
+  if(i===0) return `<mn>${fmt(r)}</mn>`;
+  const ai=Math.abs(i), coef = ai===1 ? "" : `<mn>${fmt(ai)}</mn>`;
+  if(r===0) return `${i<0?`<mo>&#x2212;</mo>`:""}${coef}<mi>i</mi>`;
+  return `<mn>${fmt(r)}</mn><mo>${i<0?"&#x2212;":"+"}</mo>${coef}<mi>i</mi>`;
+}
+function round3(v){ return Math.round(v*1000)/1000; }
+
+/* ============ 复数运算 ============ */
+const ONE={x:1,y:0};
+function cadd(a,b){return{x:a.x+b.x,y:a.y+b.y};}
+function csub(a,b){return{x:a.x-b.x,y:a.y-b.y};}
+function cmul(a,b){return{x:a.x*b.x-a.y*b.y,y:a.x*b.y+a.y*b.x};}
+function cdiv(a,b){const d=b.x*b.x+b.y*b.y;return{x:(a.x*b.x+a.y*b.y)/d,y:(a.y*b.x-a.x*b.y)/d};}
+function cscale(a,k){return{x:a.x*k,y:a.y*k};}
+function cconj(a){return{x:a.x,y:-a.y};}
+function cexp(a){const e=Math.exp(a.x);return{x:e*Math.cos(a.y),y:e*Math.sin(a.y)};}
+function csin(a){return{x:Math.sin(a.x)*Math.cosh(a.y),y:Math.cos(a.x)*Math.sinh(a.y)};}
+function ccos(a){return{x:Math.cos(a.x)*Math.cosh(a.y),y:-Math.sin(a.x)*Math.sinh(a.y)};}
+function ctan(a){return cdiv(csin(a),ccos(a));}
+function csinh(a){return{x:Math.sinh(a.x)*Math.cos(a.y),y:Math.cosh(a.x)*Math.sin(a.y)};}
+function ccosh(a){return{x:Math.cosh(a.x)*Math.cos(a.y),y:Math.sinh(a.x)*Math.sin(a.y)};}
+function ctanh(a){return cdiv(csinh(a),ccosh(a));}
+function clog(a){return{x:Math.log(Math.hypot(a.x,a.y)),y:Math.atan2(a.y,a.x)};}
+function csqrt(a){const r=Math.hypot(a.x,a.y),t=Math.atan2(a.y,a.x),sr=Math.sqrt(r);return{x:sr*Math.cos(t/2),y:sr*Math.sin(t/2)};}
+function cpow(a,b){
+  if(Math.abs(b.y)<1e-12 && Math.abs(b.x-Math.round(b.x))<1e-12){
+    let n=Math.round(b.x); if(n===0) return {x:1,y:0};
+    const neg=n<0; n=Math.abs(n); let r={x:1,y:0};
+    for(let k=0;k<n;k++) r=cmul(r,a);
+    return neg?cdiv(ONE,r):r;
+  }
+  if(a.x===0&&a.y===0) return {x:0,y:0};
+  return cexp(cmul(b,clog(a)));
+}
+function cabs(a){return Math.hypot(a.x,a.y);}
+
+/* ============ 复数表达式解析器（自定义 f）============ */
+const CFUNCS={ exp:cexp, ln:clog, log:clog, sin:csin, cos:ccos, tan:ctan,
+  sinh:csinh, cosh:ccosh, tanh:ctanh, sqrt:csqrt, conj:cconj,
+  abs:a=>({x:cabs(a),y:0}), re:a=>({x:a.x,y:0}), im:a=>({x:a.y,y:0}) };
+function parseCFunc(src, varName){
+  varName = varName || "z";
+  const s=String(src||""); let i=0, multivalued=false;
+  const toks=[];
+  while(i<s.length){
+    const c=s[i];
+    if(c===" "||c==="\t"){ i++; continue; }
+    if(/[0-9.]/.test(c)){ let j=i+1; while(j<s.length&&/[0-9.]/.test(s[j])) j++; toks.push({t:"num",v:s.slice(i,j)}); i=j; continue; }
+    if(/[a-zA-Zπ]/.test(c)){ let j=i+1; while(j<s.length&&/[a-zA-Z]/.test(s[j])) j++; toks.push({t:"id",v:s.slice(i,j)}); i=j; continue; }
+    if("+-*/^(),".indexOf(c)>=0){ toks.push({t:c}); i++; continue; }
+    if(c==="×"){ toks.push({t:"*"}); i++; continue; }
+    if(c==="÷"){ toks.push({t:"/"}); i++; continue; }
+    if(c==="−"){ toks.push({t:"-"}); i++; continue; }
+    throw new Error("无法识别的字符：“"+c+"”");
+  }
+  let p=0;
+  const peek=()=>toks[p], next=()=>toks[p++];
+  const startsPrimary=tk=>tk&&(tk.t==="num"||tk.t==="id"||tk.t==="(");
+  function wrap(node,need){ return node.prec<need ? `<mrow><mo>(</mo>${node.ml}<mo>)</mo></mrow>` : node.ml; }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    let L=parseMul();
+    while(peek()&&(peek().t==="+"||peek().t==="-")){
+      const op=next().t, R=parseMul(), Lml=wrap(L,1), Rml=wrap(R,op==="-"?2:1), lev=L.ev, rev=R.ev;
+      L={ prec:1, ev: op==="+" ? z=>cadd(lev(z),rev(z)) : z=>csub(lev(z),rev(z)),
+          ml: Lml+`<mo>${op==="+"?"+":"&#x2212;"}</mo>`+Rml };
+    }
+    return L;
+  }
+  function parseMul(){
+    let L=parseUnary();
+    while(true){
+      const tk=peek(); let op=null;
+      if(tk&&(tk.t==="*"||tk.t==="/")){ op=next().t; }
+      else if(startsPrimary(tk)){ op="*"; }
+      else break;
+      const R=parseUnary(), lev=L.ev, rev=R.ev;
+      if(op==="/"){ L={ prec:2, ev:z=>cdiv(lev(z),rev(z)), ml:`<mfrac><mrow>${L.ml}</mrow><mrow>${R.ml}</mrow></mfrac>` }; }
+      else{ L={ prec:2, ev:z=>cmul(lev(z),rev(z)), ml: wrap(L,2)+wrap(R,2) }; }
+    }
+    return L;
+  }
+  function parseUnary(){
+    const tk=peek();
+    if(tk&&tk.t==="-"){ next(); const R=parseUnary(); const rev=R.ev;
+      return { prec:3, isIntConst:R.isIntConst, ev:z=>({x:-rev(z).x,y:-rev(z).y}), ml:`<mo>&#x2212;</mo>`+wrap(R,3) }; }
+    if(tk&&tk.t==="+"){ next(); return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow(){
+    const base=parsePrimary();
+    if(peek()&&peek().t==="^"){
+      next(); const ex=parseUnary(), bev=base.ev, eev=ex.ev;
+      if(!ex.isIntConst) multivalued=true;
+      return { prec:4, ev:z=>cpow(bev(z),eev(z)), ml:`<msup><mrow>${wrap(base,4)}</mrow><mrow>${ex.ml}</mrow></msup>` };
+    }
+    return base;
+  }
+  function parsePrimary(){
+    const tk=next();
+    if(!tk) throw new Error("表达式不完整");
+    if(tk.t==="("){ const e=parseExpr(); if(!peek()||next().t!==")") throw new Error("缺少右括号 )"); return {prec:5,isIntConst:e.isIntConst,ev:e.ev,ml:e.ml}; }
+    if(tk.t==="num"){ const v=parseFloat(tk.v); if(!isFinite(v)) throw new Error("非法数字：“"+tk.v+"”"); return {prec:5,isIntConst:Number.isInteger(v),ev:()=>({x:v,y:0}),ml:`<mn>${tk.v}</mn>`}; }
+    if(tk.t==="id"){
+      const nm=tk.v;
+      if(nm===varName) return {prec:5,ev:z=>z,ml:`<mi>${varName}</mi>`};
+      if(nm==="i") return {prec:5,ev:()=>({x:0,y:1}),ml:`<mi>i</mi>`};
+      if(nm==="e") return {prec:5,ev:()=>({x:Math.E,y:0}),ml:`<mi>e</mi>`};
+      if(nm==="pi"||nm==="π") return {prec:5,ev:()=>({x:Math.PI,y:0}),ml:`<mi>&#x3C0;</mi>`};
+      const fn=CFUNCS[nm];
+      if(!fn) throw new Error("未知的名称：“"+nm+"”");
+      if(nm==="sqrt"||nm==="ln"||nm==="log") multivalued=true;
+      if(!peek()||next().t!=="(") throw new Error("函数 "+nm+" 后要跟括号");
+      const arg=parseExpr(); if(!peek()||next().t!==")") throw new Error("函数 "+nm+" 缺少右括号 )");
+      const aev=arg.ev;
+      const ml = (nm==="sqrt") ? `<msqrt>${arg.ml}</msqrt>`
+                : (nm==="conj" ? `<mover>${wrap(arg,5)}<mo>&#x00AF;</mo></mover>`
+                : `<mi>${nm}</mi><mo>&#x2061;</mo><mrow><mo>(</mo>${arg.ml}<mo>)</mo></mrow>`);
+      return {prec:5, ev:z=>fn(aev(z)), ml};
+    }
+    throw new Error("无法解析：附近有多余符号");
+  }
+  const root=parseExpr();
+  if(p<toks.length) throw new Error("表达式末尾有多余内容");
+  root.ev({x:0.3,y:0.4});
+  return { fn: z=>root.ev(z), ml: root.ml, multivalued };
+}
+
+/* ============ 被积母函数：f 与其解析 n 阶导数 ============ */
+const FUNCS=[
+  {id:"ez", ml:`<msup><mi>e</mi><mi>z</mi></msup>`, f:z=>cexp(z), d:(z,n)=>cexp(z)},
+  {id:"sin", ml:`<mi>sin</mi><mo>&#x2061;</mo><mi>z</mi>`, f:csin,
+    d:(z,n)=>{const c=[csin(z),ccos(z),cscale(csin(z),-1),cscale(ccos(z),-1)]; return c[n%4];}},
+  {id:"cos", ml:`<mi>cos</mi><mo>&#x2061;</mo><mi>z</mi>`, f:ccos,
+    d:(z,n)=>{const c=[ccos(z),cscale(csin(z),-1),cscale(ccos(z),-1),csin(z)]; return c[n%4];}},
+  {id:"z3", ml:`<msup><mi>z</mi><mn>3</mn></msup>`, f:z=>cmul(cmul(z,z),z),
+    d:(z,n)=>{ if(n===0)return cmul(cmul(z,z),z); if(n===1)return cscale(cmul(z,z),3);
+               if(n===2)return cscale(z,6); if(n===3)return {x:6,y:0}; return {x:0,y:0}; }}
+];
+let F=FUNCS[0], N_ORDER=0;
+const Fcustom={id:"custom", kind:"custom", ml:`<msup><mi>z</mi><mn>2</mn></msup><mo>+</mo><mn>1</mn>`,
+  f:z=>cadd(cmul(z,z),ONE),
+  d:(z,n)=>numDeriv(Fcustom.f, z, n)};
+function numDeriv(fn, z0, n){
+  if(n===0) return fn(z0);
+  const h=0.05, F1=dx=>fn({x:z0.x+dx,y:z0.y});
+  if(n===1) return cscale(csub(F1(h),F1(-h)), 1/(2*h));
+  if(n===2) return cscale(cadd(csub(F1(h),cscale(fn(z0),2)),F1(-h)), 1/(h*h));
+  return cscale(csub(cadd(csub(F1(2*h),cscale(F1(h),2)),cscale(F1(-h),2)),F1(-2*h)), 1/(2*h*h*h)); // n=3
+}
+function currentF(){ return F.kind==="custom" ? Fcustom : F; }
+const FACT=[1,1,2,6];
+
+/* ============ 视口 ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+const overlay=document.getElementById("cvOverlay");
+let W=900,H=480, cx=450, cy=240, viewHalf=2.8, s=90;
+const show={mean:true, grid:true, axis:true};
+const NINT=2400;
+
+let Cc={x:0,y:0}, R=1.6, z0={x:0.5,y:0.4};
+
+function layout(){ s=Math.min(W,H)/2/viewHalf*0.9; }
+function toS(z){ return {x:cx+z.x*s, y:cy-z.y*s}; }
+function fromS(sx,sy){ return {x:(sx-cx)/s, y:(cy-sy)/s}; }
+
+/* ============ 沿圆周 C 的闭积分 ∮ f/(z-z0)^{n+1} dz（中点法）============
+   返回 {x,y, minDen, singular}，minDen=路径到 z0 的最近距离 */
+function contourIntegral(fn, n){
+  let sx=0, sy=0, minDen=Infinity;
+  const dth=2*Math.PI/NINT;
+  for(let k=0;k<NINT;k++){
+    const th=(k+0.5)*dth;
+    const z={x:Cc.x+R*Math.cos(th), y:Cc.y+R*Math.sin(th)};
+    const den={x:z.x-z0.x, y:z.y-z0.y};
+    const dist=Math.hypot(den.x,den.y); if(dist<minDen) minDen=dist;
+    // dz = i·R·e^{iθ}·dθ = R(-sinθ + i cosθ)dθ
+    const dz={x:-R*Math.sin(th)*dth, y:R*Math.cos(th)*dth};
+    let denp=den; for(let m=0;m<n;m++) denp=cmul(denp,den); // (z-z0)^{n+1}
+    const g=cdiv(fn(z), denp);          // f(z)/(z-z0)^{n+1}
+    const term=cmul(g,dz);
+    if(isFinite(term.x)&&isFinite(term.y)){ sx+=term.x; sy+=term.y; }
+  }
+  return {x:sx, y:sy, minDen, singular: minDen < 0.06*R};
+}
+function partialContourIntegral(fn, n, frac){ // ∮ 从 θ=0 累积到 frac·2π
+  let sx=0, sy=0; const dth=2*Math.PI/NINT, kmax=Math.floor(frac*NINT);
+  for(let k=0;k<kmax;k++){
+    const th=(k+0.5)*dth;
+    const z={x:Cc.x+R*Math.cos(th), y:Cc.y+R*Math.sin(th)};
+    const den={x:z.x-z0.x, y:z.y-z0.y};
+    const dz={x:-R*Math.sin(th)*dth, y:R*Math.cos(th)*dth};
+    let denp=den; for(let m=0;m<n;m++) denp=cmul(denp,den);
+    const term=cmul(cdiv(fn(z),denp), dz);
+    if(isFinite(term.x)&&isFinite(term.y)){ sx+=term.x; sy+=term.y; }
+  }
+  return {x:sx, y:sy};
+}
+function contourMean(fn){ // 圆周上 f 的平均值 (1/2π)∫f dθ
+  let sx=0, sy=0; const dth=2*Math.PI/NINT;
+  for(let k=0;k<NINT;k++){ const th=(k+0.5)*dth;
+    const z={x:Cc.x+R*Math.cos(th), y:Cc.y+R*Math.sin(th)}; const v=fn(z); sx+=v.x; sy+=v.y; }
+  return {x:sx/NINT, y:sy/NINT};
+}
+
+/* ============ 叠加层 ============ */
+function clearLabels(){ overlay.innerHTML=""; }
+function addLabel(html,x,y,color,size){
+  const d=document.createElement("div"); d.className="lbl";
+  d.style.left=x+"px"; d.style.top=y+"px"; d.style.color=color;
+  if(size) d.style.fontSize=size+"px"; d.innerHTML=html; overlay.appendChild(d);
+}
+function arrowHead(x,y,ang,color,len){
+  const ah=len||8; ctx.save(); ctx.fillStyle=color;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  ctx.lineTo(x-ah*Math.cos(ang-0.42), y-ah*Math.sin(ang-0.42));
+  ctx.lineTo(x-ah*Math.cos(ang+0.42), y-ah*Math.sin(ang+0.42));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+/* ============ 主绘制 ============ */
+let animOn=false, animP=0;
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); clearLabels(); layout();
+
+  ctx.fillStyle="#fdfefe"; ctx.fillRect(0,0,W,H);
+  if(show.grid){
+    ctx.strokeStyle="#edf1f6"; ctx.lineWidth=1;
+    const lo=Math.ceil(-viewHalf/0.5)*0.5;
+    for(let g=lo; g<=viewHalf+1e-9; g+=0.5){
+      let a=toS({x:g,y:-viewHalf}), b=toS({x:g,y:viewHalf});
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      let c=toS({x:-viewHalf,y:g}), d=toS({x:viewHalf,y:g});
+      ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
+    }
+  }
+  const o=toS({x:0,y:0});
+  if(show.axis){
+    ctx.strokeStyle="#5f6b7a"; ctx.fillStyle="#5f6b7a"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(6,o.y); ctx.lineTo(W-8,o.y); ctx.stroke(); arrowHead(W-7,o.y,0,"#5f6b7a");
+    ctx.beginPath(); ctx.moveTo(o.x,H-6); ctx.lineTo(o.x,10); ctx.stroke(); arrowHead(o.x,9,-Math.PI/2,"#5f6b7a");
+    addLabel(mml("<mi>Re</mi>"), W-20, o.y-14, "#4a5568", 13);
+    addLabel(mml("<mi>Im</mi>"), o.x+16, 22, "#4a5568", 13);
+  }
+
+  const cf=currentF(), inside = Math.hypot(z0.x-Cc.x, z0.y-Cc.y) < R;
+
+  // 圆周 C
+  const cS=toS(Cc), rS=R*s;
+  ctx.save();
+  ctx.fillStyle="rgba(37,99,235,0.06)"; ctx.beginPath(); ctx.arc(cS.x,cS.y,rS,0,7); ctx.fill();
+  ctx.strokeStyle="#2563eb"; ctx.lineWidth=2.6; ctx.beginPath(); ctx.arc(cS.x,cS.y,rS,0,7); ctx.stroke();
+  ctx.restore();
+  // 正向(逆时针)箭头, 尖端落在圆周上: 屏幕系切向 = atan2(-cosθ, -sinθ)
+  { const th=Math.PI*0.28, p=toS({x:Cc.x+R*Math.cos(th), y:Cc.y+R*Math.sin(th)});
+    arrowHead(p.x, p.y, Math.atan2(-Math.cos(th), -Math.sin(th)), "#2563eb", 12); }
+
+  // 圆心
+  const ccp=toS(Cc);
+  ctx.save(); ctx.fillStyle="#2f855a"; ctx.beginPath(); ctx.arc(ccp.x,ccp.y,3.5,0,7); ctx.fill(); ctx.restore();
+  // 半径控制点
+  const rp=toS({x:Cc.x+R, y:Cc.y});
+  ctx.save(); ctx.fillStyle="#fff"; ctx.strokeStyle="#2563eb"; ctx.lineWidth=2.2;
+  ctx.beginPath(); ctx.arc(rp.x,rp.y,5.5,0,7); ctx.fill(); ctx.stroke(); ctx.restore();
+
+  // 动画：动点沿 C
+  if(animOn){
+    const th=animP*2*Math.PI;
+    ctx.save(); ctx.strokeStyle="#f6ad55"; ctx.lineWidth=5; ctx.globalAlpha=0.5;
+    ctx.beginPath(); ctx.arc(cS.x,cS.y,rS, -0, -th, true); // 已扫过弧
+    ctx.stroke(); ctx.restore();
+    const mp=toS({x:Cc.x+R*Math.cos(th), y:Cc.y+R*Math.sin(th)});
+    ctx.save(); ctx.fillStyle="#dd6b20"; ctx.beginPath(); ctx.arc(mp.x,mp.y,6,0,7); ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+    // 连到 z0 的半径线（显示 z−z0）
+    const z0p=toS(z0);
+    ctx.save(); ctx.setLineDash([4,3]); ctx.strokeStyle="rgba(197,48,48,.5)"; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(z0p.x,z0p.y); ctx.lineTo(mp.x,mp.y); ctx.stroke(); ctx.restore();
+  }
+
+  // z0 点
+  const z0p=toS(z0);
+  ctx.save(); ctx.fillStyle= inside ? "#c53030" : "#a0aec0";
+  ctx.beginPath(); ctx.arc(z0p.x,z0p.y,6,0,7); ctx.fill();
+  ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+  addLabel(mml("<msub><mi>z</mi><mn>0</mn></msub>"), z0p.x+14, z0p.y-12, inside?"#c53030":"#718096", 15);
+  addLabel(mml("<mi>C</mi>"), cS.x+rS*0.71+8, cS.y-rS*0.71-8, "#2563eb", 15);
+
+  computeAndShow(cf, inside);
+}
+
+/* ============ 读数 ============ */
+function computeAndShow(cf, inside){
+  const n=N_ORDER;
+  const I = contourIntegral(cf.f, n);                       // 数值 ∮
+  const dtrue = cf.d(z0, n);                                // f^(n)(z0) 真值/数值
+  // 由公式反推: f^(n)(z0) = n!/(2πi) · ∮
+  const recovered = cmul(cscale({x:0,y:1}, -FACT[n]/(2*Math.PI)), I); // n!/(2πi)=n!/(2π)·(1/i)= -i·n!/(2π)
+  // 公式预测的 ∮ = 2πi·f^(n)(z0)/n!
+  const Ipred = cmul({x:0,y:2*Math.PI/FACT[n]}, dtrue);
+
+  const nfac = n===0 ? "" : `<mo>&#x2062;</mo>`;
+  const dSym = n===0 ? `<mi>f</mi><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo>`
+    : `<msup><mi>f</mi><mrow><mo>(</mo><mn>${n}</mn><mo>)</mo></mrow></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo>`;
+  const kernel = `<mfrac><mrow><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></mrow>`+
+    (n===0?`<mrow><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub></mrow>`
+          :`<msup><mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow><mrow><mn>${n+1}</mn></mrow></msup>`)+`</mfrac>`;
+  const coef = n===0 ? `<mfrac><mn>1</mn><mrow><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi></mrow></mfrac>`
+    : `<mfrac><mrow><mn>${n}</mn><mo>!</mo></mrow><mrow><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi></mrow></mfrac>`;
+
+  let html = `<h2 style="margin-bottom:8px;">柯西积分公式</h2>`+
+    `<div>${mml(dSym+"<mo>=</mo>"+coef+"<mo>&#x222E;</mo><mrow><msub><mo></mo><mi>C</mi></msub></mrow>"+kernel+"<mspace width='1px'/><mi>d</mi><mi>z</mi>")}</div>`+
+    `<div><span class="k">被积</span> ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+cf.ml)}<span class="k">，n =</span> ${n}</div>`;
+
+  if(cf.singular || I.singular){
+    html += `<div class="verdict warn">⚠ <math><msub><mi>z</mi><mn>0</mn></msub></math> 太靠近积分路径 C，被积函数在此近乎奇异，数值积分<b>失真</b>——请把 <math><msub><mi>z</mi><mn>0</mn></msub></math> 移离圆周（或调大半径）。</div>`;
+    document.getElementById("readout").innerHTML=html; return;
+  }
+
+  html += `<div class="val num"><span class="t">数值积分</span>${mml("<mo>&#x222E;</mo><mrow><msub><mo></mo><mi>C</mi></msub></mrow>"+kernel+"<mspace width='1px'/><mi>d</mi><mi>z</mi><mo>&#x2248;</mo>"+mmlComplex(I.x,I.y))}</div>`;
+
+  if(inside){
+    // 两个独立算出的量：① 边界积分给出的数 (n!/2πi)∮   ② 直接代入函数的 f^(n)(z0)
+    html += `<div class="val tru"><span class="t">① 边界积分给出 ${mml(coef+"<mo>&#x222E;</mo>")}</span>${mml(mmlComplex(recovered.x,recovered.y))}</div>`;
+    html += `<div class="val tru"><span class="t">② ${cf.kind==='custom'?'数值':'解析'}地直接代入 ${mml(dSym)}</span>${mml(mmlComplex(dtrue.x,dtrue.y))}</div>`;
+    const err = Math.hypot(recovered.x-dtrue.x, recovered.y-dtrue.y);
+    const scale = Math.max(1, Math.hypot(dtrue.x,dtrue.y));
+    if(err < 2e-2*scale + 1e-2){
+      html += `<div class="verdict ok"><math><msub><mi>z</mi><mn>0</mn></msub></math> 在 C <b>内部</b>：<b>①（只用边界上的 f 做积分）与 ②（把 <math><msub><mi>z</mi><mn>0</mn></msub></math> 代进函数）两个独立算出的数相等</b> → 柯西积分公式成立，内部的值/导数由边界积分完全决定。</div>`;
+    }else{
+      html += `<div class="note">①② 略有差异（差 ≈ ${fmt(err)}）：${cf.kind==='custom'?'自定义函数用差分求导，或 z₀ 过近路径致数值误差':'数值积分离散误差'}，加大半径/远离路径可减小。</div>`;
+    }
+    // 平均值性质
+    if(n===0 && show.mean){
+      const mean=contourMean(cf.f);
+      const atCenter = Math.hypot(z0.x-Cc.x, z0.y-Cc.y) < 0.03;
+      const meanSym = "<mfrac><mn>1</mn><mrow><mn>2</mn><mi>&#x3C0;</mi></mrow></mfrac><msubsup><mo>&#x222E;</mo><mrow></mrow><mrow></mrow></msubsup><mi>f</mi><mspace width='1px'/><mi>d</mi><mi>&#x3B8;</mi>";
+      html += `<div class="val"><span class="t">圆周上平均值 ${mml(meanSym)}</span>${mml(mmlComplex(mean.x,mean.y))}</div>`;
+      if(atCenter)
+        html += `<div class="verdict ok">${mml("<msub><mi>z</mi><mn>0</mn></msub>")} = 圆心：平均值 = ${mml("<mi>f</mi><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo>")} <b>（平均值性质）</b>。</div>`;
+      else
+        html += `<div class="note">把 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 拖到圆心，可见“圆心处的值 = 它在圆周上的平均值”。</div>`;
+    }
+  }else{
+    html += `<div class="verdict zero"><math><msub><mi>z</mi><mn>0</mn></msub></math> 在 C <b>外部</b>：被积函数在 C 内处处解析 → 由柯西–古萨定理 <math><mo>&#x222E;</mo><mo>=</mo><mn>0</mn></math>。（数值 ≈ ${mml(mmlComplex(I.x,I.y))}）</div>`;
+  }
+  html += `<div style="color:var(--sub);font-size:12px;margin-top:8px;">解析函数在区域内部的值（及各阶导数），完全由它在边界 C 上的值通过积分决定。</div>`;
+  document.getElementById("readout").innerHTML=html;
+}
+
+/* ============ 交互 ============ */
+let drag=null;
+function screenXY(e){ const r=cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+function pickHandle(m){
+  const cand=[["z0",z0],["R",{x:Cc.x+R,y:Cc.y}],["C",Cc]];
+  let best=null, bd=16;
+  for(const [key,pt] of cand){ const q=toS(pt); const d=Math.hypot(m.x-q.x,m.y-q.y); if(d<bd){ bd=d; best={key}; } }
+  return best;
+}
+cv.addEventListener("pointerdown",e=>{
+  if(animOn) return;
+  const m=screenXY(e); const h=pickHandle(m); if(!h) return;
+  drag=h; cv.setPointerCapture(e.pointerId); cv.classList.add("grabbing");
+});
+cv.addEventListener("pointermove",e=>{
+  if(!drag) return;
+  const m=screenXY(e), w=fromS(m.x,m.y);
+  if(drag.key==="z0") z0={x:w.x,y:w.y};
+  else if(drag.key==="C") Cc={x:w.x,y:w.y};
+  else { R=Math.max(0.2, Math.hypot(w.x-Cc.x, w.y-Cc.y)); }
+  syncInputs(); draw();
+});
+function endPointer(){ if(drag) EduTelemetry.log("drag",drag.key); drag=null; cv.classList.remove("grabbing"); }
+cv.addEventListener("pointerup",endPointer);
+cv.addEventListener("pointercancel",endPointer);
+cv.addEventListener("wheel",e=>{ e.preventDefault();
+  viewHalf=Math.min(9, Math.max(1.2, viewHalf*(e.deltaY<0?0.92:1.087))); draw(); },{passive:false});
+
+/* ============ 函数按钮 ============ */
+const funcBtns=document.getElementById("funcBtns");
+function selectFunc(fn, btn){
+  F=fn; EduTelemetry.log("func",fn.id);
+  [...funcBtns.children].forEach(c=>c.classList.remove("sel")); btn.classList.add("sel");
+  document.getElementById("customBox").style.display=(fn.kind==="custom"?"block":"none");
+  if(fn.kind==="custom") compileCustom(false);
+  draw();
+}
+FUNCS.forEach(fn=>{ const b=document.createElement("button"); b.innerHTML=mml(fn.ml);
+  if(fn===F) b.classList.add("sel"); b.onclick=()=>selectFunc(fn,b); funcBtns.appendChild(b); });
+const customBtn=document.createElement("button");
+customBtn.innerHTML='<span style="font-size:12px;">&#x270E;</span> '+mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>");
+customBtn.onclick=()=>selectFunc(Fcustom,customBtn); funcBtns.appendChild(customBtn);
+function compileCustom(doDraw){
+  const src=document.getElementById("customIn").value;
+  const errEl=document.getElementById("customErr"), prevEl=document.getElementById("customPrev");
+  try{ const r=parseCFunc(src,"z"); Fcustom.f=r.fn; Fcustom.ml=r.ml;
+    prevEl.innerHTML=mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo>"+r.ml); errEl.textContent="";
+    if(doDraw && F===Fcustom){ EduTelemetry.log("custom",src.slice(0,40)); draw(); } return true;
+  }catch(e){ errEl.textContent="⚠ "+e.message; return false; }
+}
+document.getElementById("customIn").addEventListener("input",()=>compileCustom(true));
+
+/* ============ n 按钮 ============ */
+const nBtns=document.getElementById("nBtns");
+[0,1,2,3].forEach(n=>{ const b=document.createElement("button");
+  b.innerHTML=mml("<mi>n</mi><mo>=</mo><mn>"+n+"</mn>"); if(n===N_ORDER) b.classList.add("sel");
+  b.onclick=()=>{ N_ORDER=n; EduTelemetry.log("order",n);
+    [...nBtns.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); draw(); };
+  nBtns.appendChild(b); });
+
+/* ============ 数值输入 ============ */
+function bindNum(id,set){ const el=document.getElementById(id);
+  el.addEventListener("input",()=>{ const v=parseFloat(el.value); if(!isNaN(v)){ set(v); draw(); } }); }
+bindNum("ccx",v=>Cc.x=v); bindNum("ccy",v=>Cc.y=v);
+bindNum("rr",v=>R=Math.max(0.2,v));
+bindNum("z0x",v=>z0.x=v); bindNum("z0y",v=>z0.y=v);
+function syncInputs(){
+  const m={ccx:Cc.x,ccy:Cc.y,rr:R,z0x:z0.x,z0y:z0.y};
+  for(const id in m){ const el=document.getElementById(id); if(document.activeElement!==el) el.value=round3(m[id]); }
+}
+
+/* ============ 动画 ============ */
+function startAnim(){
+  if(animOn) return; animOn=true; animP=0; EduTelemetry.log("anim");
+  const cf=currentF(), dur=3200, t0=performance.now();
+  function step(now){
+    animP=Math.min(1,(now-t0)/dur); draw();
+    // 实时累积值: 动点绕行时 ∮ 从 0 逐步累加到最终值
+    const part=partialContourIntegral(cf.f, N_ORDER, animP);
+    const box=document.getElementById("readout");
+    box.insertAdjacentHTML("afterbegin",
+      `<div class="val" style="border-color:#fbd38d;background:#fffaf0;">`+
+      `<span class="t">绕行 ${Math.round(animP*100)}% · 累积积分</span>`+
+      mml("<msubsup><mo>&#x222B;</mo><mn>0</mn><mrow><mn>"+Math.round(animP*100)+"</mn><mo>%</mo></mrow></msubsup>"+
+          "<mo>&#x2248;</mo>"+mmlComplex(part.x,part.y))+`</div>`);
+    if(animP<1) requestAnimationFrame(step); else { animOn=false; setTimeout(draw,400); }
+  }
+  requestAnimationFrame(step);
+}
+document.getElementById("bAnim").onclick=startAnim;
+document.getElementById("bReset").onclick=()=>{ viewHalf=2.8; draw(); };
+
+/* ============ 开关 ============ */
+function bindToggle(id,key){ const el=document.getElementById(id);
+  el.addEventListener("change",()=>{ show[key]=el.checked; EduTelemetry.log("toggle",key+"="+el.checked); draw(); }); }
+bindToggle("tMean","mean"); bindToggle("tGrid","grid"); bindToggle("tAxis","axis");
+document.getElementById("bExport").onclick=()=>{ EduTelemetry.log("export"); EduTelemetry.exportCSV(); };
+
+/* ============ 使用说明 ============ */
+const mask=document.getElementById("mask"), modal=document.getElementById("modal");
+function openHelp(){ mask.style.display="block"; modal.style.display="block"; EduTelemetry.log("help_open"); }
+function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
+document.getElementById("helpBtn").onclick=openHelp;
+document.getElementById("modalX").onclick=closeHelp; mask.onclick=closeHelp;
+(function(){
+  document.getElementById("helpBody").innerHTML =
+    `<h2>柯西积分公式（含高阶导数）</h2>`+
+    `<p>核心事实：解析函数在区域内部一点 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")} 处的值、乃至各阶导数，都可由它在<b>边界曲线 C</b> 上的值通过积分算出。</p>`+
+    `<p style="text-align:center">${mml("<msup><mi>f</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo><mo>=</mo><mfrac><mrow><mi>n</mi><mo>!</mo></mrow><mrow><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi></mrow></mfrac><mo>&#x222E;</mo><mrow><msub><mo></mo><mi>C</mi></msub></mrow><mfrac><mrow><mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo></mrow><msup><mrow><mo>(</mo><mi>z</mi><mo>&#x2212;</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mfrac><mi>d</mi><mi>z</mi>")}</p>`+
+    `<h3>操作</h3>`+
+    `<ul>`+
+    `<li>选解析函数 f（eᶻ / sin / cos / z³ / 自定义），选阶数 n（0 即柯西积分公式，≥1 为高阶导数公式）；</li>`+
+    `<li>拖红点 ${mml("<msub><mi>z</mi><mn>0</mn></msub>")}、拖圆心、拖圆周控制点改半径 R；</li>`+
+    `<li>「▶ 沿 C 积分」看动点绕行 C 累积 ∮。</li>`+
+    `</ul>`+
+    `<h3>会看到</h3>`+
+    `<ul>`+
+    `<li><b>z₀ 在 C 内</b>：① 只用边界上的 f 做积分得 ${mml("<mfrac><mrow><mi>n</mi><mo>!</mo></mrow><mrow><mn>2</mn><mi>&#x3C0;</mi><mi>i</mi></mrow></mfrac><mo>&#x222E;</mo>")}，与 ② 直接把 z₀ 代入函数的 ${mml("<msup><mi>f</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msup><mo>(</mo><msub><mi>z</mi><mn>0</mn></msub><mo>)</mo>")} 相等——公式成立；</li>`+
+    `<li><b>z₀ 在 C 外</b>：被积函数在 C 内解析，${mml("<mo>&#x222E;</mo><mo>=</mo><mn>0</mn>")}；</li>`+
+    `<li><b>n=0 且 z₀=圆心</b>：f(z₀) 等于 f 在圆周上的平均值（平均值性质）。</li>`+
+    `</ul>`+
+    `<p style="color:#7b341e;">数值说明：自定义函数的高阶导数用差分近似，仅供对照；z₀ 贴近路径 C 时被积函数近奇异、读数不可靠，会自动提示。</p>`;
+})();
+
+/* ============ 尺寸与启动 ============ */
+function resize(){
+  const wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+"px"; cv.style.height=H+"px";
+  cx=W/2; cy=H/2; draw();
+}
+window.addEventListener("resize",resize);
+syncInputs(); EduTelemetry.log("open");
+
+// ── 访问统计 ──
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-cauchy-formula";
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{ var seenKey="fbtool_seen:"+TOOL; var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+
+resize();
+</script>
+</body>
+</html>
