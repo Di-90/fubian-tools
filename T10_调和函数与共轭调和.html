@@ -133,7 +133,7 @@
       <div class="box" id="srcBox" style="display:none;">
         <h2>点源（可拖动）</h2>
         <p style="font-size:12px;color:var(--sub);margin:2px 0 8px;">势
-          <math><mi>u</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub></math>，每个
+          <math><mi>u</mi><mo>=</mo><mo>&#xB1;</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub></math>（静电场、温度场取负号，流体取正号），每个
           <math><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub></math> 除源点外处处调和，叠加仍调和。拖圆点移动源。</p>
         <div class="btns">
           <button id="addPos" class="pos">＋ 加正源</button>
@@ -256,8 +256,8 @@ const SCENES=[
        得 ${mml("<msup><mi>g</mi><mo>&#x2032;</mo></msup><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mn>0</mn>")}
        ⟹ ${mml("<mi>v</mi><mo>=</mo><mn>2</mn><mi>x</mi><mi>y</mi>")}（+C）`,
     phys:{
-      electro:`两块成<b>直角的导体板</b>夹角处的电场。等势线 ${F.x2y2c}，电场线 ${F.xyc} 是双曲线。`,
-      heat:`<b>直角楔形</b>导热块的稳态温度。等温线 ${F.x2y2c}，热流线 ${F.xyc}。`,
+      electro:`两块成<b>直角的导体板</b>（沿 ${mml("<mi>y</mi><mo>=</mo><mo>&#xB1;</mo><mi>x</mi>")}，即等势线 ${mml("<mi>u</mi><mo>=</mo><mn>0</mn>")}）夹角处的电场。等势线 ${F.x2y2c}，电场线 ${F.xyc} 是双曲线。`,
+      heat:`<b>直角楔形</b>导热块的稳态温度（两侧面 ${mml("<mi>y</mi><mo>=</mo><mo>&#xB1;</mo><mi>x</mi>")} 保持同一温度）。等温线 ${F.x2y2c}，热流线 ${F.xyc}。`,
       fluid:`理想流体<b>绕直角壁</b>（正 ${mml("<mi>x</mi>")}、正 ${mml("<mi>y</mi>")} 轴）的流动；流线 ${F.xyc} 贴着直角拐弯。` } },
 
   { id:"source", name:"点源", btn:mml("<mi>f</mi><mo>=</mo><mi>Ln</mi>&#x2009;<mi>z</mi>")+" 点源", kind:"analytic",
@@ -270,8 +270,8 @@ const SCENES=[
        共轭 ${mml("<mi>v</mi><mo>=</mo><mi>arg</mi>&#x2009;<mi>z</mi>")}。
        等值线 ${F.uc} 是<b>同心圆</b>，正交的 ${F.vc} 是<b>放射线</b>。`,
     phys:{
-      electro:`无限长均匀<b>带电直线</b>（线电荷）。等势线 ${F.lnzc} 是同心圆，电场线沿半径放射。`,
-      heat:`无限长<b>线热源</b>。等温线是同心圆，热流线沿半径放射。`,
+      electro:`无限长均匀<b>带电直线</b>（线电荷）。等势线 ${F.lnzc} 是同心圆，电场线沿半径放射。（${mml("<mi>u</mi><mo>=</mo><mi>ln</mi><mo>&#x2061;</mo><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow>")} 向外增大，对应<b>负</b>线电荷；正线电荷取 ${mml("<mi>f</mi><mo>=</mo><mo>&#x2212;</mo><mi>Ln</mi>&#x2009;<mi>z</mi>")}，图形相同、电势高低相反。）`,
+      heat:`无限长线状热源/冷汇。等温线是同心圆，热流线沿半径放射。（${mml("<mi>u</mi><mo>=</mo><mi>ln</mi><mo>&#x2061;</mo><mrow><mo>|</mo><mi>z</mi><mo>|</mo></mrow>")} 向中心降低，对应<b>线冷汇</b>；线热源取 ${mml("<mi>f</mi><mo>=</mo><mo>&#x2212;</mo><mi>Ln</mi>&#x2009;<mi>z</mi>")}。）`,
       fluid:`平面<b>点源（泉）/ 汇</b>。等势线是同心圆，流线沿半径放射。` } },
 
   { id:"multi", name:"多点源叠加", btn:"多点源叠加（可拖）", kind:"sources",
@@ -289,9 +289,9 @@ const SCENES=[
     vML:"<mo>&#x2212;</mo><mfrac><mrow><mi>y</mi></mrow><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup></mrow></mfrac>",
     steps:()=>`${mml("<mi>f</mi><mo>=</mo><mn>1</mn><mo>/</mo><mi>z</mi>")} 除 ${mml("<mi>z</mi><mo>=</mo><mn>0</mn>")} 外解析
        ⟹ ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")} 自动共轭调和。
-       等值线是两族相互内切的正交圆。`,
+       ${F.uc} 是一族过原点、与虚轴相切的圆，${F.vc} 是一族过原点、与实轴相切的圆，两族正交。`,
     phys:{
-      electro:`二维<b>电偶极子</b>（一对靠得很近的正负线电荷）。等值线是相互内切的圆族。`,
+      electro:`二维<b>电偶极子</b>（一对靠得很近的正负线电荷）。等势线是过原点、与虚轴相切的圆族，电场线是过原点、与实轴相切的圆族。`,
       heat:`<b>热偶极</b>（相邻的线热源与线冷汇）。`,
       fluid:`<b>偶极流</b>（doublet），是绕圆柱流的组成部分。` } },
 
@@ -326,15 +326,18 @@ let scene=SCENES[1];      // 默认「直角角流」（大纲难点：已知 u=
 /* ============ 场 ============ */
 let srcs=[{x:-0.9,y:0,q:1},{x:0.9,y:0,q:-1}];   // 多点源叠加：默认偶极子
 
+/* 点源叠加的符号：流体中源的速度势 φ=+(m/2π)ln r（向外增大，流速 ∇φ 向外）；
+   静电场正电荷的电势 φ=−(λ/2πε₀)ln r、热源的温度 T=−(Q/2πk)ln r（都向外降低，场 −∇φ 向外）。 */
+function srcSign(){ return IDEN.id==="fluid" ? 1 : -1; }
 function Ufield(x,y){
   if(scene.kind==="sources"){
     let s=0; for(const p of srcs){ const d=(x-p.x)*(x-p.x)+(y-p.y)*(y-p.y); if(d<1e-9) return NaN; s+=0.5*p.q*Math.log(d); }
-    return s;
+    return srcSign()*s;
   }
   return scene.u(x,y);
 }
 function Vfield(x,y){
-  if(scene.kind==="sources"){ let s=0; for(const p of srcs) s+=p.q*Math.atan2(y-p.y,x-p.x); return s; }
+  if(scene.kind==="sources"){ let s=0; for(const p of srcs) s+=p.q*Math.atan2(y-p.y,x-p.x); return srcSign()*s; }
   if(scene.v) return scene.v(x,y);
   return NaN;
 }
@@ -434,7 +437,9 @@ function drawFieldLines(color){
   if(!list.length) return;
   const pos=list.filter(p=>p.q>0), neg=list.filter(p=>p.q<0);
   const seedFrom = pos.length?pos:neg;
-  const dir = pos.length?1:-1;
+  // 从正源出发沿“离开它”的方向追踪：u 向外增大时沿 +∇u，向外减小（电势/温度）时沿 −∇u
+  const outward = scene.kind==="sources" ? srcSign() : 1;
+  const dir = (pos.length?1:-1)*outward;
   ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
   ctx.beginPath();
   for(const p of seedFrom){
@@ -456,27 +461,54 @@ function nearSingular(x,y){
   if(scene.singular){ return Math.hypot(x-scene.singular.x,y-scene.singular.y)<0.2; }
   return false;
 }
+// 到最近奇点（点源 / 极点）的距离
+function singDist(x,y){
+  let d=Infinity;
+  if(scene.kind==="sources"){ for(const p of srcs) d=Math.min(d,Math.hypot(x-p.x,y-p.y)); }
+  else if(scene.singular){ d=Math.hypot(x-scene.singular.x,y-scene.singular.y); }
+  return d;
+}
+/* Δu 判定：差分步长随“到奇点距离”自适应缩小，并用相对残差 |Δu|/(|u_xx|+|u_yy|) 判断——
+   调和时 u_xx、u_yy 很大但互相抵消，相对残差≈0；不调和（如 x²+y²）相对残差≈1。
+   旧版用固定步长 + 绝对阈值，奇点附近差分误差巨大，会把点源/偶极/绕圆柱都误判成“不调和”。 */
 function drawLaplacian(){
   const {xmin,xmax,ymin,ymax}=bounds();
   const N=HEATN, M=Math.max(20,Math.round(N*(ymax-ymin)/(xmax-xmin)));
-  const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h=Math.min(dw,dh)*0.6, SCALE=2;
+  const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h0=Math.min(dw,dh)*0.3;
+  const rEx=Math.max(0.12, Math.min(dw,dh)*0.8);         // 奇点本身附近一小圈不判
   ctx.save();
-  let maxAbs=0;
+  let maxAbs=0, maxRel=0;
+  const cells=[];
   for(let i=0;i<N;i++)for(let j=0;j<M;j++){
     const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
+    const r=singDist(x,y); if(r<rEx) continue;
     const c=Ufield(x,y);
     if(!isFinite(c)) continue;
-    const lap=(Ufield(x+h,y)+Ufield(x-h,y)+Ufield(x,y+h)+Ufield(x,y-h)-4*c)/(h*h);
+    const h=Math.min(h0, 0.05*r);
+    // 四阶精度二阶差分（截断误差 O(h⁴)）
+    const d2=(a,b,e,f)=>(-a+16*b-30*c+16*e-f)/(12*h*h);
+    const uxx=d2(Ufield(x+2*h,y),Ufield(x+h,y),Ufield(x-h,y),Ufield(x-2*h,y));
+    const uyy=d2(Ufield(x,y+2*h),Ufield(x,y+h),Ufield(x,y-h),Ufield(x,y-2*h));
+    const lap=uxx+uyy;
     if(!isFinite(lap)) continue;
-    if(!nearSingular(x,y) && Math.abs(lap)>maxAbs) maxAbs=Math.abs(lap);
-    const a=Math.min(0.72, Math.abs(lap)/SCALE);
+    cells.push({x,y,lap,sc:Math.abs(uxx)+Math.abs(uyy)});
+  }
+  // 分母加全场典型曲率作底数，避免 u_xx、u_yy 恰好都≈0 的格子把截断误差放大成“假红点”
+  const scs=cells.map(c=>c.sc).sort((a,b)=>a-b);
+  const floor=(scs.length?scs[Math.floor(scs.length/2)]:1)*0.05+1e-9;
+  for(const cell of cells){
+    const {x,y,lap}=cell;
+    const rel=Math.abs(lap)/(cell.sc+floor);
+    if(Math.abs(lap)>maxAbs) maxAbs=Math.abs(lap);
+    if(rel>maxRel) maxRel=rel;
+    const a=Math.min(0.72, rel*0.8);
     if(a<0.02) continue;
     ctx.fillStyle=`rgba(197,48,48,${a})`;
     const A=toS({x:x-dw/2,y:y-dh/2}), B=toS({x:x+dw/2,y:y+dh/2});
     ctx.fillRect(A.x, B.y, B.x-A.x+1, A.y-B.y+1);
   }
   // 调和场景 Δu≈0 处处不画红 —— 铺一层淡绿背景，让"处处为零"看得见，而不是"勾了没反应"
-  const flat = maxAbs<0.05;
+  const flat = maxRel<0.02;
   if(flat){
     const TL=toS({x:xmin,y:ymax}), BR=toS({x:xmax,y:ymin});
     ctx.fillStyle="rgba(47,133,90,.10)";
@@ -488,7 +520,7 @@ function drawLaplacian(){
   let pill;
   if(flat){
     pill=`<span style="background:rgba(47,133,90,.14);color:#276749;border:1px solid #9ae6b4;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
-         `调和性验证 ✓　全场 ${du} ≈ 0（实测 ${mx} ≈ ${fmt(maxAbs)}）`+(scene.singular||scene.kind==="sources"?"，奇点除外":"")+`</span>`;
+         `调和性验证 ✓　全场 ${du} ≈ 0（数值误差内`+(scene.singular||scene.kind==="sources"?"，奇点除外":"")+`）</span>`;
   }else{
     pill=`<span style="background:rgba(197,48,48,.13);color:#9b2c2c;border:1px solid #feb2b2;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
          `调和性验证 ✗　${mx} ≈ ${fmt(maxAbs)} ≠ 0（不是调和函数）</span>`;
@@ -618,11 +650,13 @@ function updateReadout(){
 
   if(scene.kind==="sources"){
     const np=srcs.filter(p=>p.q>0).length, nn=srcs.filter(p=>p.q<0).length, tot=srcs.reduce((a,p)=>a+p.q,0);
-    html+=`<div><span class="k">势</span> ${mml("<mi>u</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub>")}</div>`;
+    const sg = srcSign()<0 ? "<mo>&#x2212;</mo>" : "";
+    html+=`<div><span class="k">势</span> ${mml("<mi>u</mi><mo>=</mo>"+sg+"<mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub>")}`+
+          (srcSign()<0 ? `<span style="color:var(--sub);font-size:12px;">（取负号：${IDEN.posWord}附近${IDEN.uWord}最高、向外降低；常数因子已略去）</span>` : `<span style="color:var(--sub);font-size:12px;">（源附近速度势向外增大，流速向外；常数因子已略去）</span>`)+`</div>`;
     html+=`<div class="val"><span class="t">${IDEN.posWord}×${np}，${IDEN.negWord}×${nn}，净强度 ${tot>0?'+':''}${tot}</span>`+
           `<span class="big">${mml("<mi>u</mi>")} = ${uNameHTML()}</span></div>`;
     html+=`<div class="corr">每个 ${mml("<mi>ln</mi><mo>&#x2061;</mo><msub><mi>r</mi><mi>k</mi></msub>")} 除源点外满足 ${F.lap0}，叠加仍<b>调和</b>；`+
-          `其共轭 ${mml("<mi>v</mi><mo>=</mo><mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><msub><mi>&#x3B8;</mi><mi>k</mi></msub>")} 的等值线就是<b>${vL}</b>。</div>`;
+          `其共轭 ${mml("<mi>v</mi><mo>=</mo>"+sg+"<mo>&#x2211;</mo><msub><mi>q</mi><mi>k</mi></msub><msub><mi>&#x3B8;</mi><mi>k</mi></msub>")} 的等值线就是<b>${vL}</b>。</div>`;
     html+=orientNote(uL,vL);
     box.innerHTML=html; return;
   }
