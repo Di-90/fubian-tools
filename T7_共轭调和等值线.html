@@ -180,6 +180,931 @@
   </div>
 
 <script>
+/* ===================================================================
+   T7 符号引擎：解析器(AST) + 实二元表达式(RE) + 复数对(CX) + z 单变量(ZE)
+   用途：模式A 由 f(z) 求 u=Re f, v=Im f 的显式表达式；
+         模式B 由调和 u(x,y) 用 Milne-Thomson 代换求 f(z) 与 v。
+   =================================================================== */
+const T7CAS = (function () {
+  'use strict';
+  class Unsupported extends Error {}
+  const KNOWN_FN = ['exp', 'ln', 'log', 'sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'sqrt', 'conj', 'abs', 're', 'im'];
+  const SINGLE = new Set(['x', 'y', 'z', 'i', 'e', 'π']);
+
+  /* ---------------- 解析器 → AST ---------------- */
+  function tokenize(s) {
+    const t = []; let i = 0; s = s.replace(/\s+/g, '');
+    const isnum = c => (c >= '0' && c <= '9') || c === '.';
+    const isal = c => /[a-zA-Zπ]/.test(c);
+    while (i < s.length) {
+      const c = s[i];
+      if (isnum(c)) { let j = i; while (j < s.length && isnum(s[j])) j++; const v = parseFloat(s.slice(i, j)); if (!isFinite(v)) throw new Error('数字格式有误'); t.push({ k: 'num', v }); i = j; }
+      else if (isal(c)) {
+        let j = i; while (j < s.length && isal(s[j])) j++;
+        const w = s.slice(i, j), lw = w.toLowerCase();
+        if (KNOWN_FN.includes(lw) || lw === 'pi') t.push({ k: 'id', v: lw });
+        else {                       // 省略乘号：xy、2xy、ix → 逐字母拆开
+          for (const ch of lw) {
+            if (!SINGLE.has(ch)) throw new Error('未知符号 “' + w + '”（函数要加括号，如 sin(x)；乘积可写 x*y 或 xy）');
+            t.push({ k: 'id', v: ch });
+          }
+        }
+        i = j;
+      }
+      else if ('+-*/^(),'.includes(c)) { t.push({ k: c }); i++; }
+      else throw new Error('无法识别的字符 “' + c + '”');
+    }
+    return t;
+  }
+  function parse(str) {
+    if (!str || !str.trim()) throw new Error('表达式为空');
+    const t = tokenize(str); let pos = 0;
+    const peek = () => t[pos];
+    const eat = k => { if (t[pos] && t[pos].k === k) return t[pos++]; throw new Error('缺少 “' + k + '”'); };
+    function expr() {
+      let a = term();
+      while (peek() && (peek().k === '+' || peek().k === '-')) { const op = t[pos++].k; const b = term(); a = { t: op === '+' ? 'add' : 'sub', a, b }; }
+      return a;
+    }
+    function term() {
+      let a = unary();
+      while (peek()) {
+        const k = peek().k;
+        if (k === '*' || k === '/') { pos++; const b = unary(); a = { t: k === '*' ? 'mul' : 'div', a, b }; }
+        else if (k === 'num' || k === 'id' || k === '(') { const b = power(); a = { t: 'mul', a, b }; }   // 隐式乘法
+        else break;
+      }
+      return a;
+    }
+    // 一元负号优先级低于乘方：-x^2 = -(x^2)
+    function unary() {
+      if (peek() && peek().k === '-') { pos++; return { t: 'neg', a: unary() }; }
+      if (peek() && peek().k === '+') { pos++; return unary(); }
+      return power();
+    }
+    function power() {
+      const b = base();
+      if (peek() && peek().k === '^') { pos++; const e = unary(); return { t: 'pow', a: b, b: e }; }  // 右结合，指数可带负号
+      return b;
+    }
+    function base() {
+      const tok = peek();
+      if (!tok) throw new Error('表达式不完整');
+      if (tok.k === 'num') { pos++; return { t: 'num', v: tok.v }; }
+      if (tok.k === '(') { pos++; const e = expr(); eat(')'); return e; }
+      if (tok.k === 'id') {
+        pos++; const name = tok.v;
+        if (KNOWN_FN.includes(name)) {
+          if (!(peek() && peek().k === '(')) throw new Error('函数 ' + name + ' 后面要加括号，如 ' + name + '(x)');
+          pos++; const a = expr(); eat(')');
+          return { t: 'fn', f: name === 'log' ? 'ln' : name, a };
+        }
+        if (name === 'i') return { t: 'i' };
+        if (name === 'e') return { t: 'e' };
+        if (name === 'pi' || name === 'π') return { t: 'pi' };
+        if (name === 'x' || name === 'y' || name === 'z') return { t: name };
+        throw new Error('未知符号 “' + name + '”');
+      }
+      if (tok.k === '-' || tok.k === '+') return unary();
+      throw new Error('语法错误');
+    }
+    const ast = expr();
+    if (pos < t.length) throw new Error('多余的符号');
+    return ast;
+  }
+  function uses(ast, name) {
+    if (!ast) return false;
+    if (ast.t === name) return true;
+    return uses(ast.a, name) || uses(ast.b, name);
+  }
+
+  /* ---------------- 数值求值（复数）---------------- */
+  const Cn = {
+    add: (a, b) => ({ re: a.re + b.re, im: a.im + b.im }),
+    sub: (a, b) => ({ re: a.re - b.re, im: a.im - b.im }),
+    mul: (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }),
+    div: (a, b) => { const d = b.re * b.re + b.im * b.im; return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }; },
+    neg: a => ({ re: -a.re, im: -a.im }),
+    exp: a => { const e = Math.exp(a.re); return { re: e * Math.cos(a.im), im: e * Math.sin(a.im) }; },
+    ln: a => ({ re: 0.5 * Math.log(a.re * a.re + a.im * a.im), im: Math.atan2(a.im, a.re) }),
+    sin: a => ({ re: Math.sin(a.re) * Math.cosh(a.im), im: Math.cos(a.re) * Math.sinh(a.im) }),
+    cos: a => ({ re: Math.cos(a.re) * Math.cosh(a.im), im: -Math.sin(a.re) * Math.sinh(a.im) }),
+    sinh: a => ({ re: Math.sinh(a.re) * Math.cos(a.im), im: Math.cosh(a.re) * Math.sin(a.im) }),
+    cosh: a => ({ re: Math.cosh(a.re) * Math.cos(a.im), im: Math.sinh(a.re) * Math.sin(a.im) }),
+    sqrt: a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); let im = Math.sqrt(Math.max(0, (r - a.re) / 2)); if (a.im < 0) im = -im; return { re, im }; },
+  };
+  Cn.pow = (a, b) => {
+    if (b.im === 0 && Number.isInteger(b.re) && Math.abs(b.re) <= 64) {      // 整数幂：精确连乘
+      let n = Math.abs(b.re), r = { re: 1, im: 0 }, p = a;
+      while (n) { if (n & 1) r = Cn.mul(r, p); p = Cn.mul(p, p); n >>= 1; }
+      return b.re < 0 ? Cn.div({ re: 1, im: 0 }, r) : r;
+    }
+    if (a.re === 0 && a.im === 0) return { re: 0, im: 0 };
+    return Cn.exp(Cn.mul(b, Cn.ln(a)));
+  };
+  const NFN = {
+    exp: Cn.exp, ln: Cn.ln, sin: Cn.sin, cos: Cn.cos, sinh: Cn.sinh, cosh: Cn.cosh, sqrt: Cn.sqrt,
+    tan: a => Cn.div(Cn.sin(a), Cn.cos(a)), tanh: a => Cn.div(Cn.sinh(a), Cn.cosh(a)),
+    conj: a => ({ re: a.re, im: -a.im }), abs: a => ({ re: Math.hypot(a.re, a.im), im: 0 }),
+    re: a => ({ re: a.re, im: 0 }), im: a => ({ re: a.im, im: 0 }),
+  };
+  function compile(ast) {          // → fn(scope{z,x,y}) -> complex
+    switch (ast.t) {
+      case 'num': { const v = { re: ast.v, im: 0 }; return () => v; }
+      case 'i': { const v = { re: 0, im: 1 }; return () => v; }
+      case 'e': { const v = { re: Math.E, im: 0 }; return () => v; }
+      case 'pi': { const v = { re: Math.PI, im: 0 }; return () => v; }
+      case 'z': return sc => sc.z;
+      case 'x': return sc => ({ re: sc.x, im: 0 });
+      case 'y': return sc => ({ re: sc.y, im: 0 });
+      case 'neg': { const a = compile(ast.a); return sc => Cn.neg(a(sc)); }
+      case 'fn': { const a = compile(ast.a), f = NFN[ast.f]; return sc => f(a(sc)); }
+      default: {
+        const a = compile(ast.a), b = compile(ast.b), op = Cn[ast.t];
+        return sc => op(a(sc), b(sc));
+      }
+    }
+  }
+
+  /* ======================================================================
+     RE：x,y 的实系数“有理式”，分子为多项式（允许超越原子 e^A, cos A, …），
+     分母为若干多项式因子的乘幂（因子化保存，便于约分与美观输出）
+     ====================================================================== */
+  const ATOMS = new Map();            // key -> {fn, args:[RE...]}
+  const tiny = (c, s) => Math.abs(c) < 1e-11 * Math.max(1, s || 1);
+  // 单项：{c, m:{var:exp}}；var 为 'x','y' 或原子 key
+  function mkey(m) { return Object.keys(m).sort(varCmp).map(k => k + '^' + m[k]).join('*'); }
+  // 因子顺序：x, y, e^(…), 再按自变量含 x 的在前（eˣcos y、sin x cosh y、cos 2x+cosh 2y）
+  function varRank(v) {
+    if (v === 'x') return [0]; if (v === 'y') return [1];
+    const A = ATOMS.get(v); if (!A) return [9];
+    const hasX = A.args.some(r => [...r.num.values()].some(t => 'x' in t.m));
+    return [A.fn === 'exp' ? 2 : 3, hasX ? 0 : 1];
+  }
+  function varCmp(a, b) {
+    const ra = varRank(a), rb = varRank(b);
+    for (let k = 0; k < Math.max(ra.length, rb.length); k++) { const d = (ra[k] || 0) - (rb[k] || 0); if (d) return d; }
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  const P = {
+    zero: () => new Map(),
+    c: v => { const p = new Map(); if (v !== 0) p.set('', { c: v, m: {} }); return p; },
+    v: name => { const p = new Map(); p.set(name + '^1', { c: 1, m: { [name]: 1 } }); return p; },
+    isZero: p => p.size === 0,
+    add(a, b) { const r = new Map(a); for (const [k, t] of b) { const o = r.get(k); if (o) { const c = o.c + t.c; if (tiny(c, Math.abs(o.c) + Math.abs(t.c))) r.delete(k); else r.set(k, { c, m: o.m }); } else r.set(k, t); } return r; },
+    scale(a, s) { const r = new Map(); if (s === 0) return r; for (const [k, t] of a) r.set(k, { c: t.c * s, m: t.m }); return r; },
+    neg: a => P.scale(a, -1),
+    mul(a, b) { let r = new Map(); for (const [, s] of a) for (const [, t] of b) r = P.add(r, termMul(s, t)); return r; },
+    pow(a, n) { let r = P.c(1); for (let k = 0; k < n; k++) r = P.mul(r, a); return r; },
+    constVal: p => p.size === 0 ? 0 : (p.size === 1 && p.has('') ? p.get('').c : null),
+  };
+  // 单项乘法：指数相加；多个 e^A 合并成 e^{ΣA}
+  function termMul(s, t) {
+    const m = Object.assign({}, s.m);
+    for (const k in t.m) m[k] = (m[k] || 0) + t.m[k];
+    let c = s.c * t.c;
+    const expKeys = Object.keys(m).filter(k => ATOMS.get(k) && ATOMS.get(k).fn === 'exp');
+    if (expKeys.length > 1 || expKeys.some(k => m[k] !== 1)) {
+      let arg = RE.zero();
+      for (const k of expKeys) { arg = RE.add(arg, RE.scale(ATOMS.get(k).args[0], m[k])); delete m[k]; }
+      const at = atomRE('exp', [arg]);           // 可能化为常数
+      return single(c, m, at);
+    }
+    for (const k in m) if (m[k] === 0) delete m[k];
+    const p = new Map(); p.set(mkey(m), { c, m }); return p;
+  }
+  function single(c, m, atRE) {     // c·m·atRE，atRE 为纯多项式 RE
+    const base = new Map(); for (const k in m) if (m[k] === 0) delete m[k];
+    base.set(mkey(m), { c, m });
+    if (atRE.den.length) throw new Unsupported('exp 合并出分式');
+    let r = new Map();
+    for (const [, t] of atRE.num) for (const [, s] of base) {
+      const mm = Object.assign({}, s.m); for (const k in t.m) mm[k] = (mm[k] || 0) + t.m[k];
+      const add = new Map(); add.set(mkey(mm), { c: s.c * t.c, m: mm }); r = P.add(r, add);
+    }
+    return r;
+  }
+  function pkey(p) {                 // 多项式规范串
+    return [...p.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([k, t]) => (Math.round(t.c * 1e9) / 1e9) + '·' + k).join('+');
+  }
+  // 单项序：x,y 总次数 → x 次数 → 原子
+  function degOf(m) { let d = 0; for (const k in m) d += m[k]; return d; }
+  function monoCmp(a, b) {           // 降序（大的在前）
+    const dx = (m) => (m.x || 0) + (m.y || 0);
+    const d1 = degOf(a), d2 = degOf(b); if (d1 !== d2) return d2 - d1;
+    const e1 = dx(a), e2 = dx(b); if (e1 !== e2) return e2 - e1;
+    if ((a.x || 0) !== (b.x || 0)) return (b.x || 0) - (a.x || 0);
+    const sa = Object.keys(a).sort(varCmp), sb = Object.keys(b).sort(varCmp);
+    for (let k = 0; k < Math.min(sa.length, sb.length); k++) { const d = varCmp(sa[k], sb[k]); if (d) return d; }
+    return sa.length - sb.length;
+  }
+  function lead(p) { let best = null; for (const [, t] of p) if (!best || monoCmp(t.m, best.m) < 0) best = t; return best; }
+  // 精确多项式除法（失败返回 null）；含 e^A 原子时不做
+  function pdiv(N, F) {
+    for (const [, t] of F) for (const k in t.m) if (ATOMS.get(k) && ATOMS.get(k).fn === 'exp') return null;
+    let R = N, Q = P.zero(); const lf = lead(F); let guard = 0;
+    while (R.size) {
+      if (++guard > 400) return null;
+      const lr = lead(R); const m = {};
+      for (const k in lf.m) if ((lr.m[k] || 0) < lf.m[k]) return null;
+      for (const k in lr.m) { const e = lr.m[k] - (lf.m[k] || 0); if (e) m[k] = e; }
+      const q = new Map(); q.set(mkey(m), { c: lr.c / lf.c, m });
+      Q = P.add(Q, q); R = P.add(R, P.neg(P.mul(q, F)));
+      if (R.size && lead(R) && monoCmp(lead(R).m, lr.m) >= 0 && mkey(lead(R).m) === mkey(lr.m)) return null;
+    }
+    return Q;
+  }
+  const POOL = new Map();            // 已出现的分母因子 key -> poly
+  function poolAdd(p) { POOL.set(pkey(p), p); }
+  poolAdd(P.add(P.mul(P.v('x'), P.v('x')), P.mul(P.v('y'), P.v('y'))));   // x²+y²
+
+  // RE = {num:Poly, den:[{key,poly,e}]}
+  const RE = {
+    zero: () => ({ num: P.zero(), den: [] }),
+    c: v => ({ num: P.c(v), den: [] }),
+    poly: p => ({ num: p, den: [] }),
+    isZero: a => a.num.size === 0,
+    constVal: a => a.den.length ? null : P.constVal(a.num),
+    scale: (a, s) => norm({ num: P.scale(a.num, s), den: a.den }),
+    neg: a => ({ num: P.neg(a.num), den: a.den }),
+    add(a, b) {
+      if (a.num.size === 0) return b; if (b.num.size === 0) return a;
+      const all = new Map();
+      for (const f of a.den) all.set(f.key, { key: f.key, poly: f.poly, e: f.e });
+      for (const f of b.den) { const o = all.get(f.key); if (!o || o.e < f.e) all.set(f.key, { key: f.key, poly: f.poly, e: f.e }); }
+      const lift = (x) => { let n = x.num; for (const [k, f] of all) { const have = (x.den.find(d => d.key === k) || { e: 0 }).e; if (f.e > have) n = P.mul(n, P.pow(f.poly, f.e - have)); } return n; };
+      return norm({ num: P.add(lift(a), lift(b)), den: [...all.values()] });
+    },
+    sub: (a, b) => RE.add(a, RE.neg(b)),
+    mul(a, b) {
+      const den = a.den.map(f => ({ ...f }));
+      for (const f of b.den) { const o = den.find(d => d.key === f.key); if (o) o.e += f.e; else den.push({ ...f }); }
+      return norm({ num: P.mul(a.num, b.num), den });
+    },
+    inv(a) {
+      if (a.num.size === 0) throw new Unsupported('除以零');
+      let num = P.c(1); for (const f of a.den) num = P.mul(num, P.pow(f.poly, f.e));
+      const facs = factorDen(a.num);
+      return norm({ num: P.scale(num, 1 / facs.k), den: facs.list });
+    },
+    div: (a, b) => RE.mul(a, RE.inv(b)),
+    powInt(a, n) { if (n < 0) return RE.powInt(RE.inv(a), -n); let r = RE.c(1); for (let k = 0; k < n; k++) r = RE.mul(r, a); return r; },
+  };
+  // 把多项式拆成：数值系数 k × 单项公因子 × 已知因子 × 余因子
+  function factorDen(p) {
+    let k = lead(p).c; p = P.scale(p, 1 / k);
+    const list = [];
+    const push = (poly, e) => { const key = pkey(poly); const o = list.find(d => d.key === key); if (o) o.e += e; else list.push({ key, poly, e }); };
+    // 单项公因子（只取 x、y）
+    for (const v of ['x', 'y']) {
+      let g = Infinity; for (const [, t] of p) g = Math.min(g, t.m[v] || 0);
+      if (g > 0 && g < Infinity) { const q = new Map(); for (const [, t] of p) { const m = Object.assign({}, t.m); m[v] -= g; if (!m[v]) delete m[v]; q.set(mkey(m), { c: t.c, m }); } p = q; push(P.v(v), g); }
+    }
+    let changed = true;
+    while (changed && p.size > 1) {
+      changed = false;
+      for (const [, f] of POOL) {
+        if (f.size > p.size) continue;
+        const q = pdiv(p, f); if (q) { push(f, 1); p = q; changed = true; const l = lead(p); if (l && l.c !== 1) { k *= l.c; p = P.scale(p, 1 / l.c); } break; }
+      }
+    }
+    if (!(p.size === 1 && p.has('') && p.get('').c === 1)) {
+      if (p.size === 1 && p.has('')) k *= p.get('').c; else { poolAdd(p); push(p, 1); }
+    }
+    return { k, list };
+  }
+  function norm(a) {
+    if (a.num.size === 0) return { num: a.num, den: [] };
+    let num = a.num; const den = [];
+    for (const f of a.den) {
+      let e = f.e;
+      while (e > 0) { const q = pdiv(num, f.poly); if (!q) break; num = q; e--; }
+      if (e > 0) den.push({ key: f.key, poly: f.poly, e });
+    }
+    return { num, den };
+  }
+  function reKey(a) { return pkey(a.num) + (a.den.length ? '/' + a.den.map(f => '(' + f.key + ')^' + f.e).sort().join('') : ''); }
+  // 超越原子
+  function atomRE(fn, args) {
+    const a = args[0];
+    const cv = args.length === 1 ? RE.constVal(a) : null;
+    if (cv === 0) {
+      if (fn === 'exp' || fn === 'cos' || fn === 'cosh') return RE.c(1);
+      if (fn === 'sin' || fn === 'sinh') return RE.c(0);
+    }
+    if (fn === 'ln' && cv === 1) return RE.c(0);
+    // 奇偶规范：让自变量首项系数为正
+    if (args.length === 1 && ['cos', 'cosh', 'sin', 'sinh'].includes(fn) && a.num.size) {
+      const l = lead(a.num);
+      if (l.c < 0) { const r = atomRE(fn, [RE.neg(a)]); return (fn === 'sin' || fn === 'sinh') ? RE.neg(r) : r; }
+    }
+    const key = fn + '(' + args.map(reKey).join(',') + ')';
+    if (!ATOMS.has(key)) ATOMS.set(key, { fn, args });
+    return RE.poly(P.v(key));
+  }
+
+  /* ---------------- CX：复数对 (Re, Im) ---------------- */
+  const CX = {
+    of: (re, im) => ({ re, im: im || RE.zero() }),
+    add: (a, b) => CX.of(RE.add(a.re, b.re), RE.add(a.im, b.im)),
+    sub: (a, b) => CX.of(RE.sub(a.re, b.re), RE.sub(a.im, b.im)),
+    mul: (a, b) => CX.of(RE.sub(RE.mul(a.re, b.re), RE.mul(a.im, b.im)), RE.add(RE.mul(a.re, b.im), RE.mul(a.im, b.re))),
+    neg: a => CX.of(RE.neg(a.re), RE.neg(a.im)),
+    inv(a) {
+      if (RE.isZero(a.im)) return CX.of(RE.inv(a.re));
+      const d = RE.add(RE.mul(a.re, a.re), RE.mul(a.im, a.im));
+      const di = RE.inv(d);
+      return CX.of(RE.mul(a.re, di), RE.neg(RE.mul(a.im, di)));
+    },
+    div: (a, b) => CX.mul(a, CX.inv(b)),
+    powInt(a, n) {
+      if (n < 0) return CX.powInt(CX.inv(a), -n);
+      let r = CX.of(RE.c(1)), p = a;
+      while (n) { if (n & 1) r = CX.mul(r, p); n >>= 1; if (n) p = CX.mul(p, p); }
+      return r;
+    },
+  };
+  function cxConst(v) { return v.t === 'cx' ? v : null; }
+  function cxFn(f, w) {
+    const a = w.re, b = w.im;
+    const A = (fn, x) => atomRE(fn, [x]);
+    switch (f) {
+      case 'exp': { const r = A('exp', a); return CX.of(RE.mul(r, A('cos', b)), RE.mul(r, A('sin', b))); }
+      case 'sin': return CX.of(RE.mul(A('sin', a), A('cosh', b)), RE.mul(A('cos', a), A('sinh', b)));
+      case 'cos': return CX.of(RE.mul(A('cos', a), A('cosh', b)), RE.neg(RE.mul(A('sin', a), A('sinh', b))));
+      case 'sinh': return CX.of(RE.mul(A('sinh', a), A('cos', b)), RE.mul(A('cosh', a), A('sin', b)));
+      case 'cosh': return CX.of(RE.mul(A('cosh', a), A('cos', b)), RE.mul(A('sinh', a), A('sin', b)));
+      case 'tan': {
+        if (RE.isZero(b)) return CX.of(RE.div(A('sin', a), A('cos', a)));
+        const a2 = RE.scale(a, 2), b2 = RE.scale(b, 2), d = RE.inv(RE.add(A('cos', a2), A('cosh', b2)));
+        return CX.of(RE.mul(A('sin', a2), d), RE.mul(A('sinh', b2), d));
+      }
+      case 'tanh': {
+        if (RE.isZero(b)) return CX.of(RE.div(A('sinh', a), A('cosh', a)));
+        const a2 = RE.scale(a, 2), b2 = RE.scale(b, 2), d = RE.inv(RE.add(A('cosh', a2), A('cos', b2)));
+        return CX.of(RE.mul(A('sinh', a2), d), RE.mul(A('sin', b2), d));
+      }
+      case 'ln': {
+        if (RE.isZero(b)) return CX.of(A('ln', a));          // 实自变量（默认取正）
+        const d = RE.add(RE.mul(a, a), RE.mul(b, b));
+        return CX.of(RE.scale(A('ln', d), 0.5), atomRE('arg', [a, b]));
+      }
+      case 'conj': return CX.of(a, RE.neg(b));
+      case 're': return CX.of(a);
+      case 'im': return CX.of(b);
+      case 'abs': return CX.of(A('sqrt', RE.add(RE.mul(a, a), RE.mul(b, b))));
+      default: throw new Unsupported(f);
+    }
+  }
+  // AST → CX（z = x + iy；x、y 为实变量）
+  function toCX(ast) {
+    switch (ast.t) {
+      case 'num': return CX.of(RE.c(ast.v));
+      case 'i': return CX.of(RE.zero(), RE.c(1));
+      case 'e': return CX.of(atomRE('exp', [RE.c(1)]));
+      case 'pi': return CX.of(atomRE('pi', [RE.zero()]));
+      case 'x': return CX.of(RE.poly(P.v('x')));
+      case 'y': return CX.of(RE.poly(P.v('y')));
+      case 'z': return CX.of(RE.poly(P.v('x')), RE.poly(P.v('y')));
+      case 'neg': return CX.neg(toCX(ast.a));
+      case 'add': return CX.add(toCX(ast.a), toCX(ast.b));
+      case 'sub': return CX.sub(toCX(ast.a), toCX(ast.b));
+      case 'mul': return CX.mul(toCX(ast.a), toCX(ast.b));
+      case 'div': return CX.div(toCX(ast.a), toCX(ast.b));
+      case 'fn': return cxFn(ast.f, toCX(ast.a));
+      case 'pow': {
+        const e = toCX(ast.b), ev = RE.isZero(e.im) ? RE.constVal(e.re) : null;
+        if (ev !== null && Number.isInteger(ev) && Math.abs(ev) <= 12) return CX.powInt(toCX(ast.a), ev);
+        if (ast.a.t === 'e') return cxFn('exp', e);
+        throw new Unsupported('非整数幂');
+      }
+    }
+    throw new Unsupported(ast.t);
+  }
+
+  /* ---------------- RE 数值求值 & 求导 ---------------- */
+  function evalAtom(key, x, y) {
+    const A = ATOMS.get(key); const v = A.args.map(r => evalRE(r, x, y));
+    switch (A.fn) {
+      case 'exp': return Math.exp(v[0]); case 'cos': return Math.cos(v[0]); case 'sin': return Math.sin(v[0]);
+      case 'cosh': return Math.cosh(v[0]); case 'sinh': return Math.sinh(v[0]); case 'ln': return Math.log(v[0]);
+      case 'arg': return Math.atan2(v[1], v[0]); case 'sqrt': return Math.sqrt(v[0]); case 'pi': return Math.PI;
+    }
+    return NaN;
+  }
+  function evalPoly(p, x, y, cache) {
+    let s = 0;
+    for (const [, t] of p) {
+      let v = t.c;
+      for (const k in t.m) { const b = k === 'x' ? x : k === 'y' ? y : (cache[k] ?? (cache[k] = evalAtom(k, x, y))); v *= Math.pow(b, t.m[k]); }
+      s += v;
+    }
+    return s;
+  }
+  function evalRE(a, x, y) {
+    const cache = {}; let v = evalPoly(a.num, x, y, cache);
+    for (const f of a.den) v /= Math.pow(evalPoly(f.poly, x, y, cache), f.e);
+    return v;
+  }
+  function dAtom(key, v) {
+    const A = ATOMS.get(key), a = A.args[0];
+    const da = () => dRE(a, v);
+    switch (A.fn) {
+      case 'exp': return RE.mul(RE.poly(P.v(key)), da());
+      case 'cos': return RE.neg(RE.mul(atomRE('sin', [a]), da()));
+      case 'sin': return RE.mul(atomRE('cos', [a]), da());
+      case 'cosh': return RE.mul(atomRE('sinh', [a]), da());
+      case 'sinh': return RE.mul(atomRE('cosh', [a]), da());
+      case 'ln': return RE.div(da(), a);
+      case 'sqrt': return RE.div(da(), RE.scale(RE.poly(P.v(key)), 2));
+      case 'pi': return RE.zero();
+      case 'arg': { const b = A.args[1]; return RE.div(RE.sub(RE.mul(a, dRE(b, v)), RE.mul(b, dRE(a, v))), RE.add(RE.mul(a, a), RE.mul(b, b))); }
+    }
+    throw new Unsupported('d ' + A.fn);
+  }
+  function dPoly(p, v) {
+    let r = RE.zero();
+    for (const [, t] of p) {
+      for (const k in t.m) {
+        const e = t.m[k]; const m = Object.assign({}, t.m); m[k] = e - 1; if (!m[k]) delete m[k];
+        const rest = new Map(); rest.set(mkey(m), { c: t.c * e, m });
+        const inner = k === v ? RE.c(1) : (k === 'x' || k === 'y') ? RE.zero() : dAtom(k, v);
+        if (!RE.isZero(inner)) r = RE.add(r, RE.mul(RE.poly(rest), inner));
+      }
+    }
+    return r;
+  }
+  function dRE(a, v) {
+    // (N/D)' = N'/D − N·Σ e_i F_i'/F_i /D
+    const D = { num: P.c(1), den: a.den };
+    let r = RE.mul(dPoly(a.num, v), D);
+    for (const f of a.den) {
+      const df = dPoly(f.poly, v); if (RE.isZero(df)) continue;
+      const term = RE.mul(RE.mul(RE.poly(a.num), D), RE.mul(RE.scale(df, -f.e), { num: P.c(1), den: [{ key: f.key, poly: f.poly, e: 1 }] }));
+      r = RE.add(r, term);
+    }
+    return r;
+  }
+
+  /* ======================================================================
+     ZE：单复变量 z 的表达式（复系数）：Σ c·z^n·e^{P(z)}·[ln Q(z)] / den(z)
+     ====================================================================== */
+  const ZP = new Map();              // exp/ln 原子表
+  const czero = { re: 0, im: 0 }, cone = { re: 1, im: 0 };
+  const cAdd = Cn.add, cMul = Cn.mul, cNeg = Cn.neg, cDiv = Cn.div;
+  const cTiny = (c, s) => Math.hypot(c.re, c.im) < 1e-10 * Math.max(1, s || 1);
+  const cScaleR = (c, r) => ({ re: c.re * r, im: c.im * r });
+  // 系数多项式（数组，低次在前）
+  const CP = {
+    trim(a) { a = a.slice(); const s = a.reduce((m, c) => Math.max(m, Math.hypot(c.re, c.im)), 0); while (a.length > 1 && cTiny(a[a.length - 1], s)) a.pop(); return a; },
+    add(a, b) { const n = Math.max(a.length, b.length), r = []; for (let k = 0; k < n; k++) r.push(cAdd(a[k] || czero, b[k] || czero)); return CP.trim(r); },
+    mul(a, b) { const r = []; for (let k = 0; k < a.length + b.length - 1; k++) r.push({ re: 0, im: 0 }); for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) r[i + j] = cAdd(r[i + j], cMul(a[i], b[j])); return CP.trim(r); },
+    scale: (a, c) => CP.trim(a.map(x => cMul(x, c))),
+    isZero: a => a.length === 1 && cTiny(a[0]),
+    deg: a => a.length - 1,
+    divmod(a, b) {       // a = q·b + r
+      a = CP.trim(a); b = CP.trim(b); let r = a.slice(); const q = [];
+      const db = b.length - 1, lb = b[db];
+      for (let k = r.length - 1 - db; k >= 0; k--) { const c = cDiv(r[k + db], lb); q[k] = c; for (let j = 0; j <= db; j++) r[k + j] = cAdd(r[k + j], cNeg(cMul(c, b[j]))); }
+      for (let k = 0; k < q.length; k++) if (!q[k]) q[k] = { re: 0, im: 0 };
+      r = CP.trim(r.slice(0, Math.max(1, db))); return { q: CP.trim(q.length ? q : [czero]), r };
+    },
+    gcd(a, b) {
+      a = CP.trim(a); b = CP.trim(b); let g = 0;
+      const scaleOf = p => p.reduce((m, c) => Math.max(m, Math.hypot(c.re, c.im)), 0);
+      while (!CP.isZero(b) && g++ < 50) {
+        const r = CP.divmod(a, b).r; const s = scaleOf(a) + scaleOf(b);
+        a = b; b = CP.trim(r.map(c => cTiny(c, s * 1e2) ? czero : c));
+      }
+      return CP.monic(a);
+    },
+    monic(a) { a = CP.trim(a); const l = a[a.length - 1]; return a.map(c => cDiv(c, l)); },
+    key: a => a.map(c => (Math.round(c.re * 1e8) / 1e8) + ',' + (Math.round(c.im * 1e8) / 1e8)).join(';'),
+  };
+  // ZE 分子：Map key -> {E:expKey, L:lnKey, poly:CP}  （同一 E、L 的项合并成 z 的多项式）
+  const ZE = {
+    make(groups, den) { return zNorm({ g: groups, den: den || [cone] }); },
+    c(v) { const g = new Map(); if (!cTiny(v)) g.set('|', { E: '', L: '', poly: [v] }); return ZE.make(g); },
+    z() { const g = new Map(); g.set('|', { E: '', L: '', poly: [czero, cone] }); return ZE.make(g); },
+    isPoly: a => a.den.length === 1 && [...a.g.values()].every(t => !t.E && !t.L),
+    polyOf(a) { const t = a.g.get('|'); return t ? t.poly : [czero]; },
+    add(a, b) {
+      const g = new Map();
+      const put = (t, mul) => { const k = t.E + '|' + t.L; const p = CP.mul(t.poly, mul); const o = g.get(k); g.set(k, { E: t.E, L: t.L, poly: o ? CP.add(o.poly, p) : p }); };
+      for (const t of a.g.values()) put(t, b.den);
+      for (const t of b.g.values()) put(t, a.den);
+      return ZE.make(g, CP.mul(a.den, b.den));
+    },
+    neg(a) { const g = new Map(); for (const [k, t] of a.g) g.set(k, { E: t.E, L: t.L, poly: CP.scale(t.poly, { re: -1, im: 0 }) }); return { g, den: a.den }; },
+    sub: (a, b) => ZE.add(a, ZE.neg(b)),
+    mul(a, b) {
+      const g = new Map();
+      for (const s of a.g.values()) for (const t of b.g.values()) {
+        if (s.L && t.L) throw new Unsupported('ln·ln');
+        const E = expAdd(s.E, t.E), L = s.L || t.L, k = E + '|' + L;
+        let p = CP.mul(s.poly, t.poly);
+        const o = g.get(k); g.set(k, { E, L, poly: o ? CP.add(o.poly, p) : p });
+      }
+      return ZE.make(g, CP.mul(a.den, b.den));
+    },
+    inv(a) {
+      const ts = [...a.g.values()];
+      if (!ts.length) throw new Unsupported('除以零');
+      if (ts.every(t => !t.E && !t.L)) { const g = new Map(); g.set('|', { E: '', L: '', poly: a.den }); return ZE.make(g, ZE.polyOf(a)); }
+      if (ts.length === 1 && !ts[0].L) {   // c·p(z)·e^P
+        const t = ts[0]; const g = new Map(); const E = expNeg(t.E);
+        g.set(E + '|', { E, L: '', poly: a.den }); return ZE.make(g, t.poly);
+      }
+      throw new Unsupported('分母含超越函数');
+    },
+    div: (a, b) => ZE.mul(a, ZE.inv(b)),
+    powInt(a, n) { if (n < 0) return ZE.powInt(ZE.inv(a), -n); let r = ZE.c(cone); for (let k = 0; k < n; k++) r = ZE.mul(r, a); return r; },
+  };
+  function expKeyOf(cp) { cp = CP.trim(cp); if (CP.isZero(cp)) return ''; const k = 'E[' + CP.key(cp) + ']'; if (!ZP.has(k)) ZP.set(k, { t: 'exp', p: cp }); return k; }
+  function expAdd(a, b) { if (!a) return b; if (!b) return a; return expKeyOf(CP.add(ZP.get(a).p, ZP.get(b).p)); }
+  function expNeg(a) { if (!a) return ''; return expKeyOf(CP.scale(ZP.get(a).p, { re: -1, im: 0 })); }
+  function zNorm(a) {
+    let g = new Map(); for (const [k, t] of a.g) { const p = CP.trim(t.poly); if (!CP.isZero(p)) g.set(k, { E: t.E, L: t.L, poly: p }); }
+    let den = CP.trim(a.den);
+    if (g.size === 0) return { g, den: [cone] };
+    // 约去分子各组与分母的公因式
+    if (den.length > 1) {
+      let gg = den; for (const t of g.values()) gg = CP.gcd(gg, t.poly);
+      if (gg.length > 1) { for (const [k, t] of g) g.set(k, { E: t.E, L: t.L, poly: CP.divmod(t.poly, gg).q }); den = CP.divmod(den, gg).q; }
+    }
+    const l = den[den.length - 1];
+    if (!(l.re === 1 && l.im === 0)) { for (const [k, t] of g) g.set(k, { E: t.E, L: t.L, poly: CP.scale(t.poly, cDiv(cone, l)) }); den = den.map(c => cDiv(c, l)); }
+    return { g, den };
+  }
+  function zFn(f, A) {
+    const isPolyA = ZE.isPoly(A);
+    const expOf = (cp) => {          // e^{cp(z)}：常数项并入系数
+      const c0 = cp[0] || czero, rest = cp.slice(); rest[0] = czero;
+      const g = new Map(); const E = expKeyOf(rest); g.set(E + '|', { E, L: '', poly: [Cn.exp(c0)] }); return ZE.make(g);
+    };
+    if (f === 'ln') {
+      if (!(A.g.size === 1 && A.g.has('|'))) throw new Unsupported('ln 超越');
+      const lnPoly = (p) => {
+        p = CP.trim(p); let r = ZE.c(czero);
+        let lowest = 0; while (lowest < p.length - 1 && cTiny(p[lowest])) lowest++;
+        if (lowest) { const g = new Map(); g.set('|z', { E: '', L: 'z', poly: [{ re: lowest, im: 0 }] }); r = ZE.add(r, ZE.make(g)); p = p.slice(lowest); }
+        const l = p[p.length - 1]; r = ZE.add(r, ZE.c(Cn.ln(l)));
+        if (p.length > 1) { const q = p.map(c => cDiv(c, l)); const key = 'L[' + CP.key(q) + ']'; ZP.set(key, { t: 'ln', p: q }); const g = new Map(); g.set('|' + key, { E: '', L: key, poly: [cone] }); r = ZE.add(r, ZE.make(g)); }
+        return r;
+      };
+      return ZE.sub(lnPoly(ZE.polyOf(A)), lnPoly(A.den));
+    }
+    if (!isPolyA) throw new Unsupported(f + ' 的自变量非多项式');
+    const p = ZE.polyOf(A), I = { re: 0, im: 1 };
+    const half = ZE.c({ re: 0.5, im: 0 });
+    const ex = s => expOf(CP.scale(p, s));
+    switch (f) {
+      case 'exp': return expOf(p);
+      case 'cosh': return ZE.mul(half, ZE.add(ex(cone), ex({ re: -1, im: 0 })));
+      case 'sinh': return ZE.mul(half, ZE.sub(ex(cone), ex({ re: -1, im: 0 })));
+      case 'cos': return ZE.mul(half, ZE.add(ex(I), ex({ re: 0, im: -1 })));
+      case 'sin': return ZE.mul(ZE.c({ re: 0, im: -0.5 }), ZE.sub(ex(I), ex({ re: 0, im: -1 })));
+    }
+    throw new Unsupported(f);
+  }
+  function toZE(ast, X, Y) {
+    switch (ast.t) {
+      case 'num': return ZE.c({ re: ast.v, im: 0 });
+      case 'i': return ZE.c({ re: 0, im: 1 });
+      case 'e': return ZE.c({ re: Math.E, im: 0 });
+      case 'pi': return ZE.c({ re: Math.PI, im: 0 });
+      case 'x': return X; case 'y': return Y;
+      case 'z': throw new Unsupported('模式B 不用 z');
+      case 'neg': return ZE.neg(toZE(ast.a, X, Y));
+      case 'add': return ZE.add(toZE(ast.a, X, Y), toZE(ast.b, X, Y));
+      case 'sub': return ZE.sub(toZE(ast.a, X, Y), toZE(ast.b, X, Y));
+      case 'mul': return ZE.mul(toZE(ast.a, X, Y), toZE(ast.b, X, Y));
+      case 'div': return ZE.div(toZE(ast.a, X, Y), toZE(ast.b, X, Y));
+      case 'fn': {
+        if (['conj', 'abs', 're', 'im', 'sqrt', 'tan', 'tanh'].includes(ast.f)) throw new Unsupported(ast.f);
+        return zFn(ast.f, toZE(ast.a, X, Y));
+      }
+      case 'pow': {
+        const e = toZE(ast.b, X, Y);
+        if (ZE.isPoly(e)) { const p = ZE.polyOf(e); if (p.length === 1 && Math.abs(p[0].im) < 1e-12 && Number.isInteger(p[0].re) && Math.abs(p[0].re) <= 12) return ZE.powInt(toZE(ast.a, X, Y), p[0].re); }
+        if (ast.a.t === 'e') return zFn('exp', e);
+        throw new Unsupported('非整数幂');
+      }
+    }
+    throw new Unsupported(ast.t);
+  }
+  function evalZE(a, z) {
+    let s = czero;
+    const pv = (p) => { let r = czero; for (let k = p.length - 1; k >= 0; k--) r = cAdd(cMul(r, z), p[k]); return r; };
+    for (const t of a.g.values()) {
+      let v = pv(t.poly);
+      if (t.E) v = cMul(v, Cn.exp(pv(ZP.get(t.E).p)));
+      if (t.L) v = cMul(v, t.L === 'z' ? Cn.ln(z) : Cn.ln(pv(ZP.get(t.L).p)));
+      s = cAdd(s, v);
+    }
+    return cDiv(s, pv(a.den));
+  }
+
+  /* ---------------- 系数整理 ---------------- */
+  function ratOf(v) {
+    if (!isFinite(v)) return null;
+    if (Math.abs(v) < 1e-12) return { n: 0, d: 1 };
+    for (let d = 1; d <= 1000; d++) { const n = Math.round(v * d); if (n !== 0 && Math.abs(n / d - v) <= 1e-9 * Math.max(1, Math.abs(v))) return { n, d }; }
+    return null;
+  }
+  function cleanC(c, s) {
+    const r = { re: c.re, im: c.im }; const sc = Math.max(1, s || 0, Math.hypot(c.re, c.im));
+    if (Math.abs(r.re) < 1e-9 * sc) r.re = 0; if (Math.abs(r.im) < 1e-9 * sc) r.im = 0;
+    const rr = ratOf(r.re), ri = ratOf(r.im); if (rr) r.re = rr.n / rr.d; if (ri) r.im = ri.n / ri.d;
+    return r;
+  }
+  function cleanZE(a) {
+    const g = new Map(); let s = 0;
+    for (const t of a.g.values()) for (const c of t.poly) s = Math.max(s, Math.hypot(c.re, c.im));
+    const den = a.den.map(c => cleanC(c));
+    for (const [k, t] of a.g) {
+      let p = CP.trim(t.poly.map(c => cleanC(c, s)));
+      if (k === '|') {               // f 只确定到 +iC：去掉常数项的虚部，使 v 不带多余常数
+        if (den.length > 1) { const { q, r } = CP.divmod(p, den); if (q[0]) q[0] = { re: q[0].re, im: 0 }; p = CP.add(CP.mul(q, den), r); }
+        else if (p[0]) p[0] = { re: p[0].re, im: 0 };
+        p = CP.trim(p.map(c => cleanC(c, s)));
+      }
+      if (!CP.isZero(p)) g.set(k, { E: t.E, L: t.L, poly: p });
+    }
+    for (const [, z] of ZP) z.p = z.p.map(c => cleanC(c));
+    return { g, den };
+  }
+
+  /* ---------------- ZE → AST（e^{±iβz} 配成 cos/sin，e^{±βz} 配成 cosh/sinh）---------------- */
+  const N = v => ({ t: 'cnum', v });
+  function cpToAst(p) {           // 多项式 → AST（高次在前）
+    let r = null;
+    for (let k = p.length - 1; k >= 0; k--) {
+      const c = p[k]; if (cTiny(c)) continue;
+      const zk = k === 0 ? null : (k === 1 ? { t: 'z' } : { t: 'pow', a: { t: 'z' }, b: { t: 'num', v: k } });
+      const term = zk ? (c.re === 1 && c.im === 0 ? zk : { t: 'mul', a: N(c), b: zk }) : N(c);
+      r = r ? { t: 'add', a: r, b: term } : term;
+    }
+    return r || N(czero);
+  }
+  function zeToAst(a) {
+    const groups = [...a.g.values()];
+    const used = new Set(); const parts = [];
+    const linCoef = E => { const p = ZP.get(E).p; return p.length === 2 && cTiny(p[0]) ? p[1] : null; };
+    for (let i = 0; i < groups.length; i++) {
+      if (used.has(i)) continue; const t = groups[i];
+      if (t.E && !t.L) {
+        const b = linCoef(t.E);
+        const j = b ? groups.findIndex((u, jj) => jj !== i && !used.has(jj) && u.E === expNeg(t.E) && !u.L) : -1;
+        if (b && j >= 0 && (Math.abs(b.re) < 1e-12 || Math.abs(b.im) < 1e-12)) {
+          let s1 = t.poly, s2 = groups[j].poly, bb = b;
+          const imagRate = Math.abs(b.re) < 1e-12;
+          const pos = imagRate ? b.im > 0 : b.re > 0;
+          if (!pos) { [s1, s2] = [s2, s1]; bb = cNeg(b); }
+          const beta = imagRate ? bb.im : bb.re;
+          const arg = beta === 1 ? { t: 'z' } : { t: 'mul', a: N({ re: beta, im: 0 }), b: { t: 'z' } };
+          const sum = CP.add(s1, s2), dif = CP.add(s1, CP.scale(s2, { re: -1, im: 0 }));
+          const ev = CP.trim(sum), od = imagRate ? CP.scale(dif, { re: 0, im: 1 }) : CP.trim(dif);
+          used.add(i); used.add(j);
+          const f1 = imagRate ? 'cos' : 'cosh', f2 = imagRate ? 'sin' : 'sinh';
+          if (!CP.isZero(ev)) parts.push({ t: 'mul', a: cpToAst(ev), b: { t: 'fn', f: f1, a: arg } });
+          if (!CP.isZero(od)) parts.push({ t: 'mul', a: cpToAst(od), b: { t: 'fn', f: f2, a: arg } });
+          continue;
+        }
+      }
+      used.add(i);
+      let factor = null;
+      if (t.E) factor = { t: 'fn', f: 'exp', a: cpToAst(ZP.get(t.E).p) };
+      if (t.L) { const lf = { t: 'fn', f: 'ln', a: t.L === 'z' ? { t: 'z' } : cpToAst(ZP.get(t.L).p) }; factor = factor ? { t: 'mul', a: factor, b: lf } : lf; }
+      parts.push(factor ? { t: 'mul', a: cpToAst(t.poly), b: factor } : cpToAst(t.poly));
+    }
+    let num = parts.length ? parts.reduce((s, p) => ({ t: 'add', a: s, b: p })) : N(czero);
+    if (a.den.length > 1) num = { t: 'div', a: num, b: cpToAst(a.den) };
+    return simplifyAst(num);
+  }
+  function simplifyAst(n) {        // 去掉 1·, 0+ 之类
+    if (!n || typeof n !== 'object') return n;
+    if (n.a) n.a = simplifyAst(n.a); if (n.b) n.b = simplifyAst(n.b);
+    const isC = (x, re, im) => x && x.t === 'cnum' && x.v.re === re && x.v.im === im;
+    if (n.t === 'mul') { if (isC(n.a, 1, 0)) return n.b; if (isC(n.b, 1, 0)) return n.a; if (isC(n.a, 0, 0) || isC(n.b, 0, 0)) return N(czero); }
+    if (n.t === 'add') { if (isC(n.a, 0, 0)) return n.b; if (isC(n.b, 0, 0)) return n.a; }
+    return n;
+  }
+
+  /* ======================================================================
+     输出：MathML
+     ====================================================================== */
+  const mn = v => `<mn>${v}</mn>`, mi = v => `<mi>${v}</mi>`, mo = v => `<mo>${v}</mo>`;
+  const paren = s => `<mo>(</mo>${s}<mo>)</mo>`;
+  function fracML(n, d) { return `<mfrac><mrow>${n}</mrow><mrow>${d}</mrow></mfrac>`; }
+  function numML(v) {              // 正实数系数
+    const r = ratOf(v); if (r) return r.d === 1 ? mn(r.n) : fracML(mn(r.n), mn(r.d));
+    return mn(+v.toPrecision(5));
+  }
+  // RE 输出
+  function polyTerms(p) { return [...p.values()].sort((a, b) => monoCmp(a.m, b.m)); }
+  function isSimpleArg(a) {        // 能否不加括号：单项（如 2x、y）
+    return a.den.length === 0 && a.num.size === 1;
+  }
+  function atomML(key, e) {
+    const A = ATOMS.get(key); const a = A.args[0];
+    const pw = s => e === 1 ? s : `<msup><mrow>${s}</mrow>${mn(e)}</msup>`;
+    switch (A.fn) {
+      case 'exp': {
+        const cv = RE.constVal(a); const arg = cv === 1 ? null : reML(e === 1 ? a : RE.scale(a, e));
+        return arg ? `<msup>${mi('e')}<mrow>${arg}</mrow></msup>` : (e === 1 ? mi('e') : `<msup>${mi('e')}${mn(e)}</msup>`);
+      }
+      case 'pi': return pw(mi('π'));
+      case 'sqrt': return pw(`<msqrt>${reML(a)}</msqrt>`);
+      case 'ln': return pw(`${mi('ln')}<mo>&#x2061;</mo>${paren(reML(a))}`);
+      case 'arg': { const b = A.args[1]; return pw(`${mi('arctan')}<mo>&#x2061;</mo>${fracML(reML(b), reML(a))}`); }
+      default: {
+        const fn = e === 1 ? mi(A.fn) : `<msup>${mi(A.fn)}${mn(e)}</msup>`;
+        return `${fn}<mo>&#x2061;</mo>${isSimpleArg(a) ? reML(a) : paren(reML(a))}`;
+      }
+    }
+  }
+  function monoML(m) {
+    let s = ''; const ks = Object.keys(m).sort(varCmp);
+    for (const k of ks) {
+      const e = m[k];
+      if (k === 'x' || k === 'y') s += e === 1 ? mi(k) : `<msup>${mi(k)}${mn(e)}</msup>`;
+      else s += atomML(k, e);
+    }
+    return s;
+  }
+  function polyML(p, opt) {
+    const ts = polyTerms(p); if (!ts.length) return mn(0);
+    let s = '';
+    ts.forEach((t, i) => {
+      const neg = t.c < 0, a = Math.abs(t.c), body = monoML(t.m);
+      if (i === 0) { if (neg) s += mo('&#x2212;'); } else s += mo(neg ? '&#x2212;' : '+');
+      if (!body) s += numML(a);
+      else s += (Math.abs(a - 1) < 1e-12 ? '' : numML(a)) + body;
+    });
+    return s;
+  }
+  // 二次式 x²+y²+αx+βy+γ 若可配方 → (x−a)²+(y−b)²
+  function denFactorML(f) {
+    const p = f.poly, ts = [...p.values()];
+    const get = (mx, my) => { const t = p.get(mkey(Object.assign({}, mx ? { x: mx } : {}, my ? { y: my } : {}))); return t ? t.c : 0; };
+    const onlyXY = ts.every(t => Object.keys(t.m).every(k => k === 'x' || k === 'y') && degOf(t.m) <= 2);
+    let s = null;
+    if (onlyXY && get(2, 0) === 1 && get(0, 2) === 1 && get(1, 1) === 0 && ts.length > 2) {
+      const al = get(1, 0), be = get(0, 1), ga = get(0, 0);
+      if (Math.abs(ga - (al * al + be * be) / 4) < 1e-9) {
+        const sq = (v, c) => c === 0 ? `<msup>${mi(v)}${mn(2)}</msup>` : `<msup><mrow>${paren(mi(v) + mo(c > 0 ? '+' : '&#x2212;') + numML(Math.abs(c)))}</mrow>${mn(2)}</msup>`;
+        s = sq('x', al / 2) + mo('+') + sq('y', be / 2);
+        return f.e === 1 ? { ml: s, multi: true } : { ml: `<msup><mrow>${paren(s)}</mrow>${mn(f.e)}</msup>`, multi: false };
+      }
+    }
+    s = polyML(p); const multi = p.size > 1;
+    if (f.e === 1) return { ml: s, multi };
+    return { ml: `<msup><mrow>${multi ? paren(s) : s}</mrow>${mn(f.e)}</msup>`, multi: false };
+  }
+  function reML(a) {
+    if (!a.den.length) return polyML(a.num);
+    const fs = a.den.map(denFactorML);
+    const den = fs.length === 1 ? fs[0].ml : fs.map(f => f.multi ? paren(f.ml) : f.ml).join('');
+    // 分子单项且为负：负号提到分式外
+    const ts = polyTerms(a.num);
+    if (ts.length === 1 && ts[0].c < 0) return mo('&#x2212;') + fracML(polyML(P.neg(a.num)), den);
+    return fracML(polyML(a.num), den);
+  }
+  function reTermCount(a) { return a.num.size + a.den.reduce((s, f) => s + f.poly.size, 0); }
+
+  // AST(z 域) 输出
+  function cML(c, lead) {          // 复系数（作乘子时）；返回 {ml, neg, one}
+    const re = c.re, im = c.im;
+    if (im === 0) return { ml: numML(Math.abs(re)), neg: re < 0, one: Math.abs(re) === 1 };
+    if (re === 0) {
+      const a = Math.abs(im); const r = ratOf(a);
+      const ml = r && r.d !== 1 ? fracML((r.n === 1 ? '' : mn(r.n)) + mi('i'), mn(r.d)) : (a === 1 ? mi('i') : numML(a) + mi('i'));
+      return { ml, neg: im < 0, one: false };
+    }
+    const s = numML(Math.abs(re)) + mo(im < 0 ? '&#x2212;' : '+') + (Math.abs(im) === 1 ? '' : numML(Math.abs(im))) + mi('i');
+    return { ml: paren((re < 0 ? mo('&#x2212;') : '') + s), neg: false, one: false };
+  }
+  function astML(n) {
+    const terms = []; flatAdd(n, terms, false);
+    let s = '';
+    terms.forEach(({ node, neg }, i) => {
+      const r = termML(node); const ng = neg !== r.neg;
+      if (i === 0) { if (ng) s += mo('&#x2212;'); } else s += mo(ng ? '&#x2212;' : '+');
+      s += r.ml;
+    });
+    return s || mn(0);
+  }
+  function flatAdd(n, out, neg) {
+    if (n.t === 'add') { flatAdd(n.a, out, neg); flatAdd(n.b, out, neg); }
+    else if (n.t === 'sub') { flatAdd(n.a, out, neg); flatAdd(n.b, out, !neg); }
+    else if (n.t === 'neg') flatAdd(n.a, out, !neg);
+    else out.push({ node: n, neg });
+  }
+  function termML(n) {             // 返回 {ml, neg}
+    if (n.t === 'cnum') { const c = cML(n.v); return { ml: c.one && n.v.im === 0 ? mn(1) : c.ml, neg: c.neg }; }
+    if (n.t === 'div') {
+      const num = astML(n.a), den = astML(n.b);
+      return { ml: fracML(num, den), neg: false };
+    }
+    if (n.t === 'mul') {
+      const fs = []; flatMul(n, fs);
+      let neg = false, s = '', coef = null;
+      for (const f of fs) if (f.t === 'cnum') coef = coef ? cMul(coef, f.v) : f.v;
+      if (coef) { const c = cML(coef); neg = c.neg; if (!c.one) s += c.ml; }
+      for (const f of fs) if (f.t !== 'cnum') {
+        if (f.t === 'add' || f.t === 'sub') s += paren(astML(f)); else s += atomAstML(f);
+      }
+      return { ml: s, neg };
+    }
+    return { ml: atomAstML(n), neg: false };
+  }
+  function flatMul(n, out) { if (n.t === 'mul') { flatMul(n.a, out); flatMul(n.b, out); } else out.push(n); }
+  function atomAstML(n) {
+    if (n.t === 'z') return mi('z');
+    if (n.t === 'pow') return `<msup>${n.a.t === 'z' ? mi('z') : paren(astML(n.a))}${mn(n.b.v)}</msup>`;
+    if (n.t === 'fn') {
+      const argSimple = n.a.t === 'z' || (n.a.t === 'mul' && n.a.a.t === 'cnum' && n.a.b.t === 'z');
+      if (n.f === 'exp') return `<msup>${mi('e')}<mrow>${astML(n.a)}</mrow></msup>`;
+      if (n.f === 'ln') return `${mi('ln')}<mo>&#x2061;</mo>${n.a.t === 'z' ? mi('z') : paren(astML(n.a))}`;
+      return `${mi(n.f)}<mo>&#x2061;</mo>${argSimple ? astML(n.a) : paren(astML(n.a))}`;
+    }
+    if (n.t === 'cnum') return cML(n.v).ml;
+    return paren(astML(n));
+  }
+  // 把 AST(z 域, 含 cnum) 转成普通 AST（供 compile / toCX 使用）
+  function plainAst(n) {
+    if (n.t === 'cnum') {
+      const re = { t: 'num', v: n.v.re }, im = { t: 'mul', a: { t: 'num', v: n.v.im }, b: { t: 'i' } };
+      if (n.v.im === 0) return re; if (n.v.re === 0) return im; return { t: 'add', a: re, b: im };
+    }
+    const r = { t: n.t }; if (n.f) r.f = n.f; if (n.v !== undefined) r.v = n.v;
+    if (n.a) r.a = plainAst(n.a); if (n.b) r.b = plainAst(n.b);
+    return r;
+  }
+
+  /* ======================================================================
+     对外接口
+     ====================================================================== */
+  function rand(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  // 模式A：f(z) → u, v
+  function splitF(ast) {
+    const r = toCX(ast);
+    return { u: r.re, v: r.im, uML: reML(r.re), vML: reML(r.im), long: Math.max(reTermCount(r.re), reTermCount(r.im)) > 14 };
+  }
+  // 精确拉普拉斯：Δu 化简为 0 → 'exact'；数值抽查 ≈0 → 'numeric'；否则 false
+  function laplaceCheck(ast, box) {
+    const u = toCX(ast); if (!RE.isZero(u.im)) throw new Unsupported('u 含虚部');
+    const ux = dRE(u.re, 'x'), uy = dRE(u.re, 'y');
+    const uxx = dRE(ux, 'x'), uyy = dRE(uy, 'y');
+    const L = RE.add(uxx, uyy);
+    if (RE.isZero(L)) return { harmonic: true, exact: true, u: u.re, ux, uy };
+    const R = rand(12345); let bad = 0, cnt = 0, maxRel = 0;
+    for (let k = 0; k < 200 && cnt < 60; k++) {
+      const x = box.xmin + (box.xmax - box.xmin) * R(), y = box.ymin + (box.ymax - box.ymin) * R();
+      const l = evalRE(L, x, y), a = evalRE(uxx, x, y), b = evalRE(uyy, x, y);
+      if (![l, a, b].every(isFinite)) continue; cnt++;
+      const rel = Math.abs(l) / (Math.abs(a) + Math.abs(b) + 1e-300);
+      if (Math.abs(a) + Math.abs(b) < 1e-12 && Math.abs(l) < 1e-12) continue;
+      maxRel = Math.max(maxRel, rel); if (rel > 1e-7) bad++;
+    }
+    return { harmonic: cnt > 0 && bad === 0, exact: false, u: u.re, ux, uy, L, maxRel };
+  }
+  // 模式B：调和 u → f(z)、v（Milne-Thomson：f(z)=2u((z+z̄₀)/2,(z−z̄₀)/(2i))−u(z₀)，取 v(z₀)=0）
+  function conjugate(ast) {
+    const uf = compile(ast);
+    const uAt = (x, y) => uf({ z: { re: x, im: y }, x, y }).re;
+    const zs = [[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.3]];
+    for (const [x0, y0] of zs) {
+      const u0 = uAt(x0, y0); if (!isFinite(u0)) continue;
+      try {
+        ZP.clear();
+        const zb = { re: x0, im: -y0 };
+        const Z = ZE.z();
+        const X = ZE.mul(ZE.add(Z, ZE.c(zb)), ZE.c({ re: 0.5, im: 0 }));
+        const Y = ZE.mul(ZE.sub(Z, ZE.c(zb)), ZE.c({ re: 0, im: -0.5 }));      // 1/(2i) = −i/2
+        let f = ZE.sub(ZE.mul(ZE.c({ re: 2, im: 0 }), toZE(ast, X, Y)), ZE.c({ re: u0, im: 0 }));
+        f = cleanZE(f);
+        // 数值验证 Re f(x+iy) = u(x,y)
+        const R = rand(777); let ok = true, n = 0;
+        for (let k = 0; k < 40 && n < 12; k++) {
+          const x = -2 + 4 * R(), y = -2 + 4 * R(); const uu = uAt(x, y); if (!isFinite(uu) || Math.abs(uu) > 1e6) continue;
+          const fv = evalZE(f, { re: x, im: y }); if (!isFinite(fv.re)) continue; n++;
+          if (Math.abs(fv.re - uu) > 1e-6 * Math.max(1, Math.abs(uu))) { ok = false; break; }
+        }
+        if (!ok || n < 4) continue;
+        const fAst = zeToAst(f);
+        const pa = plainAst(fAst);
+        const cx = toCX(pa);
+        return { ok: true, fML: astML(fAst), vML: reML(cx.im), fFn: compile(pa), v: cx.im, long: reTermCount(cx.im) > 14 };
+      } catch (e) { if (!(e instanceof Unsupported)) throw e; }
+    }
+    return { ok: false };
+  }
+  return { parse, compile, uses, splitF, laplaceCheck, conjugate, reML, evalRE, Unsupported };
+})();
+</script>
+<script>
 /* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
 const EduTelemetry = (function(){
   const KEY="edu_telemetry_T7"; let buf=[];
@@ -209,101 +1134,11 @@ const F={
   du: mml("<mi>&#x394;</mi><mi>u</mi>"),
   cr: mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mo>,</mo><mspace width='.4em'/>"+sub("v","y")+"<mo>=</mo>"+sub("u","x")),
   gradperp: mml("<mo>&#x2207;</mo><mi>u</mi><mo>&#x22C5;</mo><mo>&#x2207;</mo><mi>v</mi><mo>=</mo><mn>0</mn>"),
-  vint: mml("<mi>v</mi><mo>=</mo><mo>&#x222B;</mo><mo>(</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mi>d</mi><mi>x</mi><mo>+</mo>"+sub("u","x")+"<mi>d</mi><mi>y</mi><mo>)</mo>")
+  vint: mml("<mi>v</mi><mo>=</mo><mo>&#x222B;</mo><mo stretchy=false>(</mo><mo>&#x2212;</mo>"+sub("u","y")+"<mi>d</mi><mi>x</mi><mo>+</mo>"+sub("u","x")+"<mi>d</mi><mi>y</mi><mo stretchy=false>)</mo>")
 };
 
-/* ============ 复数运算 & 表达式求值器 ============
-   一套解析器同时服务两种模式：
-   模式A 变量 z=x+iy（取实部=u、虚部=v）；模式B 变量 x,y 视为实数（取实部=u）。*/
-const C={
-  add:(a,b)=>({re:a.re+b.re, im:a.im+b.im}),
-  sub:(a,b)=>({re:a.re-b.re, im:a.im-b.im}),
-  mul:(a,b)=>({re:a.re*b.re-a.im*b.im, im:a.re*b.im+a.im*b.re}),
-  div:(a,b)=>{const d=b.re*b.re+b.im*b.im; return {re:(a.re*b.re+a.im*b.im)/d, im:(a.im*b.re-a.re*b.im)/d};},
-  neg:(a)=>({re:-a.re, im:-a.im}),
-  exp:(a)=>{const e=Math.exp(a.re); return {re:e*Math.cos(a.im), im:e*Math.sin(a.im)};},
-  ln:(a)=>({re:0.5*Math.log(a.re*a.re+a.im*a.im), im:Math.atan2(a.im,a.re)}),
-  sin:(a)=>({re:Math.sin(a.re)*Math.cosh(a.im), im:Math.cos(a.re)*Math.sinh(a.im)}),
-  cos:(a)=>({re:Math.cos(a.re)*Math.cosh(a.im), im:-Math.sin(a.re)*Math.sinh(a.im)}),
-  sinh:(a)=>({re:Math.sinh(a.re)*Math.cos(a.im), im:Math.cosh(a.re)*Math.sin(a.im)}),
-  cosh:(a)=>({re:Math.cosh(a.re)*Math.cos(a.im), im:Math.sinh(a.re)*Math.sin(a.im)}),
-  sqrt:(a)=>{const r=Math.hypot(a.re,a.im); const re=Math.sqrt(Math.max(0,(r+a.re)/2)); let im=Math.sqrt(Math.max(0,(r-a.re)/2)); if(a.im<0)im=-im; return {re,im};},
-  pow:(a,b)=>{ if(a.re===0&&a.im===0) return {re:0,im:0}; return C.exp(C.mul(b, C.ln(a))); },
-  conj:(a)=>({re:a.re, im:-a.im}),
-  abs:(a)=>({re:Math.hypot(a.re,a.im), im:0})
-};
-const FUNCS={
-  exp:C.exp, ln:C.ln, log:C.ln, sin:C.sin, cos:C.cos,
-  tan:(a)=>C.div(C.sin(a),C.cos(a)), sinh:C.sinh, cosh:C.cosh,
-  tanh:(a)=>C.div(C.sinh(a),C.cosh(a)), sqrt:C.sqrt, conj:C.conj, abs:C.abs,
-  re:(a)=>({re:a.re,im:0}), im:(a)=>({re:a.im,im:0})
-};
-function tokenize(s){
-  const t=[]; let i=0; s=s.replace(/\s+/g,'');
-  const isnum=c=>c>='0'&&c<='9'||c==='.';
-  const isal=c=>/[a-zA-Zπ]/.test(c);
-  while(i<s.length){
-    const c=s[i];
-    if(isnum(c)){ let j=i; while(j<s.length&&isnum(s[j]))j++; t.push({k:'num',v:parseFloat(s.slice(i,j))}); i=j; }
-    else if(isal(c)){ let j=i; while(j<s.length&&isal(s[j]))j++; t.push({k:'id',v:s.slice(i,j)}); i=j; }
-    else if('+-*/^(),'.includes(c)){ t.push({k:c}); i++; }
-    else throw new Error("无法识别的字符 “"+c+"”");
-  }
-  return t;
-}
-// 解析成一个闭包 fn(scope)->complex；scope={z:{re,im}, x, y}
-function parseExpr(str){
-  if(!str || !str.trim()) throw new Error("表达式为空");
-  const t=tokenize(str); let pos=0;
-  const peek=()=>t[pos];
-  function eat(k){ if(t[pos]&&t[pos].k===k){return t[pos++];} throw new Error("缺少 “"+k+"”"); }
-  function expr(){
-    let f=term();
-    while(peek()&&(peek().k==='+'||peek().k==='-')){
-      const op=t[pos++].k, g=term(), a=f,b=g;
-      f = op==='+' ? sc=>C.add(a(sc),b(sc)) : sc=>C.sub(a(sc),b(sc));
-    }
-    return f;
-  }
-  function term(){
-    let f=factor();
-    while(peek()){
-      const k=peek().k;
-      if(k==='*'||k==='/'){ pos++; const g=factor(),a=f,b=g; f = k==='*'?sc=>C.mul(a(sc),b(sc)):sc=>C.div(a(sc),b(sc)); }
-      else if(k==='num'||k==='id'||k==='('){ const g=factor(),a=f,b=g; f=sc=>C.mul(a(sc),b(sc)); } // 隐式乘法 2z、3(z+1)
-      else break;
-    }
-    return f;
-  }
-  function factor(){
-    const b=base();
-    if(peek()&&peek().k==='^'){ pos++; const e=factor(),a=b; return sc=>C.pow(a(sc),e(sc)); }
-    return b;
-  }
-  function base(){
-    const tok=peek();
-    if(!tok) throw new Error("表达式不完整");
-    if(tok.k==='+'){ pos++; return base(); }
-    if(tok.k==='-'){ pos++; const b=base(); return sc=>C.neg(b(sc)); }
-    if(tok.k==='num'){ pos++; const v={re:tok.v,im:0}; return ()=>v; }
-    if(tok.k==='('){ pos++; const e=expr(); eat(')'); return e; }
-    if(tok.k==='id'){
-      pos++; const name=tok.v.toLowerCase();
-      if(peek()&&peek().k==='('){ pos++; const arg=expr(); eat(')'); const fn=FUNCS[name]; if(!fn) throw new Error("未知函数 “"+name+"”"); return sc=>fn(arg(sc)); }
-      if(name==='i'){ const v={re:0,im:1}; return ()=>v; }
-      if(name==='e'){ const v={re:Math.E,im:0}; return ()=>v; }
-      if(name==='pi'||name==='π'){ const v={re:Math.PI,im:0}; return ()=>v; }
-      if(name==='z') return sc=>sc.z;
-      if(name==='x') return sc=>({re:sc.x,im:0});
-      if(name==='y') return sc=>({re:sc.y,im:0});
-      throw new Error("未知符号 “"+name+"”");
-    }
-    throw new Error("语法错误");
-  }
-  const fn=expr();
-  if(pos<t.length) throw new Error("多余的符号");
-  return fn;
-}
+/* ============ 表达式：解析为 AST（T7CAS），再编译成数值函数 ============ */
+function parseExpr(str){ return T7CAS.compile(T7CAS.parse(str)); }
 
 /* ============ 函数库 ============ */
 const LIBA=[
@@ -331,8 +1166,29 @@ const LIBB=[
 let mode="A";
 let exprA="z^2", exprB="x^2-y^2";
 let fnA=null, fnB=null, errMsg=null;
-try{ fnA=parseExpr(exprA); }catch(e){}
-try{ fnB=parseExpr(exprB); }catch(e){}
+let symA=null, symB=null;     // 符号结果：模式A {ok,uML,vML,lnNote,uRE} ；模式B {lap, conj}
+const SYMBOX={xmin:-4,xmax:4,ymin:-3,ymax:3};
+function buildSymA(){
+  try{
+    const ast=T7CAS.parse(exprA); const r=T7CAS.splitF(ast);
+    symA={ok:true, uML:r.uML, vML:r.vML, long:r.long, lnNote:/ln|log/.test(exprA), uRE:r.u};
+  }catch(e){ symA={ok:false}; }
+}
+function buildSymB(){
+  symB={lap:null, conj:null};
+  try{
+    const ast=T7CAS.parse(exprB);
+    if(T7CAS.uses(ast,'z')||T7CAS.uses(ast,'i')) return;
+    symB.lap=T7CAS.laplaceCheck(ast, SYMBOX);
+    if(symB.lap.harmonic){
+      const c=T7CAS.conjugate(ast);
+      if(c.ok) symB.conj=c;
+    }
+  }catch(e){ symB.lap=null; }
+}
+try{ fnA=parseExpr(exprA); buildSymA(); }catch(e){}
+try{ fnB=parseExpr(exprB); buildSymB(); }catch(e){}
+function Vexact(x,y){ if(!symB||!symB.conj) return NaN; try{ return symB.conj.fFn({z:{re:x,im:y},x,y}).im; }catch(e){ return NaN; } }
 
 function SC(x,y){ return {z:{re:x,im:y}, x:x, y:y}; }
 function curFn(){ return mode==="A"?fnA:fnB; }
@@ -394,11 +1250,13 @@ function pickLevels(g,n){
   }
   return out;
 }
-function contourSegs(g, level){
+function contourSegs(g, level, jump){
   const segs=[]; const {xs,ys,Z,N,M}=g;
   for(let i=0;i<N;i++)for(let j=0;j<M;j++){
     const a=Z[i][j], b=Z[i+1][j], c=Z[i+1][j+1], d=Z[i][j+1];
     if(isNaN(a)||isNaN(b)||isNaN(c)||isNaN(d)) continue;
+    // 跨越支割线（如 arg z 在负实轴的 2π 跳变）的格子：函数在此不连续，不画假等值线
+    if(jump && Math.max(a,b,c,d)-Math.min(a,b,c,d)>jump) continue;
     const p=[];
     if((a-level)*(b-level)<0){ const t=(level-a)/(b-a); p.push({x:xs[i]+(xs[i+1]-xs[i])*t, y:ys[j]}); }
     if((b-level)*(c-level)<0){ const t=(level-b)/(c-b); p.push({x:xs[i+1], y:ys[j]+(ys[j+1]-ys[j])*t}); }
@@ -413,22 +1271,33 @@ function drawGridContours(g, nLev, color, dashed, lw){
   const levels=pickLevels(g,nLev);
   ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=lw||1.5;
   if(dashed) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+  const jump = levels.length>1 ? 0.5*(Math.max(...levels)-Math.min(...levels)) : 0;
   ctx.beginPath();
-  for(const L of levels){ for(const sg of contourSegs(g,L)){ const A=toS(sg[0]),B=toS(sg[1]); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); } }
+  for(const L of levels){ for(const sg of contourSegs(g,L,jump)){ const A=toS(sg[0]),B=toS(sg[1]); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); } }
   ctx.stroke(); ctx.setLineDash([]); ctx.restore();
 }
 function drawContours(Fn, nLev, color, dashed, lw){ drawGridContours(buildGrid(Fn),nLev,color,dashed,lw); }
 
-/* 由 u 的采样网格，用 C-R（v_x=−u_y, v_y=u_x）在网格上数值重建共轭 v */
+/* 后备方案（符号求解不支持时）：由 u 用 C-R（v_x=−u_y, v_y=u_x）数值重建共轭 v。
+   偏导直接对 u 求中心差分（不受网格边界一阶误差影响），每段用 Simpson 积分，
+   从画面中心的列出发向上下、再沿各行向左右积分，误差不会从边缘累积到整幅图。 */
 function conjGrid(g){
   const {xs,ys,Z,N,M}=g;
   const V=[]; for(let i=0;i<=N;i++) V.push(new Array(M+1).fill(NaN));
-  const ux=(i,j)=>{ const ip=Math.min(N,i+1), im=Math.max(0,i-1); const dd=xs[ip]-xs[im]; return (Z[ip][j]-Z[im][j])/dd; };
-  const uy=(i,j)=>{ const jp=Math.min(M,j+1), jm=Math.max(0,j-1); const dd=ys[jp]-ys[jm]; return (Z[i][jp]-Z[i][jm])/dd; };
-  V[0][0]=0;
-  for(let j=1;j<=M;j++){ const dy=ys[j]-ys[j-1]; V[0][j]=V[0][j-1]+0.5*(ux(0,j)+ux(0,j-1))*dy; }        // 沿最左列：dV/dy = u_x
-  for(let j=0;j<=M;j++) for(let i=1;i<=N;i++){ const dx=xs[i]-xs[i-1]; V[i][j]=V[i-1][j]+0.5*(-uy(i,j)-uy(i-1,j))*dx; } // 沿各行：dV/dx = −u_y
-  for(let i=0;i<=N;i++)for(let j=0;j<=M;j++){ if(isNaN(Z[i][j])) V[i][j]=NaN; }
+  const span=Math.max(xs[N]-xs[0], ys[M]-ys[0]), h=span*1e-5;
+  const ux=(x,y)=>(Ufield(x+h,y)-Ufield(x-h,y))/(2*h);
+  const uy=(x,y)=>(Ufield(x,y+h)-Ufield(x,y-h))/(2*h);
+  const simp=(f,a,b)=>(b-a)/6*(f(a)+4*f((a+b)/2)+f(b));
+  const i0=Math.round(N/2), j0=Math.round(M/2);
+  V[i0][j0]=0;
+  for(let j=j0+1;j<=M;j++) V[i0][j]=V[i0][j-1]+simp(t=>ux(xs[i0],t),ys[j-1],ys[j]);          // 中心列：dV/dy = u_x
+  for(let j=j0-1;j>=0;j--) V[i0][j]=V[i0][j+1]-simp(t=>ux(xs[i0],t),ys[j],ys[j+1]);
+  for(let j=0;j<=M;j++){
+    const y=ys[j];
+    for(let i=i0+1;i<=N;i++) V[i][j]=V[i-1][j]+simp(t=>-uy(t,y),xs[i-1],xs[i]);              // 各行：dV/dx = −u_y
+    for(let i=i0-1;i>=0;i--) V[i][j]=V[i+1][j]-simp(t=>-uy(t,y),xs[i],xs[i+1]);
+  }
+  for(let i=0;i<=N;i++)for(let j=0;j<=M;j++){ if(isNaN(Z[i][j])||!isFinite(V[i][j])) V[i][j]=NaN; }
   return {xs,ys,Z:V,N,M};
 }
 function interpV(g,x,y){
@@ -456,21 +1325,33 @@ function cellLap(x,y,h){
   const scale=Math.abs(uxx)+Math.abs(uyy);
   return {lap:uxx+uyy, scale, singular: scale>400};
 }
-function computeLap(){   // 返回 {mx=最大|Δu|, rel=最大相对残差, skipped, h}
+// 精确 Δu（符号求导得到）：模式A 实部恒调和 → 0；模式B 用符号拉普拉斯式；不支持时返回 null 走数值差分
+function exactLapFn(){
+  if(mode==="A") return (symA&&symA.ok) ? ()=>0 : null;
+  if(!symB||!symB.lap) return null;
+  if(symB.lap.exact) return ()=>0;
+  const L=symB.lap.L; return L ? (x,y)=>T7CAS.evalRE(L,x,y) : null;
+}
+function cellLapAny(x,y,h,ex){
+  if(ex){ const c=Ufield(x,y); if(!isFinite(c)) return null; const l=ex(x,y); return isFinite(l)?{lap:l, scale:1, singular:false}:null; }
+  return cellLap(x,y,h);
+}
+function computeLap(){   // 返回 {mx=最大|Δu|, rel=最大相对残差, skipped, h, exact}
   const {xmin,xmax,ymin,ymax}=bounds();
   const N=HEATN, M=Math.max(20,Math.round(N*(ymax-ymin)/(xmax-xmin)));
   const dw=(xmax-xmin)/N, dh=(ymax-ymin)/M, h=Math.max(2e-3, Math.min(dw,dh)*0.12);
+  const ex=exactLapFn();
   let mx=0, rel=0, skipped=false;
   for(let i=0;i<N;i++)for(let j=0;j<M;j++){
     const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
-    const r=cellLap(x,y,h);
+    const r=cellLapAny(x,y,h,ex);
     if(!r||r.singular){ skipped=skipped||!!r; continue; }               // 极点/奇点附近排除
     const a=Math.abs(r.lap);
     if(a>mx) mx=a;
     const rr=a/(r.scale+0.5);   // 相对残差：调和时 u_xx、u_yy 大而相消 ⟹ ≈0；不调和 ⟹ O(1)
     if(rr>rel) rel=rr;
   }
-  return {mx, rel, skipped, h};
+  return {mx, rel, skipped: ex?false:skipped, h, exact: !!ex, ex};
 }
 function drawLaplacian(info, harmonic){
   const {xmin,xmax,ymin,ymax}=bounds();
@@ -479,7 +1360,7 @@ function drawLaplacian(info, harmonic){
   ctx.save();
   for(let i=0;i<N;i++)for(let j=0;j<M;j++){
     const x=xmin+(i+0.5)*dw, y=ymin+(j+0.5)*dh;
-    const r=cellLap(x,y,h);
+    const r=cellLapAny(x,y,h,info.ex);
     if(!r||r.singular) continue;
     const a=Math.min(0.72, Math.abs(r.lap)/SCALE);
     if(a<0.02) continue;
@@ -496,7 +1377,10 @@ function drawLaplacian(info, harmonic){
   const mx=mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>");
   const ex=info.skipped?"，奇点/极点附近已排除":"";
   let pill;
-  if(flat){
+  if(flat && info.exact){
+    pill=`<span style="background:rgba(47,133,90,.14);color:#276749;border:1px solid #9ae6b4;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
+         `调和性验证 ✓　${F.du} ≡ 0（按表达式精确求二阶偏导验证，奇点除外）</span>`;
+  }else if(flat){
     pill=`<span style="background:rgba(47,133,90,.14);color:#276749;border:1px solid #9ae6b4;padding:5px 12px;border-radius:14px;font-size:12.5px;">`+
          `调和性验证 ✓　全场 ${F.du} ≈ 0（实测 ${mx} ≈ ${fmt(info.mx)}${ex}）</span>`;
   }else{
@@ -526,7 +1410,12 @@ function fmt(v){ if(!isFinite(v)) return "∞"; let r=Math.round(v*100)/100; if(
 
 /* ============ 是否调和（当前 u）============ */
 // 模式A：f 解析 ⟹ 实部恒调和（奇点除外），不由数值判定；模式B：看相对残差
-function isHarmonicNow(info){ return mode==="A" ? true : info.rel<0.08; }
+// 模式B：能符号求导时以精确 Δu 判定（Δu 化简为 0，或在大量抽样点上相对残差 < 1e-7），否则退回数值差分
+function isHarmonicNow(info){
+  if(mode==="A") return true;
+  if(symB&&symB.lap) return symB.lap.harmonic;
+  return info.rel<0.08;
+}
 
 /* ============ 主绘制 ============ */
 function draw(){
@@ -567,7 +1456,10 @@ function draw(){
   }else{
     const ug=buildGrid(Ufield);
     if(show.equip) drawGridContours(ug, NLEV, BLUE, false, 1.7);
-    if(harmonic){ const vg=conjGrid(ug); lastVGrid=vg; if(show.field) drawGridContours(vg, NLEV, ORANGE, true, 1.4); }
+    if(harmonic){
+      if(symB&&symB.conj){ if(show.field) drawContours(Vexact, NLEV, ORANGE, true, 1.4); }   // 精确 v = Im f
+      else { const vg=conjGrid(ug); lastVGrid=vg; if(show.field) drawGridContours(vg, NLEV, ORANGE, true, 1.4); }
+    }
   }
 
   // 局部正交标架（鼠标处）
@@ -586,7 +1478,7 @@ function draw(){
       ctx.fillStyle="#2d3748"; ctx.beginPath(); ctx.arc(P.x,P.y,2.6,0,7); ctx.fill();
       ctx.restore();
       const uv=Ufield(probe.x,probe.y);
-      const vv=(mode==="A")?VfieldA(probe.x,probe.y):interpV(lastVGrid,probe.x,probe.y);
+      const vv=(mode==="A")?VfieldA(probe.x,probe.y):(symB&&symB.conj?Vexact(probe.x,probe.y):interpV(lastVGrid,probe.x,probe.y));
       let txt=`<span style="color:${BLUE};">${mml("<mi>u</mi>")}=${fmt(uv)}</span>`;
       if(isFinite(vv)) txt+=`　<span style="color:${ORANGE};">${mml("<mi>v</mi>")}=${fmt(vv)}</span>`;
       addLabel(txt, P.x+16, P.y-30, "#2d3748", 13, {anchor:"left"});
@@ -604,22 +1496,40 @@ function updateReadout(harmonic){
     html+=`<div class="scene warn"><span class="nm">输入无法解析</span>${errMsg}。请修正后再看图（下方仍显示上一个有效表达式）。</div>`;
   }
   if(mode==="A"){
-    html+=`<div class="scene"><span class="nm">方向：给解析 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}</span>只要 ${mml("<mi>f</mi>")} 解析，实部 ${mml("<mi>u</mi>")}、虚部 ${mml("<mi>v</mi>")} <b>自动</b>互为共轭调和，无需另求。</div>`;
+    html+=`<div class="scene"><span class="nm">方向：给解析 ${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo>")}</span>只要 ${mml("<mi>f</mi>")} 解析，实部 ${mml("<mi>u</mi>")}、虚部 ${mml("<mi>v</mi>")} <b>自动</b>互为共轭调和，无需另求。</div>`;
     html+=`<div class="val"><span class="t">当前解析函数</span><span class="big expr">f(z) = ${escapeHtml(exprA)}</span></div>`;
-    html+=`<div class="val"><span class="t">实部（蓝，${F.uc}）／ 虚部（橙，${F.vc}）</span><span class="big">${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}　${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")}</span></div>`;
+    if(symA&&symA.ok){
+      html+=`<div class="val"><span class="t">实部（蓝线 ${F.uc}）</span><span class="big">${mml("<mi>u</mi><mo stretchy=false>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy=false>)</mo><mo>=</mo>"+symA.uML)}</span></div>`;
+      html+=`<div class="val"><span class="t">虚部（橙线 ${F.vc}）</span><span class="big">${mml("<mi>v</mi><mo stretchy=false>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy=false>)</mo><mo>=</mo>"+symA.vML)}</span></div>`;
+      html+=`<div style="color:var(--sub);font-size:12px;margin:-2px 0 4px;">由 ${mml("<mi>z</mi><mo>=</mo><mi>x</mi><mo>+</mo><mi>i</mi><mi>y</mi>")} 代入 ${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo>")}，分出实部与虚部${symA.lnNote?`；${mml("<mi>arctan</mi><mfrac><mi>y</mi><mi>x</mi></mfrac>")} 表示辐角主值 ${mml("<mi>arg</mi><mi>z</mi>")}（${mml("<mi>x</mi><mo>&lt;</mo><mn>0</mn>")} 时需加减 ${mml("<mi>π</mi>")}）`:''}。</div>`;
+    }else{
+      html+=`<div class="val"><span class="t">实部（蓝，${F.uc}）／ 虚部（橙，${F.vc}）</span><span class="big">${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}　${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")}</span></div>`;
+      html+=`<div style="color:var(--sub);font-size:12px;margin:-2px 0 4px;">该函数（如含 sqrt、非整数次幂）暂不给出 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 的显式表达式，等值线仍按数值精确绘制。</div>`;
+    }
     html+=`<div class="corr"><b>都调和：</b>${mml(sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}，${mml(sub("v","xx")+"<mo>+</mo>"+sub("v","yy")+"<mo>=</mo><mn>0</mn>")}；两者满足 C-R ${F.cr}。</div>`;
     html+=orientNote();
   }else{
-    html+=`<div class="scene${harmonic?'':' warn'}"><span class="nm">方向：给实部 ${mml("<mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</span>`+
+    html+=`<div class="scene${harmonic?'':' warn'}"><span class="nm">方向：给实部 ${mml("<mi>u</mi><mo stretchy=false>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy=false>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</span>`+
           `先验证 ${mml("<mi>u</mi>")} 是否调和（勾"${F.du} 热图"看），再由 C-R 反求 ${mml("<mi>v</mi>")}（大纲难点）。</div>`;
     html+=`<div class="val"><span class="t">当前实部</span><span class="big expr">u(x,y) = ${escapeHtml(exprB)}</span></div>`;
+    const lapExact = symB&&symB.lap;
     if(harmonic){
-      html+=`<div class="corr"><b>${mml("<mi>u</mi>")} 调和</b>（实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)}）。已按 ${F.cr} 沿路径积分 ${F.vint} <b>数值重建共轭 ${mml("<mi>v</mi>")}</b>，画成橙色 ${F.vc}。</div>`;
-      html+=`<div class="k" style="margin-top:8px;">由 ${mml("<mi>u</mi>")} 求 ${mml("<mi>v</mi>")}（C-R 方程）</div>`;
-      html+=`<div class="steps">① 求偏导 ${mml(sub("u","x")+"<mo>,</mo>&#x2009;"+sub("u","y"))}；② 由 ${mml(sub("v","y")+"<mo>=</mo>"+sub("u","x"))} 对 ${mml("<mi>y</mi>")} 积分得 ${mml("<mi>v</mi>")} 含待定 ${mml("<mi>g</mi><mo>(</mo><mi>x</mi><mo>)</mo>")}；③ 再用 ${mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y"))} 定出 ${mml("<msup><mi>g</mi><mo>&#x2032;</mo></msup>")}。本工具对你输入的 ${mml("<mi>u</mi>")} 直接做数值积分，得到的 ${mml("<mi>v</mi>")} 差一个常数。</div>`;
+      const how = lapExact&&symB.lap.exact ? `按表达式精确求导，${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>&#x2261;</mo><mn>0</mn>")}`
+                : lapExact ? `${F.du} 在大量抽样点上精确为 0` : `实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)}`;
+      html+=`<div class="corr"><b>${mml("<mi>u</mi>")} 调和</b>（${how}）。</div>`;
+      if(symB&&symB.conj){
+        html+=`<div class="val"><span class="t">共轭调和函数（橙线 ${F.vc}）</span><span class="big">${mml("<mi>v</mi><mo stretchy=false>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy=false>)</mo><mo>=</mo>"+symB.conj.vML+"<mo>+</mo><mi>C</mi>")}</span></div>`;
+        html+=`<div class="val"><span class="t">对应的解析函数</span><span class="big">${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi><mo>=</mo>"+symB.conj.fML+"<mo>+</mo><mi>i</mi><mi>C</mi>")}</span></div>`;
+        html+=`<div style="color:var(--sub);font-size:12px;margin:-2px 0 4px;">${mml("<mi>C</mi>")} 为任意实常数（共轭调和函数只确定到相差一个常数）。${/arctan/.test(symB.conj.vML)?`${mml("<mi>arctan</mi><mfrac><mi>y</mi><mi>x</mi></mfrac>")} 表示辐角主值（${mml("<mi>x</mi><mo>&lt;</mo><mn>0</mn>")} 时需加减 ${mml("<mi>π</mi>")}）。`:''}</div>`;
+      }else{
+        html+=`<div style="color:var(--sub);font-size:12px;margin:2px 0 4px;">该 ${mml("<mi>u</mi>")} 暂不给出 ${mml("<mi>v</mi>")} 的显式表达式；橙线由 C-R 方程沿路径积分 ${F.vint} 数值重建（相差一个常数）。</div>`;
+      }
+      html+=`<div class="k" style="margin-top:8px;">手算方法：偏积分法（C-R 方程）</div>`;
+      html+=`<div class="steps">① 求偏导 ${mml(sub("u","x")+"<mo>,</mo>&#x2009;"+sub("u","y"))}；② 由 ${mml(sub("v","y")+"<mo>=</mo>"+sub("u","x"))} 对 ${mml("<mi>y</mi>")} 积分得 ${mml("<mi>v</mi>")} 含待定 ${mml("<mi>g</mi><mo stretchy=false>(</mo><mi>x</mi><mo stretchy=false>)</mo>")}；③ 再用 ${mml(sub("v","x")+"<mo>=</mo><mo>&#x2212;</mo>"+sub("u","y"))} 定出 ${mml("<msup><mi>g</mi><mo>&#x2032;</mo></msup><mo stretchy=false>(</mo><mi>x</mi><mo stretchy=false>)</mo>")}，积分得 ${mml("<mi>g</mi><mo stretchy=false>(</mo><mi>x</mi><mo stretchy=false>)</mo>")}。${symB&&symB.conj?`上面的 ${mml("<mi>v</mi>")} 可用来核对手算结果（相差常数 ${mml("<mi>C</mi>")}）。`:''}</div>`;
       html+=orientNote();
     }else{
-      html+=`<div class="corr warn"><b>${mml("<mi>u</mi>")} 不调和：</b>实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)} ≠ 0。<b>不存在</b>共轭调和 ${mml("<mi>v</mi>")}，拼不出解析的 ${mml("<mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")}，故不画橙线。</div>`;
+      const lapML = lapExact&&symB.lap.L ? `${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+T7CAS.reML(symB.lap.L))} ≠ 0` : `实测 ${mml("<mo>max</mo><mo>|</mo><mi>&#x394;</mi><mi>u</mi><mo>|</mo>")} ≈ ${fmt(lapInfo.mx)} ≠ 0`;
+      html+=`<div class="corr warn"><b>${mml("<mi>u</mi>")} 不调和：</b>${lapML}。<b>不存在</b>共轭调和 ${mml("<mi>v</mi>")}，拼不出解析的 ${mml("<mi>f</mi><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")}，故不画橙线。</div>`;
       html+=`<div style="color:var(--sub);font-size:12.5px;margin-top:8px;">试试库里的 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>&#x2212;</mo><msup><mi>y</mi><mn>2</mn></msup>")} 等（调和），对比 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")}（不调和）。</div>`;
     }
   }
@@ -653,8 +1563,8 @@ function applyInput(){
     const fn=parseExpr(str);
     // 试算一点，捕获运行期问题
     fn(SC(0.37,0.51));
-    if(mode==="A"){ fnA=fn; exprA=str; fInput.classList.remove("bad"); }
-    else { fnB=fn; exprB=str; uInput.classList.remove("bad"); }
+    if(mode==="A"){ fnA=fn; exprA=str; fInput.classList.remove("bad"); buildSymA(); }
+    else { fnB=fn; exprB=str; uInput.classList.remove("bad"); buildSymB(); }
     errMsg=null; errBox.textContent="";
   }catch(e){
     errMsg=e.message||"表达式有误";
@@ -703,7 +1613,7 @@ function renderInpNote(){
   if(mode==="A"){
     el.innerHTML=`可自由输入解析函数，如 <code>z^3-1</code>、<code>exp(z)</code>、<code>(z-1)/(z+1)</code>、<code>sin(z)</code>。支持 + − × ÷ ^、exp/ln/sin/cos/sinh/cosh/sqrt/conj，常数 i、pi、e。（<code>log</code>、<code>sqrt</code> 有支割线，负实轴附近图形会有跳变。）`;
   }else{
-    el.innerHTML=`可自由输入实部 <code>u(x,y)</code>，如 <code>x^2-y^2</code>、<code>exp(x)*cos(y)</code>。<b>调和</b>才有共轭 <math><mi>v</mi></math>；带 ⌐ 虚框的 <code>x^2+y^2</code>、<code>x^3</code> 是<b>不调和</b>反例。`;
+    el.innerHTML=`可自由输入实部 <code>u(x,y)</code>，如 <code>x^2-y^2</code>、<code>2xy+3x</code>、<code>exp(x)*cos(y)</code>（乘号可省略）。<b>调和</b>才有共轭 <math><mi>v</mi></math>；带 ⌐ 虚框的 <code>x^2+y^2</code>、<code>x^3</code> 是<b>不调和</b>反例。`;
   }
 }
 
@@ -738,14 +1648,14 @@ function closeHelp(){ mask.style.display="none"; modal.style.display="none"; }
 document.getElementById("modalX").onclick=closeHelp; mask.onclick=closeHelp;
 document.getElementById("helpBody").innerHTML=
   `<h2>共轭调和等值线</h2>`+
-  `<p>若 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")} 解析，则 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 都满足拉普拉斯方程（${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}），且由 <b>柯西–黎曼方程</b> ${F.cr} 联系——称 ${mml("<mi>v</mi>")} 是 ${mml("<mi>u</mi>")} 的<b>共轭调和函数</b>。其几何后果：等值线族 ${F.uc} 与 ${F.vc} <b>处处正交</b>（${F.gradperp}）。本工具让你从两个方向亲手验证这件事。</p>`+
+  `<p>若 ${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo><mo>=</mo><mi>u</mi><mo>+</mo><mi>i</mi><mi>v</mi>")} 解析，则 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 都满足拉普拉斯方程（${mml("<mi>&#x394;</mi><mi>u</mi><mo>=</mo>"+sub("u","xx")+"<mo>+</mo>"+sub("u","yy")+"<mo>=</mo><mn>0</mn>")}），且由 <b>柯西–黎曼方程</b> ${F.cr} 联系——称 ${mml("<mi>v</mi>")} 是 ${mml("<mi>u</mi>")} 的<b>共轭调和函数</b>。其几何后果：等值线族 ${F.uc} 与 ${F.vc} <b>处处正交</b>（${F.gradperp}）。本工具让你从两个方向亲手验证这件事。</p>`+
   `<h3>两个方向</h3>`+
   `<ul>`+
-  `<li><b>给解析 ${mml("<mi>f</mi><mo>(</mo><mi>z</mi><mo>)</mo>")}</b>：输入任意解析函数，工具自动取 ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")}，画出正交的蓝橙两族。此时 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 天生共轭调和。</li>`+
-  `<li><b>给实部 ${mml("<mi>u</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</b>（大纲难点"已知实部求解析函数"）：先勾 ${F.du} 热图判断 ${mml("<mi>u</mi>")} 是否调和；<b>调和</b>时工具按 C-R 沿路径积分 ${F.vint} 数值重建 ${mml("<mi>v</mi>")} 并画出；<b>不调和</b>（如 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")}）时不存在共轭调和，不画橙线。</li>`+
+  `<li><b>给解析 ${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo>")}</b>：输入任意解析函数，工具把 ${mml("<mi>z</mi><mo>=</mo><mi>x</mi><mo>+</mo><mi>i</mi><mi>y</mi>")} 代入，<b>写出</b> ${mml("<mi>u</mi><mo>=</mo><mi>Re</mi>&#x2009;<mi>f</mi>")}、${mml("<mi>v</mi><mo>=</mo><mi>Im</mi>&#x2009;<mi>f</mi>")} 的表达式（在“读数”栏），并画出正交的蓝橙两族。此时 ${mml("<mi>u</mi>")}、${mml("<mi>v</mi>")} 天生共轭调和。</li>`+
+  `<li><b>给实部 ${mml("<mi>u</mi><mo stretchy=false>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo stretchy=false>)</mo>")}，反求共轭 ${mml("<mi>v</mi>")}</b>（大纲难点"已知实部求解析函数"）：先勾 ${F.du} 热图判断 ${mml("<mi>u</mi>")} 是否调和；<b>调和</b>时工具由 C-R 方程<b>求出</b>共轭调和函数 ${mml("<mi>v</mi>")} 与解析函数 ${mml("<mi>f</mi><mo stretchy=false>(</mo><mi>z</mi><mo stretchy=false>)</mo>")} 的表达式（相差常数 ${mml("<mi>C</mi>")}，可核对偏积分法的手算结果），并画出 ${F.vc}；<b>不调和</b>（如 ${mml("<msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup>")}）时不存在共轭调和，不画橙线。</li>`+
   `</ul>`+
   `<h3>怎么输入</h3>`+
-  `<p>点函数库按钮，或在输入框自由键入表达式。支持 <code>+ - * / ^</code>、函数 <code>exp ln log sin cos tan sinh cosh sqrt conj abs</code>、常数 <code>i pi e</code>；模式A 变量是 <code>z</code>，模式B 变量是 <code>x</code>、<code>y</code>。例：<code>z^3-1</code>、<code>(z-1)/(z+1)</code>、<code>exp(x)*cos(y)</code>。</p>`+
+  `<p>点函数库按钮，或在输入框自由键入表达式。支持 <code>+ - * / ^</code>、函数 <code>exp ln log sin cos tan sinh cosh sqrt conj abs</code>、常数 <code>i pi e</code>；模式A 变量是 <code>z</code>，模式B 变量是 <code>x</code>、<code>y</code>；乘号可省略（<code>2xy</code>、<code>3iz</code>），负号按数学习惯处理（<code>-x^2</code> 即 −x²）。例：<code>z^3-1</code>、<code>(z-1)/(z+1)</code>、<code>exp(x)*cos(y)</code>。</p>`+
   `<h3>${F.du} 热图（调和性验证）</h3>`+
   `<p>热图画各点的 ${F.du}。调和 ⟹ 处处 ${mml("<mi>&#x394;</mi><mi>u</mi><mo>&#x2248;</mo><mn>0</mn>")}：画面铺<b>淡绿</b>、底部徽标 ✓；不调和则<b>红</b>、徽标 ✗。奇点/极点（如 ${mml("<mn>1</mn><mo>/</mo><mi>z</mi>")} 在原点）附近数值会失真，已从判定中排除。</p>`+
   `<p style="color:#553c9a;">说明：本工具是<b>理论概念</b>版，只讲调和 / 共轭调和 / 正交网本身，<b>不涉及物理背景与保角映射</b>。想看它们在静电场 / 温度场 / 理想流体里的具体应用，请用应用案例工具「调和函数与共轭调和 · 物理场应用」。</p>`;
