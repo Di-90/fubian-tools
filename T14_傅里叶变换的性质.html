@@ -118,14 +118,14 @@
               <option value="wave">高斯波包 cos·e^</option>
             </select>
           </div>
-          <div class="ctrl"><label>第一信号 <math><mi>f</mi></math> 宽度 <math><mi>w</mi></math>：<span class="v" id="vW">1.0</span></label>
+          <div class="ctrl"><label>第一信号 <math><mi>f</mi></math> 宽度 <math><mi>w</mi></math>：<span class="v" id="vW">1.00</span></label>
             <input type="range" id="sW" min="0.3" max="2.5" step="0.05" value="1.0"></div>
 
           <div class="ctrl pset" data-for="shift"><label>时移 <math><msub><mi>t</mi><mn>0</mn></msub></math>：<span class="v" id="vT0">0.0</span></label>
             <input type="range" id="sT0" min="-3" max="3" step="0.1" value="0"></div>
           <div class="ctrl pset" data-for="mod" style="display:none;"><label>调制频率 <math><msub><mi>&#x3C9;</mi><mn>0</mn></msub></math>：<span class="v" id="vW0">4.0</span></label>
             <input type="range" id="sW0" min="0" max="9" step="0.1" value="4"></div>
-          <div class="ctrl pset" data-for="scale" style="display:none;"><label>尺度因子 <math><mi>a</mi></math>：<span class="v" id="vA">1.0</span></label>
+          <div class="ctrl pset" data-for="scale" style="display:none;"><label>尺度因子 <math><mi>a</mi></math>：<span class="v" id="vA">1.00</span></label>
             <input type="range" id="sA" min="0.4" max="3" step="0.05" value="1"></div>
           <div class="ctrl pset" data-for="linear" style="display:none;"><label>第二信号 <math><mi>g</mi></math>（与 <math><mi>f</mi></math> 独立，可任选）</label>
             <select id="selG">
@@ -184,7 +184,7 @@
     <span class="x" id="helpX">×</span>
     <h3>使用说明</h3>
     <p><b>这是什么：</b>把一个时域信号和它的频谱（幅度 + 相位）并排画出来，演示傅里叶变换的五条基本性质。</p>
-    <p><b>怎么玩：</b>①选基信号（矩形/高斯）；②选一条性质；③拖对应的参数滑杆，盯着右边的幅度谱与相位谱怎么变。</p>
+    <p><b>怎么玩：</b>①选一条性质；②选第一信号 <math><mi>f</mi></math>（矩形/高斯/三角/高斯波包）；③拖对应的参数滑杆，盯着右边的幅度谱与相位谱怎么变。</p>
     <p><b>时移</b>：拖 <math><msub><mi>t</mi><mn>0</mn></msub></math>——<b>幅度谱完全不动，只有相位在“转”</b>（一道随 <math><mi>&#x3C9;</mi></math> 变陡的斜坡）。这就是“位置信息在相位里”。</p>
     <p><b>线性</b>：<math><mi>f</mi></math> 和 <math><mi>g</mi></math> 是<b>两个各自独立</b>的信号——<math><mi>g</mi></math> 的类型（波包/高斯/矩形/三角）和位置都能单独选。无论怎么选，调 <math><mi>&#x3B1;</mi></math>、<math><mi>&#x3B2;</mi></math> 后组合 <math><mrow><mi>&#x3B1;</mi><mi>f</mi><mo>+</mo><mi>&#x3B2;</mi><mi>g</mi></mrow></math> 的谱都正好是 <math><mrow><mi>&#x3B1;</mi><mi>F</mi><mo>+</mo><mi>&#x3B2;</mi><mi>G</mi></mrow></math>。</p>
     <p class="lg">频谱是数值积分实时算的；相位只在幅度足够大处才画。选“微分”时会自动切到高斯脉冲——矩形求导是冲激，不便观察。</p>
@@ -206,18 +206,25 @@ var showOrig=true, showPhase=true;
 // ---- 时间与频率网格 ----
 var Tmax=6, Nt=420, Wmax=12, Nw=241;
 var tGrid=[], wGrid=[], dt=0;
+// 积分网格：比显示窗口宽得多，避免宽信号（大 w、小 a、大时移）被 ±Tmax 截断而使频谱失真
+var TI=32, dtI=0.02, tInt=[];
+var AA=0;   // 当前采样步长：矩形边缘按“覆盖比例”取值，减小离散误差
 function buildGrids(){
-  tGrid.length=0; wGrid.length=0;
+  tGrid.length=0; wGrid.length=0; tInt.length=0;
   dt=2*Tmax/(Nt-1);
   for(var i=0;i<Nt;i++) tGrid.push(-Tmax+i*dt);
   for(var k=0;k<Nw;k++) wGrid.push(-Wmax+2*Wmax*k/(Nw-1));
+  var NI=Math.round(2*TI/dtI)+1;
+  for(var j=0;j<NI;j++) tInt.push(-TI+j*dtI);
+  AA=dt;
 }
 buildGrids();
 
-// 四类基本信号，x 为（已平移的）自变量、s 为宽度参数
-function shape(type,x,s){
+// 四类基本信号，x 为（已平移的）自变量、s 为宽度参数、h 为 x 方向采样步长（可省）
+function shape(type,x,s,h){
   switch(type){
-    case "rect":  return (Math.abs(x)<=s)?1:0;
+    case "rect":  if(h>0){ var c=(s-Math.abs(x))/h+0.5; return c<=0?0:(c>=1?1:c); }
+                  return (Math.abs(x)<=s)?1:0;
     case "gauss": return Math.exp(-x*x/(2*s*s));
     case "tri":   return Math.max(0,1-Math.abs(x)/(1.5*s));
     case "wave":  return Math.exp(-x*x/(2*s*s))*Math.cos(5*x);
@@ -225,16 +232,16 @@ function shape(type,x,s){
   }
 }
 // 第一信号 f(t)：类型 base、宽度 w，居中
-function base0(t){ return shape(base,t,w); }
+function base0(t,k){ return shape(base,t,w,AA*(k||1)); }
 // 第二信号 g(t)：类型 gType、可平移 dg，与 f 完全独立（宽度固定 0.7）
-function gShape(t){ return shape(gType,t-dg,0.7); }
+function gShape(t){ return shape(gType,t-dg,0.7,AA); }
 
 // 变换后 / 组合信号（当前性质）
 function gsig(t){
   switch(prop){
     case "shift":  return base0(t-t0);
     case "mod":    return base0(t)*Math.cos(w0*t);
-    case "scale":  return base0(a*t);
+    case "scale":  return base0(a*t,a);
     case "deriv":  { var h=dt; return (base0(t+h)-base0(t-h))/(2*h); }
     case "linear": return alpha*base0(t)+beta*gShape(t);
     default: return base0(t);
@@ -247,16 +254,21 @@ function comp2(t){ return beta*gShape(t); }   // βg
 // 数值傅里叶变换
 function ftOf(sigFn){
   var re=new Array(Nw), im=new Array(Nw);
-  var g=new Array(Nt);
-  for(var i=0;i<Nt;i++) g[i]=sigFn(tGrid[i]);
+  var NI=tInt.length, g=new Array(NI), j0=-1, j1=-1;
+  var aa0=AA; AA=dtI;
+  for(var i=0;i<NI;i++){ g[i]=sigFn(tInt[i]); if(Math.abs(g[i])>1e-12){ if(j0<0)j0=i; j1=i; } }
+  AA=aa0;
   for(var k=0;k<Nw;k++){
     var wk=wGrid[k], sr=0, si=0;
-    for(var j=0;j<Nt;j++){
-      var ph=wk*tGrid[j];
-      sr+=g[j]*Math.cos(ph);
-      si+=-g[j]*Math.sin(ph);
+    if(j0<0){ re[k]=0; im[k]=0; continue; }
+    // e^{-jωt} 用逐步旋转递推（每步乘 e^{-jωΔt}），省去大量 cos/sin 调用
+    var c=Math.cos(wk*tInt[j0]), s=Math.sin(wk*tInt[j0]), dc=Math.cos(wk*dtI), ds=Math.sin(wk*dtI);
+    for(var j=j0;j<=j1;j++){
+      sr+=g[j]*c;
+      si+=-g[j]*s;
+      var c2=c*dc-s*ds; s=s*dc+c*ds; c=c2;
     }
-    re[k]=sr*dt; im[k]=si*dt;
+    re[k]=sr*dtI; im[k]=si*dtI;
   }
   return {re:re,im:im};
 }
@@ -296,7 +308,7 @@ function drawTime(){
   axisLetter(ctx,"t",R.x+R.w-2,y0+14);
   // 纵向量程
   var amp=1.15, i, v;
-  if(prop==="deriv"){ amp=0; for(i=0;i<Nt;i++){v=Math.abs(gsig(tGrid[i])); if(v>amp)amp=v;} amp*=1.15; if(amp<1e-3)amp=1; }
+  if(prop==="deriv"){ amp=0; for(i=0;i<Nt;i++){v=Math.abs(gsig(tGrid[i])); if(showOrig)v=Math.max(v,Math.abs(base0(tGrid[i]))); if(v>amp)amp=v;} amp*=1.15; if(amp<1e-3)amp=1; }
   else if(prop==="linear"){ amp=0;
     for(i=0;i<Nt;i++){ v=Math.max(Math.abs(gsig(tGrid[i])),Math.abs(comp1(tGrid[i])),Math.abs(comp2(tGrid[i]))); if(v>amp)amp=v; }
     amp*=1.15; if(amp<1e-3)amp=1;
@@ -342,12 +354,16 @@ function drawPhase(){
   function X(wv){ return R.x+(wv+Wmax)/(2*Wmax)*R.w; }
   function Y(ph){ return y0-(ph/PI)*(R.h/2-4); }
   var thr=magMax*0.04;
-  ctx.strokeStyle="#2f855a"; ctx.lineWidth=1.8; ctx.beginPath(); var pen=false;
+  ctx.strokeStyle="#2f855a"; ctx.lineWidth=1.8; ctx.beginPath(); var pen=false, prev=0;
   for(var k=0;k<Nw;k++){
     if(mag(Fg,k)<thr){ pen=false; continue; }
-    var ph=Math.atan2(Fg.im[k],Fg.re[k]);
+    // 实谱的虚部只剩舍入误差：归零，避免相位在 +π 与 −π 间乱跳
+    var imk=(Math.abs(Fg.im[k])<1e-9*magMax)?0:Fg.im[k];
+    var ph=Math.atan2(imk,Fg.re[k]);
     var px=X(wGrid[k]),py=Y(ph);
-    if(!pen){ ctx.moveTo(px,py); pen=true; } else ctx.lineTo(px,py);
+    // 相位卷绕（跨过 ±π）处断开，不画假的竖线
+    if(!pen || Math.abs(ph-prev)>PI){ ctx.moveTo(px,py); pen=true; } else ctx.lineTo(px,py);
+    prev=ph;
   }
   ctx.stroke();
 }
@@ -397,7 +413,7 @@ var HINTS={
   shift:'拖 '+M.t0+'：注意上方幅度谱<b>完全不动</b>，下方相位谱变成一道随 '+M.w+' 越来越陡的斜坡（斜率 = '+M.slope+'）。位置信息全在相位里。',
   mod:'拖 '+M.w0+'：原本集中在 '+M.weq0+' 附近的谱，被<b>搬到 '+M.pmw0+'</b> 两处（一分为二）。这正是通信里“把基带信号搬到载波频率”的调制。',
   scale:'拖 '+M.a+'：'+M.ag1+' 时域压窄、频谱展宽；'+M.al1+' 时域展宽、频谱压窄。时域和频域的“宽度”成反比（测不准），幅度按 '+M.inva+' 缩放。',
-  deriv:'求导后 '+M.Fw+' 乘上 '+M.jw+'：低频被压、高频被抬，谱整体向高频偏。求导凸显信号里“变化快”的部分。（矩形求导为冲激，已自动切到高斯演示。）',
+  deriv:'求导后 '+M.Fw+' 乘上 '+M.jw+'：低频被压、高频被抬，谱整体向高频偏。求导凸显信号里“变化快”的部分。（矩形求导为冲激，此模式下不提供矩形；若原选矩形，已自动切到高斯。）',
   linear:M.fsym+' 与 '+M.gsym+' 是<b>两个可各自任选、彼此独立</b>的信号（'+M.gsym+' 的类型、位置都能单独调）。无论怎么选，组合 '+M.afbg+' 的谱都<b>恰好</b>等于 '+M.AFBG+'——这就是线性。时域里 <span style="color:#2b6cb0;">蓝＝'+M.af+'</span>、<span style="color:#c05621;">橙＝'+M.bg+'</span>，<span style="color:#2f855a;">绿＝其和</span>。'
 };
 var USES={

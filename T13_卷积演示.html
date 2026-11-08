@@ -190,12 +190,13 @@ var fnF=SIGS.rect.make(paramF), fnG=SIGS.rect.make(paramG);
 function fmtP(key,v){ return v.toFixed(SIGS[key].param.step<0.1?2:1); }
 
 // ---------- 数值卷积 ----------
-var TAU0=-4, TAU1=6, DTAU=0.01;                 // 积分变量 τ 的网格
+var TAU0=-8, TAU1=13, DTAU=0.01;                // 积分变量 τ 的网格（范围要盖住高斯 σ=1.5、指数 a=0.3 的尾巴，否则截断误差可达 10%+）
+var NTAU=Math.round((TAU1-TAU0)/DTAU);
 var TMIN=-3, TMAX=5;                            // 显示 / 平移范围
 var convT=[], convY=[], convMax=1, convPeak=1;   // convMax：坐标轴上限（含留白）；convPeak：卷积曲线真实峰值
 function convAt(t){
   var s=0;
-  for(var tau=TAU0; tau<=TAU1; tau+=DTAU){ s+=fnF(tau)*fnG(t-tau); }
+  for(var k=0; k<NTAU; k++){ var tau=TAU0+(k+0.5)*DTAU; s+=fnF(tau)*fnG(t-tau); }   // 中点公式，避免跳变端点重复计数
   return s*DTAU;
 }
 function recompute(){

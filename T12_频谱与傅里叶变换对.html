@@ -80,7 +80,7 @@
     <h2>从"级数"到"变换"：谱为什么变成连续的？</h2>
     <p>在工具 <a href="./T11_傅里叶级数合成器.html">T11</a> 里，<b>周期</b>信号的谱是一根根<b>离散谱线</b>——只在基频的整数倍 <math><mrow><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处有值。当周期 <math><mrow><mi>T</mi><mo>&#x2192;</mo><mi>&#x221E;</mi></mrow></math>（信号不再重复、变成<b>非周期</b>）时，相邻谱线的间隔 <math><mrow><msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mn>2</mn><mi>π</mi><mo>/</mo><mi>T</mi><mo>&#x2192;</mo><mn>0</mn></mrow></math>，谱线越挤越密，最后连成一条<b>连续</b>的曲线。这条连续谱就是<b>傅里叶变换</b>：</p>
     <p style="text-align:center;"><math display="block"><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math></p>
-    <p class="lg">它一般是<b>复数</b>，所以要分两张图看：<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（各频率成分的强弱）与<b>相位谱</b> <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>（各成分的相位）。实偶信号相位恒为 0；像单边指数这种非对称信号，相位谱才有内容。</p>
+    <p class="lg">它一般是<b>复数</b>，所以要分两张图看：<b>幅度谱</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math>（各频率成分的强弱）与<b>相位谱</b> <math><mrow><mi>arg</mi><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>（各成分的相位）。实偶信号的 <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math> 是实数，相位只取 0 或 <math><mi>π</mi></math>（<math><mrow><mi>F</mi><mo>&lt;</mo><mn>0</mn></mrow></math> 处为 <math><mi>π</mi></math>）；像单边指数这种非对称信号，相位谱才连续变化。</p>
   </div>
 
   <div class="main">
@@ -125,7 +125,7 @@
   <div class="know">
     <h2>看什么？三个要点</h2>
     <p><b>① 幅度谱 = 各频率成分的"分量表"。</b> <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>|</mo></mrow></math> 在某个 <math><mi>ω</mi></math> 处越高，说明信号里该频率的成分越强。矩形脉冲的谱是 <math><mrow><mi>Sa</mi></mrow></math> 函数（一主瓣 + 两侧衰减旁瓣）；高斯的谱还是高斯；双边指数的谱是洛伦兹型 <math><mrow><mn>2</mn><mi>a</mi><mo>/</mo><mo>(</mo><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>ω</mi><mn>2</mn></msup><mo>)</mo></mrow></math>。</p>
-    <p><b>② 相位谱：非对称信号才"有戏"。</b> 选<b>单边指数</b>看相位谱——它是 <math><mrow><mo>&#x2212;</mo><mi>arctan</mi><mo>(</mo><mi>ω</mi><mo>/</mo><mi>a</mi><mo>)</mo></mrow></math>，随 <math><mi>ω</mi></math> 由 <math><mrow><mo>+</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math> 平滑扫到 <math><mrow><mo>&#x2212;</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math>；而矩形、高斯、双边指数是实偶函数，幅度谱全部信息、相位恒为 0。</p>
+    <p><b>② 相位谱：非对称信号才"有戏"。</b> 选<b>单边指数</b>看相位谱——它是 <math><mrow><mo>&#x2212;</mo><mi>arctan</mi><mo>(</mo><mi>ω</mi><mo>/</mo><mi>a</mi><mo>)</mo></mrow></math>，随 <math><mi>ω</mi></math> 由 <math><mrow><mo>+</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math> 平滑扫到 <math><mrow><mo>&#x2212;</mo><mi>π</mi><mo>/</mo><mn>2</mn></mrow></math>；而矩形、高斯、双边指数是实偶函数，<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math> 为实数，幅度谱包含全部信息：高斯、双边指数的 <math><mrow><mi>F</mi><mo>&gt;</mo><mn>0</mn></mrow></math>，相位恒为 0；矩形的 Sa 会变号，相位在 0 与 <math><mi>π</mi></math> 之间跳（负旁瓣处为 <math><mi>π</mi></math>）。</p>
     <p><b>③ 时窄 ↔ 频宽（尺度 / 测不准）。</b> 拖矩形宽度 <math><mi>τ</mi></math> 或高斯 <math><mi>σ</mi></math>：<b>时域压得越窄，频谱铺得越宽</b>，反之亦然——想在时间上"很集中"，就必须在频率上"很分散"。读数区给出<b>时宽 × 频宽 ≈ 常数</b>的定量对照。极限情形：冲激 <math><mrow><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>（时域一个点）的谱是<b>全频段常数 1</b>；常数 1（时域铺满）的谱是<b>单根冲激</b> <math><mrow><mn>2</mn><mi>π</mi><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math>。</p>
     <p style="margin-top:12px; padding:11px 14px; background:#faf5ff; border:1px solid #d6bcfa; border-radius:8px; font-size:12.8px; color:#44337a;">
       <b style="color:#6b46c1;">✦ 延伸（选讲 · 不考）：这就是海森堡测不准原理的数学原型。</b>
@@ -182,7 +182,7 @@ var SIGS={
   gauss:{
     name:"高斯 ↔ 高斯",
     pair:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>t</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></msup></mrow></math>　↔　<math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mi>σ</mi><msqrt><mrow><mn>2</mn><mi>π</mi></mrow></msqrt><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>σ</mi><mn>2</mn></msup><msup><mi>ω</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn></mrow></msup></mrow></math>",
-    note:"高斯的傅里叶变换还是高斯——它是唯一“形状不变”的一类信号；时域标准差 σ，频域标准差 1/σ。",
+    note:"高斯的傅里叶变换还是高斯——变换后“形状不变”，是最典型的自对偶信号；时域标准差 σ，频域标准差 1/σ。",
     p:{label:"时域宽度 σ",min:0.3,max:3,step:0.05,val:1,unit:""},
     tRange:function(p){return 10;},   // 固定坐标轴：σ 越小时域越窄、频域越宽
     wRange:function(p){return 10;},
@@ -213,7 +213,7 @@ var SIGS={
     time:function(t,p){return t>=0?Math.exp(-p*t):0;},
     mag:function(w,p){return 1/Math.sqrt(p*p+w*w);},
     phase:function(w,p){return -Math.atan2(w,p);},
-    recip:function(p){return "衰减率 a = <b>"+p.toFixed(2)+"</b>：这是唯一相位谱非平凡的例子。相位由 +π/2 扫到 −π/2。";}
+    recip:function(p){return "衰减率 a = <b>"+p.toFixed(2)+"</b>：这是本页唯一相位连续变化的例子（矩形的相位只在 0 与 π 间跳变）。相位由 +π/2 扫到 −π/2。";}
   },
   delta:{
     name:"冲激 δ(t) ↔ 常数 1",

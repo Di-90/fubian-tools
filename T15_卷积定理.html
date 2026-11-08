@@ -175,39 +175,49 @@
 
 // ---------- 信号库 ----------
 var SIG={
-  rect:{ name:"矩形脉冲", causal:true, param:{label:"宽度",sym:"w",min:0.5,max:2.5,step:0.1,def:1},
+  rect:{ name:"矩形脉冲", causal:true, param:{label:"宽度",sym:"w",gsym:"<msup><mi>w</mi><mo>&#x2032;</mo></msup>",min:0.5,max:2.5,step:0.1,def:1},
     f:function(p){ return function(x){ return (x>=0&&x<=p)?1:0; }; },
     Fmag:function(p){ return function(w){ return Math.abs(w)<1e-7?p:Math.abs(2*Math.sin(w*p/2)/w); }; },
     formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn></mrow></math>（<math><mrow><mn>0</mn><mo>&#x2264;</mo><mi>t</mi><mo>&#x2264;</mo><mi>w</mi></mrow></math>）",
     Ls:"<mfrac><mrow><mn>1</mn><mo>&#x2212;</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>w</mi><mi>s</mi></mrow></msup></mrow><mi>s</mi></mfrac>",
     pz:function(p){ var z=[]; for(var k=1;k<=8;k++){ var im=2*Math.PI*k/p; z.push({re:0,im:im}); z.push({re:0,im:-im}); } return {poles:[],zeros:z}; } },
-  exp:{ name:"指数衰减", causal:true, param:{label:"衰减率",sym:"a",min:0.5,max:3,step:0.1,def:1},
+  exp:{ name:"指数衰减", causal:true, param:{label:"衰减率",sym:"a",gsym:"<mi>b</mi>",min:0.5,max:3,step:0.1,def:1},
     f:function(p){ return function(x){ return x>=0?Math.exp(-p*x):0; }; },
     Fmag:function(p){ return function(w){ return 1/Math.sqrt(p*p+w*w); }; },
     formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>a</mi><mi>t</mi></mrow></msup><mi>u</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>",
     Ls:"<mfrac><mn>1</mn><mrow><mi>s</mi><mo>+</mo><mi>a</mi></mrow></mfrac>",
     pz:function(p){ return {poles:[{re:-p,im:0}],zeros:[]}; } },
-  gauss:{ name:"高斯", causal:false, param:{label:"标准差",sym:"&#x3C3;",min:0.3,max:1.2,step:0.05,def:0.5},
+  gauss:{ name:"高斯", causal:false, param:{label:"标准差",sym:"&#x3C3;",gsym:"<msup><mi>&#x3C3;</mi><mo>&#x2032;</mo></msup>",min:0.3,max:1.2,step:0.05,def:0.5},
     f:function(p){ return function(x){ return Math.exp(-x*x/(2*p*p)); }; },
     Fmag:function(p){ return function(w){ return p*Math.sqrt(2*Math.PI)*Math.exp(-p*p*w*w/2); }; },
     formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><msup><mi>t</mi><mn>2</mn></msup><mo>/</mo><mn>2</mn><msup><mi>&#x3C3;</mi><mn>2</mn></msup></mrow></msup></mrow></math>", Ls:"" },
-  tri:{ name:"三角", causal:false, param:{label:"半宽",sym:"h",min:0.5,max:1.5,step:0.1,def:1},
+  tri:{ name:"三角", causal:false, param:{label:"半宽",sym:"h",gsym:"<msup><mi>h</mi><mo>&#x2032;</mo></msup>",min:0.5,max:1.5,step:0.1,def:1},
     f:function(p){ return function(x){ return Math.max(0,1-Math.abs(x)/p); }; },
     Fmag:function(p){ return function(w){ if(Math.abs(w)<1e-7)return p; var s=Math.sin(w*p/2)/(w*p/2); return p*s*s; }; },
     formula:"<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msub><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mo>|</mo><mi>t</mi><mo>|</mo><mo>/</mo><mi>h</mi><mo>)</mo></mrow><mo>+</mo></msub></mrow></math>", Ls:"" }
 };
 function fmtP(key,v){ return v.toFixed(SIG[key].param.step<0.1?2:1); }
-function symLabel(key){ var p=SIG[key].param; return p.label+" <math><mi>"+p.sym+"</mi></math>"; }
+// g 一侧用不同的参数字母（a→b，w→w′，σ→σ′，h→h′），避免与 f 的参数混淆
+function symLabel(key,isG){ var p=SIG[key].param; return p.label+" <math>"+(isG?p.gsym:"<mi>"+p.sym+"</mi>")+"</math>"; }
+function gRen(key,str){ var p=SIG[key].param; return str.split("<mi>"+p.sym+"</mi>").join(p.gsym); }
 
 var mode="F", keyF="rect", keyG="rect", paramF=1, paramG=1;
 var fnF=SIG.rect.f(1), fnG=SIG.rect.f(1);
 
 // ---------- 计算网格 ----------
-var GT0=-10, GT1=10, GDT=0.02, NT=Math.round((GT1-GT0)/GDT)+1;
-var gT=new Float64Array(NT), cY=new Float64Array(NT);
+// 右端取到 35：慢衰减指数（a=0.5）的卷积 t·e^{−t/2} 尾巴也能积完整，否则其频谱会被截断而偏离 |F·G|
+var GT0=-10, GT1=35, GDT=0.02, NT=Math.round((GT1-GT0)/GDT)+1;
+var gT=new Float64Array(NT), cY=new Float64Array(NT), cLo=0, cHi=NT-1;
 for(var ii=0;ii<NT;ii++) gT[ii]=GT0+ii*GDT;
-
-function convAt(t){ var s=0; for(var tau=GT0; tau<=GT1; tau+=GDT){ s+=fnF(tau)*fnG(t-tau); } return s*GDT; }
+var cA=new Float64Array(NT), cB=new Float64Array(2*NT-1);
+// 卷积积分用中点法：τ 取格点中点，矩形/指数的跳变点（都在格点上）不会被“算两次”
+function convAll(){
+  var i,j,k;
+  for(i=0;i<NT;i++) cA[i]=fnF(GT0+(i+0.5)*GDT);           // f(τ_i)，τ_i 为中点
+  for(j=-(NT-1);j<=NT-1;j++) cB[j+NT-1]=fnG((j-0.5)*GDT);  // g(t_k−τ_i)，t_k−τ_i=(k−i−½)Δt
+  var nz=[]; for(i=0;i<NT;i++) if(cA[i]!==0) nz.push(i);
+  for(k=0;k<NT;k++){ var s=0; for(var q=0;q<nz.length;q++){ i=nz[q]; s+=cA[i]*cB[k-i+NT-1]; } cY[k]=s*GDT; }
+}
 function lapConv(t){
   if(t<0) return 0;
   var kf=keyF,kg=keyG,pf=paramF,pg=paramG;
@@ -219,10 +229,12 @@ function lapConv(t){
   return 0;
 }
 var convMaxT=1;
-function recompute(){ var mx=1e-6; for(var i=0;i<NT;i++){ var v=convAt(gT[i]); cY[i]=v; if(v>mx)mx=v; } convMaxT=mx; }
+function recompute(){ convAll(); var mx=1e-6; cLo=-1; cHi=-1;
+  for(var i=0;i<NT;i++){ var v=cY[i]; if(v>mx)mx=v; if(Math.abs(v)>1e-13){ if(cLo<0)cLo=i; cHi=i; } }
+  if(cLo<0){ cLo=0; cHi=-1; } convMaxT=mx; }
 function cInterp(t){ if(t<=GT0)return cY[0]; if(t>=GT1)return cY[NT-1];
   var idx=(t-GT0)/GDT, i=Math.floor(idx); if(i>=NT-1)i=NT-2; var a=idx-i; return cY[i]*(1-a)+cY[i+1]*a; }
-function convFmag(w){ var re=0,im=0; for(var i=0;i<NT;i++){ var ph=w*gT[i]; re+=cY[i]*Math.cos(ph); im-=cY[i]*Math.sin(ph); } return Math.hypot(re,im)*GDT; }
+function convFmag(w){ var re=0,im=0; for(var i=cLo;i<=cHi;i++){ var ph=w*gT[i]; re+=cY[i]*Math.cos(ph); im-=cY[i]*Math.sin(ph); } return Math.hypot(re,im)*GDT; }
 
 // ---------- 绘图辅助 ----------
 function richText(c,parts,x,y,col,size){
@@ -341,7 +353,8 @@ function drawSplane(P){ var c=P.ctx,W=P.W,H=P.H; c.clearRect(0,0,W,H);
   c.fillStyle="#718096"; c.font="italic 11px 'Cambria Math','STIX Two Math',serif"; c.fillText("|F·G|",0,0); c.restore();
   // 底注
   c.fillStyle="rgba(255,255,255,.92)"; c.font="10.5px 'Microsoft YaHei',sans-serif"; c.textAlign="center";
-  c.fillText("左半平面：极点在此 ⇒ f∗g 衰减(稳定)",ml+plotW*0.36,mt+plotH-8);
+  var hasPole=(keyF==="exp"||keyG==="exp");
+  c.fillText(hasPole?"左半平面：极点在此 ⇒ f∗g 衰减(稳定)":"两矩形：无极点(s=0 可去) ⇒ f∗g 有限时长",ml+plotW*0.36,mt+plotH-8);
 }
 
 // ---------- 画布注册 ----------
@@ -381,10 +394,10 @@ function maxDiff(){
 
 // ---------- 读数 / s 域代数 ----------
 function updateReadout(){
-  var gF=SIG[keyG].formula.replace("<mi>f</mi>","<mi>g</mi>");
+  var gF=gRen(keyG,SIG[keyG].formula.replace("<mi>f</mi>","<mi>g</mi>"));
   document.getElementById("oPair").innerHTML=
     "<span style='color:#2b6cb0;'>"+SIG[keyF].formula+"</span>　<b>"+symLabel(keyF)+" = "+fmtP(keyF,paramF)+"</b><br>"+
-    "<span style='color:#2f855a;'>"+gF+"</span>　<b>"+symLabel(keyG)+" = "+fmtP(keyG,paramG)+"</b>";
+    "<span style='color:#2f855a;'>"+gF+"</span>　<b>"+symLabel(keyG,true)+" = "+fmtP(keyG,paramG)+"</b>";
   var d=maxDiff();
   var routes = mode==="F"
     ? "<math><mrow><mo>|</mo><mi>F</mi><mo>&#x22C5;</mo><mi>G</mi><mo>|</mo></mrow></math> 与 <math><mrow><mo>|</mo><mi>&#x2131;</mi><mo>{</mo><mi>f</mi><mo>&#x2217;</mo><mi>g</mi><mo>}</mo><mo>|</mo></mrow></math>（频域右图）"
@@ -393,9 +406,9 @@ function updateReadout(){
   if(mode==="L") updateAlgebra();
 }
 function updateAlgebra(){
-  var Lf=SIG[keyF].Ls, Lg=SIG[keyG].Ls;
+  var Lf=SIG[keyF].Ls, Lg=gRen(keyG,SIG[keyG].Ls);
   document.getElementById("algF").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lf+"</mrow></math>　<b>"+symLabel(keyF)+" = "+fmtP(keyF,paramF)+"</b>";
-  document.getElementById("algG").innerHTML="<math><mrow><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lg+"</mrow></math>　<b>"+symLabel(keyG)+" = "+fmtP(keyG,paramG)+"</b>";
+  document.getElementById("algG").innerHTML="<math><mrow><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lg+"</mrow></math>　<b>"+symLabel(keyG,true)+" = "+fmtP(keyG,paramG)+"</b>";
   document.getElementById("algP").innerHTML="<math><mrow><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>=</mo>"+Lf+"<mo>&#x22C5;</mo>"+Lg+"</mrow></math>";
   var inv="把它反变换回时域，得到的就是时域右图的<b>橙色虚线</b>——与直接算的卷积（紫线）完全重合。";
   if(keyF==="exp"&&keyG==="exp"){ var a=paramF,b=paramG;
@@ -428,13 +441,13 @@ function applyParamUI(which){
   var key=which==="F"?keyF:keyG, pr=SIG[key].param, val=which==="F"?paramF:paramG;
   var s=document.getElementById(which==="F"?"sPF":"sPG");
   s.min=pr.min; s.max=pr.max; s.step=pr.step; s.value=val;
-  document.getElementById(which==="F"?"pLabF":"pLabG").innerHTML=pr.label+" <math><mi>"+pr.sym+"</mi></math>";
+  document.getElementById(which==="F"?"pLabF":"pLabG").innerHTML=symLabel(key,which!=="F");
   document.getElementById(which==="F"?"pValF":"pValG").textContent=fmtP(key,val);
 }
 function setLegend(){
   document.getElementById("legend").innerHTML = mode==="F"
     ? "<b>上排时域</b>：左＝原信号 <math><mi>f</mi></math>(蓝)、<math><mi>g</mi></math>(绿)；右＝卷积 <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math>(紫)。<b>下排频域</b>：左＝原频谱 <math><mrow><mo>|</mo><mi>F</mi><mo>|</mo></mrow></math>、<math><mrow><mo>|</mo><mi>G</mi><mo>|</mo></mrow></math>；右＝<span style='color:#6b46c1;'>两谱相乘</span> 叠 <span style='color:#dd6b20;'>先卷积再变换</span>——<b>两者重合即定理成立</b>。"
-    : "<b>时域</b>：左＝原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>；右＝<span style='color:#6b46c1;'>直接卷积</span> 叠 <span style='color:#dd6b20;'>相乘后反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow></math></span>，重合即定理成立。<b>s 平面</b>：热力图是 <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 的幅度——<b>越亮越大</b>，极点(×)处冲向无穷成<b>亮斑</b>、零点(○)处为暗点。相乘 ⇒ 极点/零点合并；亮斑都在左半平面 ⇒ <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math> 衰减稳定（参见 T16）。";
+    : "<b>时域</b>：左＝原信号 <math><mi>f</mi></math>、<math><mi>g</mi></math>；右＝<span style='color:#6b46c1;'>直接卷积</span> 叠 <span style='color:#dd6b20;'>相乘后反变换 <math><mrow><msup><mi>&#x2112;</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mo>{</mo><mi>F</mi><mi>G</mi><mo>}</mo></mrow></math></span>，重合即定理成立。<b>s 平面</b>：热力图是 <math><mrow><mo>|</mo><mi>F</mi><mo>(</mo><mi>s</mi><mo>)</mo><mi>G</mi><mo>(</mo><mi>s</mi><mo>)</mo><mo>|</mo></mrow></math> 的幅度——<b>越亮越大</b>，极点(×)处冲向无穷成<b>亮斑</b>、零点(○)处为暗点。相乘 ⇒ 极点/零点合并；极点(×)都在左半平面 ⇒ <math><mrow><mi>f</mi><mo>&#x2217;</mo><mi>g</mi></mrow></math> 衰减稳定（参见 T16）。矩形的像函数<b>没有极点</b>（<math><mrow><mi>s</mi><mo>=</mo><mn>0</mn></mrow></math> 是可去奇点），热力图左侧整体变亮来自 <math><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>w</mi><mi>s</mi></mrow></msup></math> 在 <math><mrow><mi>&#x3C3;</mi><mo>&lt;</mo><mn>0</mn></mrow></math> 时增大，并非极点。";
 }
 function setPlotLabels(){
   function sp(col,ml){ return "<span style='color:"+col+"'><math>"+ml+"</math></span>"; }
