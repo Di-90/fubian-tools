@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采样与混叠 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1; --red:#c53030;
+    --ink:#1a202c; --sub:#2d3748; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:940px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .lead{color:var(--ink); font-size:14px; padding:6px 22px 0;}
+  canvas{display:block; width:100%; height:auto; background:#fbfdff;
+          border:1px solid var(--line); border-radius:10px; touch-action:pan-y;}
+  .panel{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:14px;}
+  @media(max-width:720px){ .panel{grid-template-columns:minmax(0,1fr);} }
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px;
+          box-shadow:var(--shadow); padding:14px 16px;}
+  .ctrls h3, .readout h3{font-size:14px; color:var(--blue); margin:0 0 10px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:9px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--ink); margin-bottom:4px;}
+  .ctrl .v{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums;}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .row{display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff;
+       padding:6px 13px; border-radius:8px; cursor:pointer; font-size:13px;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .btn.warn{background:#fff; color:var(--red); border-color:var(--red);}
+  .pre{border:1px solid #cbd5e0; background:#fff; color:var(--ink); padding:4px 9px; border-radius:7px; cursor:pointer; font-size:12.5px;}
+  .pre:hover{border-color:var(--blue); color:var(--blue);}
+  .chk{font-size:13px; color:var(--ink); display:flex; align-items:center; gap:5px; cursor:pointer;}
+  .readout{background:var(--card); border:1px solid var(--line); border-radius:12px;
+           box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px;}
+  .readout p{margin:7px 0;}
+  .readout math{font-size:15px;}
+  .readout b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .status{margin-top:10px; padding:8px 11px; border-radius:8px; font-size:13px; font-weight:600;}
+  .status.ok{background:#f0fff4; border:1px solid #9ae6b4; color:#22543d;}
+  .status.bad{background:#fff5f5; border:1px solid #feb2b2; color:#9b2c2c;}
+  .status.mid{background:#fffaf0; border:1px solid #fbd38d; color:#7b341e;}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15.5px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p, .know li{margin:8px 0; font-size:13.6px; color:var(--ink);}
+  .know math{font-size:15px;}
+  .sec-h{font-size:16px; color:#1e3a8a; margin:0 0 6px;}
+  .fbar{margin:8px 0; padding:8px 12px; background:#fffaf0; border:1px solid #f6e05e;
+        border-radius:8px; font-size:13.2px; color:var(--ink); overflow-x:auto;}
+  .fbar math{font-size:15px;}
+  .legend{font-size:12.6px; color:var(--ink); margin:6px 2px 0;}
+  .sw{display:inline-block; width:18px; height:4px; border-radius:2px; vertical-align:middle; margin:0 3px 0 8px;}
+  /* 桥梁面板 */
+  .bridge{border:2px solid var(--gold); border-left-width:6px;}
+  .story{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:10px 0 6px;}
+  @media(max-width:680px){ .story{grid-template-columns:1fr;} }
+  .story div{background:#ebf8ff; border:1px solid #bee3f8; border-radius:9px; padding:8px 11px; font-size:13.2px;}
+  .story b{color:#1e3a8a;}
+  .tblwrap{overflow-x:auto; margin-top:8px;}
+  table.map{border-collapse:collapse; width:100%; font-size:13.2px; min-width:560px;}
+  table.map th{background:#ebf4ff; color:#1e3a8a; text-align:left; padding:7px 9px; border:1px solid #c3dafe;}
+  table.map td{padding:7px 9px; border:1px solid var(--line); vertical-align:top; color:var(--ink);}
+  table.map td:first-child{font-weight:600; white-space:nowrap;}
+  table.map td.go{white-space:nowrap;}
+  table.map tr:nth-child(even) td{background:#fcfdff;}
+  table.map math{font-size:14.5px;}
+  .chain{margin:10px 0 2px; padding:10px 13px; background:#f0fff4; border:1px solid #9ae6b4; border-radius:9px; font-size:13.3px;}
+  .chain ol{margin:4px 0; padding-left:20px; overflow-x:auto; overflow-y:hidden;}
+  .chain li{margin:6px 0; font-size:13.3px;}
+  .def{background:#faf5ff; border:1px solid #d6bcfa; border-radius:8px; padding:7px 11px; font-size:13px; margin:8px 0;}
+  .def b{color:#553c9a;}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink);}
+  footer button{margin-left:6px; border:1px solid #cbd5e0; background:#fff; border-radius:7px; padding:3px 10px; cursor:pointer; font-size:12px;}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:620px; width:92%; max-height:84vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal p, .modal li{font-size:13.8px; color:var(--ink); margin:8px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; color:var(--ink); font-size:22px; line-height:1;}
+  a{color:var(--blue);}
+  /* 主线 + 折叠细节 */
+  details.more{margin-top:6px;border:1px solid #cbd5e0;border-radius:8px;background:#fff;}
+  details.more>summary{cursor:pointer;padding:5px 10px;font-size:13px;font-weight:700;color:#2b6cb0;list-style:none;}
+  details.more>summary::-webkit-details-marker{display:none;}
+  details.more>summary::before{content:"▸ ";}
+  details.more[open]>summary::before{content:"▾ ";}
+  details.more[open]>summary{border-bottom:1px solid #e2e8f0;}
+  details.more>.in{padding:8px 10px;}
+  details.adv{margin-top:14px;}
+  details.adv>summary{cursor:pointer;list-style:none;}
+  details.adv>summary::-webkit-details-marker{display:none;}
+  details.adv>summary h2{margin:0;}
+  details.adv>summary h2::before{content:"▸ ";}
+  details.adv[open]>summary h2::before{content:"▾ ";}
+  details.adv[open]>summary h2{margin-bottom:10px;}
+  .readout details.more{font-size:13px;}
+  .hint{font-size:12.8px;margin:6px 0 0;}
+  .readout p,.status,.modal p,details.more>.in{overflow-x:auto;}
+  /* ---- 图卡片 + 标题栏开关（四个工具共用） ---- */
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:10px 12px; margin-top:10px;}
+  .pcard .legend{margin-bottom:0;}
+  .cardbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 6px;}
+  .cardbar .ttl{font-weight:700;font-size:14px;color:#1a202c;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;padding:3px 9px;border:1px solid #90cdf4;border-radius:999px;background:#ebf8ff;color:#1a202c;cursor:pointer;user-select:none;}
+  .chip input{margin:0;}
+  .chip select{font-size:12.5px;border:none;background:transparent;}
+  .chip:has(input:checked){background:#bee3f8;border-color:#3182ce;}
+  .chip select{width:auto; padding:0 2px; color:#1a202c;}
+  /* ---- 改了就提示 ---- */
+  @keyframes cardflash{0%{box-shadow:0 0 0 0 rgba(66,153,225,.75);}100%{box-shadow:0 0 0 10px rgba(66,153,225,0);}}
+  .flash{animation:cardflash .6s ease-out;}
+  .toast{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:45; display:none;
+         background:#fff; color:#1a202c; border:1px solid #90cdf4; border-radius:999px; box-shadow:0 4px 14px rgba(0,0,0,.18);
+         padding:8px 16px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .toast.on{display:block;}
+  /* ---- 手机底部控制条 ---- */
+  .mbar{display:none;}
+  @media(max-width:720px){
+    body{padding-bottom:72px;}
+    .wrap{display:flex; flex-direction:column; padding-bottom:20px;}
+    .wrap>*{min-width:0;}
+    .top{order:0;} .lead{order:0;}
+    #secA{order:1;} #secB{order:2;} #secC{order:3;} #bridge{order:4;} #secD{order:5;} #tips{order:6;} footer{order:7;}
+    .top{padding:12px 14px;} .top h1{font-size:18px;}
+    .lead{padding:10px 14px 0;}
+    .know{margin:14px 12px 0; padding:12px 14px;}
+    footer{margin:24px 14px 0;}
+    .panel{gap:12px; margin-top:12px;}
+    .pcard{padding:8px 8px;}
+    .ctrls,.readout{padding:12px 12px;}
+    .mbar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; align-items:center; gap:8px;
+          min-height:56px; padding:4px 10px; background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(0,0,0,.10);}
+    .mbar .ml{font-size:14px; font-weight:700; white-space:nowrap;}
+    .mbar input[type=range]{flex:1; min-width:0; height:36px; margin:0;}
+    .mbar .mv{font-size:14px; font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; min-width:66px; text-align:right; white-space:nowrap;}
+    .toast{bottom:74px;}
+    /* 字号与触控 */
+    .lead,.know p,.know li,.ctrl label,.readout,.status,.legend,.fbar,.chk,.def,.story div,.chain li,table.map,details.more>summary,.btn,.pre,select,.chip,.chip select,.modal p,.modal li,footer{font-size:14px;}
+    [style*="font-size:12"],[style*="font-size:13"]{font-size:14px !important;}
+    .btn,.pre,select{min-height:38px;}
+    .chip{min-height:36px; padding:4px 12px;}
+    .chk{min-height:36px;} .chk input{width:18px; height:18px;}
+    input[type=range]{height:36px;}
+    details.more>summary{padding-top:8px; padding-bottom:8px;}
+    .chip select{min-height:0; padding:0 2px; border:none;}
+    .chip input[type=checkbox]{width:17px; height:17px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>采样与混叠</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <a class="tag" href="./index.html" style="color:#fff;text-decoration:none;cursor:pointer">← 返回主页</a>
+  </div>
+  <p class="lead">手机、电脑只能<b>每隔一小段时间记一个数</b>（采样）。采得太慢，快的信号就会<b>冒充</b>成慢的信号（混叠）。拖动下面各面板的滑杆，从<b>时域</b>（采样点）和<b>频域</b>（频谱复制）两头看清楚：为什么要求 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>&gt;</mo><mn>2</mn><msub><mi>f</mi><mi>max</mi></msub></mrow></math>，以及车轮为什么会"倒转"。</p>
+
+  <!-- ===================== 从生活到数学 ===================== -->
+  <div class="know bridge" id="bridge">
+    <h2>从生活到数学：采样是怎么回事？</h2>
+    <p><b>故事。</b>声音、温度、画面都是随时间<b>连续</b>变化的，可存储器只能存<b>有限个数</b>。办法是<b>每隔 <math><msub><mi>T</mi><mi>s</mi></msub></math> 秒记一次当时的值</b>，这叫<b>采样</b>；每秒记多少次，叫<b>采样频率</b> <math><msub><mi>f</mi><mi>s</mi></msub></math>。</p>
+    <div class="story">
+      <div><b>CD 音乐</b>：每秒记 44100 次（44.1 kHz）。人耳最高约听到 20 kHz，44.1 kHz 刚好超过它的两倍。</div>
+      <div><b>打电话</b>：每秒只记 8000 次（8 kHz），只保留 3.4 kHz 以下的声音，所以电话里的声音"发闷"。</div>
+      <div><b>电影/视频</b>：每秒 24～60 帧，相当于对画面"每秒采样 24～60 次"。</div>
+    </div>
+    <p><b>采得太慢会怎样？</b>两次记录之间信号已经来回振荡了好几次，记下的点连起来就像一个<b>慢得多的</b>信号——快信号"冒充"慢信号，这叫<b>混叠</b>（aliasing，"冒名顶替"之意）。电影里车轮<b>变慢、静止、甚至倒转</b>（③），声音采样太慢时<b>高音被听成低音</b>（④ 可以亲耳听），都是混叠。</p>
+    <p class="hint">生活说法怎样对上课本符号、采样定理怎样一步步推出来，都在下面三个折叠块里。</p>
+
+    <details class="more"><summary>展开：生活说法 ↔ 课本符号对照表</summary><div class="in">
+    <div class="tblwrap" style="margin-top:0">
+    <table class="map">
+      <tr><th>生活里的说法</th><th>数学上的写法</th><th>本页在哪看</th></tr>
+      <tr><td>连续变化的信号</td><td>一个函数 <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math>，它的频谱是傅里叶变换 <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></msubsup><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math></td><td class="go">①② 蓝色曲线</td></tr>
+      <tr><td>每隔 <math><msub><mi>T</mi><mi>s</mi></msub></math> 秒记一次</td><td><b>采样</b>：只保留 <math><mrow><mi>f</mi><mo>(</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mo>,</mo><mi>k</mi><mo>=</mo><mn>0</mn><mo>,</mo><mo>&#xB1;</mo><mn>1</mn><mo>,</mo><mo>&#xB1;</mo><mn>2</mn><mo>,</mo><mo>&#x2026;</mo></mrow></math>；<b>采样频率</b> <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac></mrow></math>（次/秒，Hz），对应<b>角频率</b> <math><mrow><msub><mi>ω</mi><mi>s</mi></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>π</mi></mrow><msub><mi>T</mi><mi>s</mi></msub></mfrac><mo>=</mo><mn>2</mn><mi>π</mi><msub><mi>f</mi><mi>s</mi></msub></mrow></math></td><td class="go">①② 黑色竖线+圆点</td></tr>
+      <tr><td>"记一下"这个动作</td><td>乘以<b>冲激串</b>（等间隔排开的一串 <math><mi>δ</mi></math> 函数）：<math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x22C5;</mo><munderover><mo>&#x2211;</mo><mrow><mi>k</mi><mo>=</mo><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></munderover><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>f</mi><mo>(</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow></math>（第二个等号用 <math><mi>δ</mi></math> 函数的筛选性质，性质7.1）。<br>注意：带 <math><mrow><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 的 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>(</mo><mi>t</mi><mo>)</mo></mrow></math> 指<b>采样后的信号</b>，单独的 <math><msub><mi>f</mi><mi>s</mi></msub></math> 指<b>采样频率</b>。</td><td class="go">① 时域图</td></tr>
+      <tr><td>冲激串的"频谱"</td><td>冲激串也是<b>周期函数</b>（周期 <math><msub><mi>T</mi><mi>s</mi></msub></math>），展开成傅里叶级数 <math><mrow><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munder><mo>&#x2211;</mo><mi>n</mi></munder><msup><mi>e</mi><mrow><mi>j</mi><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mi>t</mi></mrow></msup></mrow></math>，每一项 <math><msup><mi>e</mi><mrow><mi>j</mi><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mi>t</mi></mrow></msup></math> 按 <math><mrow><mi>ℱ</mi><mo>[</mo><msup><mi>e</mi><mrow><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></msup><mo>]</mo><mo>=</mo><mn>2</mn><mi>π</mi><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo></mrow></math> 变成<b>一根谱线</b>：<math><mrow><mi>ℱ</mi><mrow><mo>[</mo><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mo>]</mo></mrow><mo>=</mo><msub><mi>ω</mi><mi>s</mi></msub><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>——还是一串冲激，间隔 <math><msub><mi>ω</mi><mi>s</mi></msub></math>。</td><td class="go">见下方推导</td></tr>
+      <tr><td>时域"相乘"</td><td>⇒ 频域<b>卷积</b>：<math><mrow><mi>ℱ</mi><mo>[</mo><msub><mi>f</mi><mn>1</mn></msub><mo>&#x22C5;</mo><msub><mi>f</mi><mn>2</mn></msub><mo>]</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>2</mn><mi>π</mi></mrow></mfrac><msub><mi>F</mi><mn>1</mn></msub><mo>*</mo><msub><mi>F</mi><mn>2</mn></msub></mrow></math>（定理7.3 同理式）；而和冲激卷积就是<b>平移</b>：<math><mrow><mi>F</mi><mo>*</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><mi>F</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>。所以<b>频谱以 <math><msub><mi>ω</mi><mi>s</mi></msub></math> 为周期复制</b>：<math><mrow><msub><mi>F</mi><mi>s</mi></msub><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munderover><mo>&#x2211;</mo><mrow><mi>n</mi><mo>=</mo><mo>&#x2212;</mo><mi>&#x221E;</mi></mrow><mi>&#x221E;</mi></munderover><mi>F</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math></td><td class="go">①② 频谱图：金色复制品</td></tr>
+      <tr><td>采得够快</td><td>复制品<b>互不重叠</b> <math><mo>&#x21D4;</mo></math> <math><mrow><msub><mi>ω</mi><mi>s</mi></msub><mo>&gt;</mo><mn>2</mn><msub><mi>ω</mi><mi>max</mi></msub></mrow></math>，即 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>&gt;</mo><mn>2</mn><msub><mi>f</mi><mi>max</mi></msub></mrow></math>（<b>采样定理</b>／奈奎斯特条件；<math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 叫<b>奈奎斯特频率</b>）</td><td class="go">①② 绿色带不被入侵</td></tr>
+      <tr><td>快信号冒充慢信号</td><td>复制品<b>重叠</b>＝<b>混叠</b>：频率 <math><mi>f</mi></math> 的余弦被采样后，与频率 <math><mrow><msub><mi>f</mi><mi>a</mi></msub><mo>=</mo><mo>|</mo><mi>f</mi><mo>&#x2212;</mo><mi>m</mi><msub><mi>f</mi><mi>s</mi></msub><mo>|</mo></mrow></math> 的余弦<b>采样值完全相同</b>（<math><mi>m</mi></math> 取使结果落在 <math><mrow><mo>[</mo><mn>0</mn><mo>,</mo><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn><mo>]</mo></mrow></math> 的整数）</td><td class="go">① 红色重建曲线、③ 车轮、④ 声音</td></tr>
+      <tr><td>由采样点"连回"曲线</td><td><b>低通滤波</b>：只保留 <math><mrow><mo>|</mo><mi>ω</mi><mo>|</mo><mo>&lt;</mo><msub><mi>ω</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 的那一份频谱；在时域等价于 <b>sinc 插值</b> <math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>f</mi><mo>(</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mspace width="0.15em"></mspace><mi>Sa</mi><mrow><mo>(</mo><mfrac><mrow><msub><mi>ω</mi><mi>s</mi></msub><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow><mn>2</mn></mfrac><mo>)</mo></mrow></mrow></math>，<math><mrow><mi>Sa</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mi>sin</mi><mi>x</mi></mrow><mi>x</mi></mfrac></mrow></math></td><td class="go">① 红色曲线、勾选"sinc 分量"</td></tr>
+    </table>
+    </div>
+    </div></details>
+
+    <details class="more"><summary>看推导：一条推导链（全是第7章学过的结论）</summary><div class="in">
+    <div class="chain" style="margin-top:0">
+      <ol>
+        <li><b>冲激串的傅里叶级数。</b>周期 <math><msub><mi>T</mi><mi>s</mi></msub></math> 的冲激串 <math><mrow><msub><mi>δ</mi><mi>T</mi></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow></math> 的系数 <math><mrow><msub><mi>c</mi><mi>n</mi></msub><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><msubsup><mo>&#x222B;</mo><mrow><mo>&#x2212;</mo><msub><mi>T</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow><mrow><msub><mi>T</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></msubsup><mi>δ</mi><mo>(</mo><mi>t</mi><mo>)</mo><msup><mi>e</mi><mrow><mo>&#x2212;</mo><mi>j</mi><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac></mrow></math>（筛选性质：只取 <math><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow></math> 处的值 <math><mrow><msup><mi>e</mi><mn>0</mn></msup><mo>=</mo><mn>1</mn></mrow></math>）。所有谐波一样强。</li>
+        <li><b>逐项变换。</b><math><mrow><mi>ℱ</mi><mo>[</mo><msub><mi>δ</mi><mi>T</mi></msub><mo>]</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munder><mo>&#x2211;</mo><mi>n</mi></munder><mn>2</mn><mi>π</mi><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><msub><mi>ω</mi><mi>s</mi></msub><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>。</li>
+        <li><b>相乘变卷积。</b><math><mrow><msub><mi>F</mi><mi>s</mi></msub><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>2</mn><mi>π</mi></mrow></mfrac><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo><mo>*</mo><msub><mi>ω</mi><mi>s</mi></msub><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>F</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>（与 <math><mrow><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math> 卷积 = 平移 <math><mrow><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub></mrow></math>，与 <math><mrow><mi>f</mi><mo>*</mo><mi>δ</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub><mo>)</mo><mo>=</mo><mi>f</mi><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><msub><mi>t</mi><mn>0</mn></msub><mo>)</mo></mrow></math> 同理）。</li>
+        <li><b>不重叠才能分开。</b>若 <math><mi>F</mi></math> 只在 <math><mrow><mo>|</mo><mi>ω</mi><mo>|</mo><mo>&#x2264;</mo><msub><mi>ω</mi><mi>max</mi></msub></mrow></math> 内非零，相邻两份的间隔 <math><msub><mi>ω</mi><mi>s</mi></msub></math> 必须大于一份的宽度 <math><mrow><mn>2</mn><msub><mi>ω</mi><mi>max</mi></msub></mrow></math>；这时用一个只放行 <math><mrow><mo>|</mo><mi>ω</mi><mo>|</mo><mo>&lt;</mo><msub><mi>ω</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 的<b>理想低通滤波器</b>（增益 <math><msub><mi>T</mi><mi>s</mi></msub></math>）就能把原来的 <math><mrow><mi>F</mi><mo>(</mo><mi>ω</mi><mo>)</mo></mrow></math> 原封不动取回来。它的时域形状是 <math><mrow><mi>Sa</mi><mo>(</mo><msub><mi>ω</mi><mi>s</mi></msub><mi>t</mi><mo>/</mo><mn>2</mn><mo>)</mo></mrow></math>（矩形谱 ↔ Sa，见 T12），于是得到 sinc 插值公式。</li>
+      </ol>
+    </div>
+    </div></details>
+    <details class="more"><summary>展开：术语小词典</summary><div class="in">
+    <div class="def" style="margin:0"><b>采样</b>：每隔固定时间记一次值。<b>采样频率</b> <math><msub><mi>f</mi><mi>s</mi></msub></math>：每秒记几次。<b>奈奎斯特频率</b> <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math>：采样能"如实表示"的最高频率。<b>混叠</b>：高于 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 的成分被采样后变得和某个低频成分无法区分。<b>低通滤波</b>：只让低于某频率的成分通过。<b>重建</b>：由采样点恢复连续信号。本页横轴用频率 <math><mrow><mi>f</mi><mo>=</mo><mi>ω</mi><mo>/</mo><mn>2</mn><mi>π</mi></mrow></math>（单位 Hz），这样 <math><mrow><mn>2</mn><mi>π</mi></mrow></math> 不会到处出现。</div>
+    </div></details>
+  </div>
+
+  <!-- ===================== ① 单频 ===================== -->
+  <div class="know" id="secA">
+    <h2>① 单个余弦的采样：快信号怎样冒充慢信号</h2>
+    <div class="fbar">关键一步：<math><mrow><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mi>f</mi><mo>&#x22C5;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mo>=</mo><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mo>(</mo><mi>f</mi><mo>&#x2212;</mo><mi>m</mi><msub><mi>f</mi><mi>s</mi></msub><mo>)</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow></math>，因为多出的 <math><mrow><mn>2</mn><mi>π</mi><mi>m</mi><mi>k</mi></mrow></math> 是 <math><mrow><mn>2</mn><mi>π</mi></mrow></math> 的整数倍——<b>采样点分不清 <math><mi>f</mi></math> 和 <math><mrow><mi>f</mi><mo>&#x2212;</mo><mi>m</mi><msub><mi>f</mi><mi>s</mi></msub></mrow></math></b>。</div>
+    <details class="more"><summary>看推导：红线是怎样由采样点算出来的</summary><div class="in">时域：<math><mrow><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mi>f</mi><mi>t</mi><mo>+</mo><mi>φ</mi><mo>)</mo></mrow></math>，采样点 <math><mrow><mi>f</mi><mo>(</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow></math>，红线 = sinc 插值重建 <math><mrow><munder><mo>&#x2211;</mo><mi>k</mi></munder><mi>f</mi><mo>(</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo><mi>Sa</mi><mrow><mo>(</mo><mfrac><mrow><msub><mi>ω</mi><mi>s</mi></msub><mo>(</mo><mi>t</mi><mo>&#x2212;</mo><mi>k</mi><msub><mi>T</mi><mi>s</mi></msub><mo>)</mo></mrow><mn>2</mn></mfrac><mo>)</mo></mrow></mrow></math>。</div></details>
+    <div class="pcard" id="cardAt">
+    <div class="cardbar"><span class="ttl">① 时域图：采样点与重建</span>
+      <div class="chips">
+          <label class="chip"><input type="checkbox" id="cAorig" checked> 原信号</label>
+          <label class="chip"><input type="checkbox" id="cArec" checked> 重建信号</label>
+          <label class="chip"><input type="checkbox" id="cAsinc"> sinc 分量</label>
+      </div></div>
+    <canvas id="cvAt"></canvas>
+    <div class="legend"><span class="sw" style="background:rgba(43,108,176,0.35);height:9px;border-radius:4px"></span>原信号（蓝色宽带） <span class="sw" style="background:#1a202c;height:8px;width:8px;border-radius:4px"></span>采样点 <span class="sw" style="background:repeating-linear-gradient(90deg,#c53030 0 6px,transparent 6px 10px);height:3px"></span>由采样点重建的信号（红色虚线） <span class="sw" style="background:#9f7aea"></span>sinc 分量（勾选后）</div>
+    </div>
+    <div class="fbar">频域：采样后谱线出现在 <math><mrow><mo>&#xB1;</mo><mi>f</mi><mo>+</mo><mi>n</mi><msub><mi>f</mi><mi>s</mi></msub></mrow></math>。绿色带 <math><mrow><mo>|</mo><mi>f</mi><mo>|</mo><mo>&lt;</mo><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> = 低通滤波器的通带：<b>重建只保留带内的谱线</b>。</div>
+    <details class="more"><summary>看推导：谱线从哪来、箭头多高</summary><div class="in">频域：<math><mrow><mi>ℱ</mi><mo>[</mo><mi>cos</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>]</mo><mo>=</mo><mi>π</mi><mo>[</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><mi>δ</mi><mo>(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>)</mo><mo>]</mo></mrow></math>（例7.11）两根谱线；采样后 <math><mrow><msub><mi>F</mi><mi>s</mi></msub><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>F</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>，即谱线出现在 <math><mrow><mo>&#xB1;</mo><mi>f</mi><mo>+</mo><mi>n</mi><msub><mi>f</mi><mi>s</mi></msub></mrow></math>。<br>纵轴口径：横轴用频率 <math><mi>f</mi></math>（Hz）时，振幅为 <math><mi>a</mi></math> 的余弦在 <math><mrow><mo>&#xB1;</mo><mi>f</mi></mrow></math> 处各是一根强度 <math><mrow><mi>a</mi><mo>/</mo><mn>2</mn></mrow></math> 的谱线（即例7.11 的 <math><mi>π</mi></math> 除以 <math><mrow><mn>2</mn><mi>π</mi></mrow></math>），图中箭头高度画的就是这个强度；采样后每一份复制品都一样高（都带公共因子 <math><mrow><mn>1</mn><mo>/</mo><msub><mi>T</mi><mi>s</mi></msub></mrow></math>，图中省去）。</div></details>
+    <div class="pcard" id="cardAf">
+    <div class="cardbar"><span class="ttl">① 频域图：谱线的复制</span></div>
+    <canvas id="cvAf"></canvas>
+    <div class="legend"><span class="sw" style="background:#2b6cb0"></span>原谱线 <math><mrow><mo>&#xB1;</mo><mi>f</mi></mrow></math>（<math><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow></math>） <span class="sw" style="background:#b7791f"></span>复制品（<math><mrow><mi>n</mi><mo>&#x2260;</mo><mn>0</mn></mrow></math>） <span class="sw" style="background:#c53030"></span>闯进通带的复制品 = 冒充者 <span class="sw" style="background:#c6f6d5;height:10px"></span>通带　横轴下的金色小三角：<math><mrow><mi>n</mi><msub><mi>f</mi><mi>s</mi></msub></mrow></math> 的位置</div>
+    </div>
+
+    <div class="panel">
+      <div class="ctrls">
+        <h3>控制</h3>
+        <div class="ctrl"><label>信号频率 <math><mi>f</mi></math>：<span class="v" id="vAf">3.0</span> Hz</label>
+          <input type="range" id="sAf" min="0" max="20" step="0.1" value="3"></div>
+        <div class="ctrl"><label>采样频率 <math><msub><mi>f</mi><mi>s</mi></msub></math>：<span class="v" id="vAfs">10.0</span> Hz（每秒采 <span id="vAfs2">10</span> 个点，<math><mrow><msub><mi>T</mi><mi>s</mi></msub><mo>=</mo></mrow></math> <span id="vAts">0.100</span> s）</label>
+          <input type="range" id="sAfs" min="1" max="40" step="0.5" value="10"></div>
+        <div class="ctrl"><label>初相 <math><mi>φ</mi></math>：<span class="v" id="vAph">0</span>°（在 <math><mrow><mi>f</mi><mo>=</mo><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 时试试 90°）</label>
+          <input type="range" id="sAph" min="0" max="180" step="5" value="0"></div>
+        <div class="row" id="preA">
+          <button class="pre" data-f="2" data-fs="20">采得很密</button>
+          <button class="pre" data-f="4" data-fs="10">刚超两倍</button>
+          <button class="pre" data-f="5" data-fs="10">恰好两倍</button>
+          <button class="pre" data-f="7" data-fs="10">7 Hz→3 Hz</button>
+          <button class="pre" data-f="9.5" data-fs="10">9.5 Hz→0.5 Hz</button>
+          <button class="pre" data-f="10" data-fs="10"><math><mrow><mi>f</mi><mo>=</mo><msub><mi>f</mi><mi>s</mi></msub></mrow></math></button>
+          <button class="pre" data-f="13" data-fs="10">13 Hz→3 Hz</button>
+        </div>
+      </div>
+      <div class="readout" id="cardAr">
+        <h3>读数</h3>
+        <div class="status ok" id="oAst" style="margin-top:0">—</div>
+        <details class="more"><summary>看数值验证</summary><div class="in">
+        <p id="oA1">—</p>
+        <p id="oA2">—</p>
+        <p id="oA3">—</p>
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ② 宽带 ===================== -->
+  <div class="know" id="secB">
+    <h2>② 一整段频带：复制品什么时候撞在一起</h2>
+    <p>真实信号（声音、图像）不止一个频率，而是一整段<b>频带</b> <math><mrow><mo>|</mo><mi>f</mi><mo>|</mo><mo>&#x2264;</mo><mi>B</mi></mrow></math>（<b>带宽</b> <math><mi>B</mi></math> 即最高频率 <math><msub><mi>f</mi><mi>max</mi></msub></math>），采样后整段被复制到 <math><mrow><mn>0</mn><mo>,</mo><mo>&#xB1;</mo><msub><mi>f</mi><mi>s</mi></msub><mo>,</mo><mo>&#xB1;</mo><mn>2</mn><msub><mi>f</mi><mi>s</mi></msub><mo>,</mo><mo>&#x2026;</mo></mrow></math>。把 <math><msub><mi>f</mi><mi>s</mi></msub></math> 往下拖，看相邻两份什么时候<b>重叠</b>（红色）。</p>
+    <details class="more"><summary>展开：当前信号的表达式和它的频谱</summary><div class="in"><div class="fbar" id="fbB" style="margin:0">—</div></div></details>
+    <div class="pcard" id="cardBt">
+    <div class="cardbar"><span class="ttl">② 时域图：采样点与重建</span></div>
+    <canvas id="cvBt"></canvas>
+    <div class="legend"><span class="sw" style="background:rgba(43,108,176,0.35);height:9px;border-radius:4px"></span>原信号（蓝色宽带） <span class="sw" style="background:#1a202c;height:8px;width:8px;border-radius:4px"></span>采样点 <span class="sw" style="background:repeating-linear-gradient(90deg,#c53030 0 6px,transparent 6px 10px);height:3px"></span>重建信号（红色虚线）</div>
+    </div>
+    <div class="fbar"><math><mrow><msub><mi>F</mi><mi>s</mi></msub><mo>(</mo><mi>ω</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><msub><mi>T</mi><mi>s</mi></msub></mfrac><munder><mo>&#x2211;</mo><mi>n</mi></munder><mi>F</mi><mo>(</mo><mi>ω</mi><mo>&#x2212;</mo><mi>n</mi><msub><mi>ω</mi><mi>s</mi></msub><mo>)</mo></mrow></math>。红色 = 两份重叠处——重叠的部分加在一起后<b>再也分不开</b>。</div>
+    <details class="more"><summary>展开：纵轴口径与重叠的后果</summary><div class="in">纵轴已省去公共因子 <math><mrow><mn>1</mn><mo>/</mo><msub><mi>T</mi><mi>s</mi></msub></mrow></math>；三角形谱的峰高画成 1，即省去了因子 <math><mrow><mn>1</mn><mo>/</mo><mi>B</mi></mrow></math>。选“三个音的和”时，谱线高度 = 该余弦振幅的一半（双边谱口径，同 ①）。重叠之后，低通滤波取回的就不再是原频谱。</div></details>
+    <div class="pcard" id="cardBf">
+    <div class="cardbar"><span class="ttl">② 频域图：复制品会不会重叠</span></div>
+    <canvas id="cvBf"></canvas>
+    <div class="legend">蓝色 = 原频谱（<math><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow></math>），金色 = 复制品，黑线 = 叠加后的总频谱。</div>
+    </div>
+    <div class="panel">
+      <div class="ctrls">
+        <h3>控制</h3>
+        <div class="ctrl"><label>信号</label>
+          <select id="selB">
+            <option value="pulse">平滑脉冲（sinc 函数的平方，频谱是三角形频带）</option>
+            <option value="tones">三个音的和（频谱是 6 根谱线）</option>
+          </select></div>
+        <div class="ctrl"><label>带宽（最高频率）<math><mi>B</mi></math>：<span class="v" id="vBb">2.0</span> Hz</label>
+          <input type="range" id="sBb" min="0.5" max="4" step="0.1" value="2"></div>
+        <div class="ctrl"><label>采样频率 <math><msub><mi>f</mi><mi>s</mi></msub></math>：<span class="v" id="vBfs">6.0</span> Hz</label>
+          <input type="range" id="sBfs" min="0.5" max="12" step="0.1" value="6"></div>
+        <div class="row" id="preB">
+          <button class="pre" data-fs="6"><math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mn>3</mn><mi>B</mi></mrow></math>（安全）</button>
+          <button class="pre" data-fs="4"><math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mn>2</mn><mi>B</mi></mrow></math>（临界）</button>
+          <button class="pre" data-fs="3"><math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mn>1.5</mn><mi>B</mi></mrow></math>（混叠）</button>
+          <button class="pre" data-fs="2"><math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mi>B</mi></mrow></math>（严重混叠）</button>
+        </div>
+      </div>
+      <div class="readout" id="cardBr">
+        <h3>读数</h3>
+        <div class="status ok" id="oBst" style="margin-top:0">—</div>
+        <details class="more"><summary>看数值验证</summary><div class="in">
+        <p id="oB1">—</p>
+        <p id="oB2">—</p>
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ③ 车轮 ===================== -->
+  <div class="know" id="secC">
+    <h2>③ 电影里的车轮为什么会倒转</h2>
+    <p>摄像机每秒拍 <math><mi>F</mi></math> 帧，就是以 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>=</mo><mi>F</mi></mrow></math> <b>采样</b>。车轮每秒转 <math><mi>r</mi></math> 圈、有 <math><mi>N</mi></math> 根<b>一模一样</b>的辐条时，转过 <math><mrow><mn>1</mn><mo>/</mo><mi>N</mi></mrow></math> 圈画面就<b>完全一样</b>，所以画面的重复频率是 <math><mrow><mi>N</mi><mi>r</mi></mrow></math>（次/秒）。按混叠公式折回 <math><mrow><mo>[</mo><mo>&#x2212;</mo><mi>F</mi><mo>/</mo><mn>2</mn><mo>,</mo><mi>F</mi><mo>/</mo><mn>2</mn><mo>]</mo></mrow></math>：</p>
+    <div class="fbar" style="text-align:center"><math display="block"><mrow><msub><mi>f</mi><mi>a</mi></msub><mo>=</mo><mi>N</mi><mi>r</mi><mo>&#x2212;</mo><mi>m</mi><mi>F</mi><mo>&#x2208;</mo><mrow><mo>[</mo><mo>&#x2212;</mo><mfrac><mi>F</mi><mn>2</mn></mfrac><mo>,</mo><mfrac><mi>F</mi><mn>2</mn></mfrac><mo>]</mo></mrow><mo>,</mo><mspace width="1.2em"></mspace><mtext>看起来的转速</mtext><mo>=</mo><mfrac><msub><mi>f</mi><mi>a</mi></msub><mi>N</mi></mfrac><mtext>（圈/秒）</mtext></mrow></math>正号 = 正转，负号 = <b>倒转</b>，0 = <b>静止</b>。</div>
+    <div class="pcard" id="cardC">
+    <div class="cardbar"><span class="ttl">③ 车轮：真实转动 vs 摄像机拍到的</span>
+      <div class="chips">
+          <label class="chip"><input type="checkbox" id="cCred"> 把一根辐条涂红</label>
+          <label class="chip">播放速度 <select id="selCslow" style="width:auto"><option value="1">1×</option><option value="0.25">1/4×慢放</option><option value="0.1">1/10×慢放</option></select></label>
+      </div></div>
+    <canvas id="cvC"></canvas>
+    </div>
+    <div class="panel">
+      <div class="ctrls">
+        <h3>控制</h3>
+        <div class="ctrl"><label>真实转速 <math><mi>r</mi></math>：<span class="v" id="vCr">3.80</span> 圈/秒（顺时针为正）</label>
+          <input type="range" id="sCr" min="0" max="12" step="0.05" value="3.8"></div>
+        <div class="ctrl"><label>辐条数 <math><mi>N</mi></math>：<span class="v" id="vCn">6</span></label>
+          <input type="range" id="sCn" min="1" max="12" step="1" value="6"></div>
+        <div class="ctrl"><label>帧率 <math><mi>F</mi></math>：<span class="v" id="vCF">24</span> 帧/秒</label>
+          <input type="range" id="sCF" min="4" max="60" step="1" value="24"></div>
+        <div class="row" id="preC">
+          <button class="pre" data-r="1" data-n="6" data-F="24">慢转：看得真</button>
+          <button class="pre" data-r="3.8" data-n="6" data-F="24">缓慢倒转</button>
+          <button class="pre" data-r="4" data-n="6" data-F="24">定住不动</button>
+          <button class="pre" data-r="4.2" data-n="6" data-F="24">缓慢正转</button>
+          <button class="pre" data-r="2" data-n="6" data-F="24">恰在 <math><mrow><mi>F</mi><mo>/</mo><mn>2</mn></mrow></math></button>
+        </div>
+      </div>
+      <div class="readout" id="cardCr">
+        <h3>读数</h3>
+        <div class="status ok" id="oCst" style="margin-top:0">—</div>
+        <details class="more"><summary>看数值验证与说明</summary><div class="in">
+        <p id="oC1">—</p>
+        <p id="oC2">—</p>
+        <p>公式里保留正负号，因为转动有方向（余弦没有方向，所以 ① 里取绝对值）。</p>
+        </div></details>
+        <details class="more"><summary>展开：把一根辐条涂红会怎样</summary><div class="in">
+        <p style="margin:0">勾选"涂红"后，轮子要转<b>整整一圈</b>才回到原样，重复频率变成 <math><mi>r</mi></math> 而不是 <math><mrow><mi>N</mi><mi>r</mi></mrow></math>：红辐条可能在正转，而其它辐条组成的"花样"却在倒转。</p>
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ④ 声音 ===================== -->
+  <details class="adv know" id="secD">
+    <summary><h2>进阶 ④ 亲耳听：高音为什么会被听成低音？</h2></summary>
+    <p>点击按钮播放（请先把音量调小）。"真实声音"直接播放频率 <math><mi>f</mi></math> 的纯音；"采样后听到的"先以 <math><msub><mi>f</mi><mi>s</mi></msub></math> 采样，<b>再用 sinc 插值（低通滤波）重建</b>后播放——就是一台没有任何防护的"录音机"录下再放出来的声音。</p>
+    <div class="panel" style="margin-top:6px">
+      <div class="ctrls">
+        <h3>控制</h3>
+        <div class="ctrl"><label>声音频率 <math><mi>f</mi></math>：<span class="v" id="vDf">5000</span> Hz</label>
+          <input type="range" id="sDf" min="200" max="12000" step="50" value="5000"></div>
+        <div class="ctrl"><label>采样频率 <math><msub><mi>f</mi><mi>s</mi></msub></math></label>
+          <select id="selDfs">
+            <option value="4000">4000 Hz</option>
+            <option value="8000" selected>8000 Hz（电话）</option>
+            <option value="11025">11025 Hz</option>
+            <option value="16000">16000 Hz</option>
+            <option value="22050">22050 Hz</option>
+            <option value="44100">44100 Hz（CD）</option>
+          </select></div>
+        <div class="row">
+          <button class="btn" id="bDtrue">▶ 真实声音</button>
+          <button class="btn" id="bDsamp">▶ 采样后听到的</button>
+          <button class="btn ghost" id="bDboth">▶ 先后连着听</button>
+          <button class="btn warn" id="bDstop">■ 停</button>
+        </div>
+        <div class="row" id="preD">
+          <button class="pre" data-f="3000" data-fs="8000">3000 Hz @ 8000（没问题）</button>
+          <button class="pre" data-f="5000" data-fs="8000">5000 Hz @ 8000（变 3000）</button>
+          <button class="pre" data-f="7000" data-fs="8000">7000 Hz @ 8000（变 1000）</button>
+          <button class="pre" data-f="7000" data-fs="16000">7000 Hz @ 16000（没问题）</button>
+        </div>
+      </div>
+      <div class="readout" id="cardDr">
+        <h3>读数</h3>
+        <div class="status ok" id="oDst" style="margin-top:0">—</div>
+        <details class="more"><summary>看数值验证</summary><div class="in">
+        <p id="oD1">—</p>
+        <p id="oD2">—</p>
+        </div></details>
+        <p style="font-size:12.8px">真实的手机、录音笔在采样<b>之前</b>都有一个"抗混叠滤波器"，先把高于 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 的声音滤掉，所以打电话时高音是<b>消失</b>（声音发闷），而不是变成怪异的低音。本页故意去掉了这一步，让你听见混叠。</p>
+      </div>
+    </div>
+  </details>
+
+  <div class="know" id="tips">
+    <h2>看什么？三个观察要点</h2>
+    <p><b>① 时域：采样点"认不出"频率。</b>7 Hz 和 3 Hz 的余弦在采样点上一模一样，重建总挑最低的那个。</p>
+    <p><b>② 频域：复制品闯进通带。</b>时域的"冒充"＝频域的"复制品闯入"，同一件事两种说法。</p>
+    <p><b>③ "大于两倍"里的"大于"很要紧。</b>恰好两倍时，信号可能整个消失。</p>
+    <details class="more"><summary>展开：每条要点在图上怎么看</summary><div class="in">
+    <p><b>① 时域：采样点"认不出"频率。</b>在 ① 里选"7 Hz→3 Hz"，黑点同时落在 7 Hz 的蓝线和 3 Hz 的红线上。只看黑点，没有任何办法区分这两个信号；重建（低通滤波）总是挑<b>最低</b>的那个解释，于是 7 Hz 被冒充成 3 Hz。</p>
+    <p><b>② 频域：复制品闯进通带。</b>同一个状态下看频谱：原谱线 <math><mrow><mo>&#xB1;</mo><mn>7</mn></mrow></math> 跑出了绿色通带，而 <math><mrow><mn>7</mn><mo>&#x2212;</mo><mn>10</mn><mo>=</mo><mo>&#x2212;</mo><mn>3</mn></mrow></math> 和 <math><mrow><mo>&#x2212;</mo><mn>7</mn><mo>+</mo><mn>10</mn><mo>=</mo><mn>3</mn></mrow></math> 两根复制品闯了进来（红色）。<b>时域的"冒充"＝频域的"复制品闯入"</b>，是同一件事的两种说法。在 ② 里，这就是两个三角形重叠的红色区域。</p>
+    <p><b>③ "大于两倍"里的"大于"很要紧。</b>选"恰好两倍"（<math><mrow><mi>f</mi><mo>=</mo><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math>），再把初相 <math><mi>φ</mi></math> 拖到 90°：每个采样点都恰好落在零点上，信号"整个消失"了。所以采样定理要求 <math><mrow><msub><mi>f</mi><mi>s</mi></msub><mo>&gt;</mo><mn>2</mn><msub><mi>f</mi><mi>max</mi></msub></mrow></math>，不能取等号。车轮"恰在 <math><mrow><mi>F</mi><mo>/</mo><mn>2</mn></mrow></math>"时也是这种方向说不清的情形。</p>
+    </div></details>
+    <details class="more"><summary>展开：和其它工具的关系</summary><div class="in">
+    <p><b>和其它工具的关系：</b><a href="./T11_傅里叶级数合成器.html">T11 傅里叶级数</a>告诉我们周期函数可以拆成一串 <math><msup><mi>e</mi><mrow><mi>j</mi><mi>n</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></msup></math>——冲激串正是用这一招得到频谱的；<a href="./T12_频谱与傅里叶变换对.html">T12 频谱</a>里"余弦 ↔ 两根冲激"、"矩形 ↔ Sa"两对变换分别给出了 ① 的谱线和重建用的 sinc；<a href="./T15_卷积定理.html">T15 卷积定理</a>说明了"时域相乘 = 频域卷积"，而和冲激卷积就是平移，于是有了"频谱周期复制"。</p>
+    </div></details>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<button id="bExport">导出使用数据</button><br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mbar" id="mbar" role="group" aria-label="采样频率快捷条">
+  <span class="ml" id="mLbl">① 采样频率 <math><msub><mi>f</mi><mi>s</mi></msub></math></span>
+  <input type="range" id="mFs" min="1" max="40" step="0.5" value="10" aria-label="采样频率">
+  <span class="mv" id="mvFs">10.0 Hz</span>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明</h3>
+    <p><b>这是什么：</b>演示"采样"——每隔 <math><msub><mi>T</mi><mi>s</mi></msub></math> 秒记一次信号值——会带来什么：采得够快能完整恢复原信号；采得太慢，高频会冒充成低频（混叠）。最上方的"从生活到数学"面板把生活中的说法与数学公式一一对应（对照表、推导链、术语小词典都在折叠块里，点"展开"看）。各面板的长读数和推导也收在"看数值验证""看推导"里，✓/✗ 判定始终可见。</p>
+    <p><b>怎么玩：</b></p>
+    <ul>
+      <li><b>① 单个余弦</b>：拖信号频率 <math><mi>f</mi></math> 和采样频率 <math><msub><mi>f</mi><mi>s</mi></msub></math>，上图看采样点和红色重建曲线，下图看谱线如何复制、哪根闯进绿色通带。也可以直接点预设按钮。</li>
+      <li><b>② 频带</b>：固定带宽 <math><mi>B</mi></math>，把 <math><msub><mi>f</mi><mi>s</mi></msub></math> 从 <math><mrow><mn>3</mn><mi>B</mi></mrow></math> 往下拖到 <math><mi>B</mi></math>，看三角形频谱从分开到重叠，重建误差随之变大。</li>
+      <li><b>③ 车轮</b>：左边是真实轮子（转得快时只能看到糊影），右边是摄像机每秒 <math><mi>F</mi></math> 帧拍到的画面。拖转速 <math><mi>r</mi></math> 找到"静止""倒转"的位置，再勾"涂红"对比。</li>
+      <li><b>④ 声音</b>（进阶，点标题展开）：点"5000 Hz @ 8000"预设，先听"真实声音"，再听"采样后听到的"，后者明显低沉——它就是 3000 Hz。</li>
+      <li><b>开关与提示</b>：只影响某一张图的开关在该图卡片的标题栏里（① 时域图的"原信号 / 重建信号 / sinc 分量"，③ 车轮图的"涂红"与播放速度）。改了某个控件，受影响的图会闪一下蓝光；图不在屏幕内时，底部会提示"↓ … 已更新"，点它就跳过去。</li>
+      <li><b>手机上</b>：屏幕底部固定条可直接拖采样频率，它跟着你正在看的面板切换：看 ① 时调 ① 的 <math><msub><mi>f</mi><mi>s</mi></msub></math>，看 ② 时调 ② 的 <math><msub><mi>f</mi><mi>s</mi></msub></math>，看 ③ 时调帧率 <math><mi>F</mi></math>（即 ③ 的采样频率）；条左端的编号标明当前对应哪个面板，与面板里的滑杆同步。</li>
+    </ul>
+    <p><b>三个观察要点：</b>①采样点无法区分 <math><mi>f</mi></math> 与 <math><mrow><mo>|</mo><mi>f</mi><mo>&#x2212;</mo><mi>m</mi><msub><mi>f</mi><mi>s</mi></msub><mo>|</mo></mrow></math>；②时域冒充 ＝ 频域复制品闯入通带；③恰好两倍不够，必须严格大于。</p>
+    <p><b>与其它工具：</b>T11（傅里叶级数：冲激串展开成谱线）、T12（频谱：余弦 ↔ 两根冲激，矩形 ↔ Sa）、T15（卷积定理：时域相乘 ↔ 频域卷积）。</p>
+    <p><b>说明：</b>重建曲线用 sinc 插值的数值求和（每点取 800～1800 个采样点、加平滑窗截断）计算，在 <math><mrow><mi>f</mi><mo>&lt;</mo><msub><mi>f</mi><mi>s</mi></msub><mo>/</mo><mn>2</mn></mrow></math> 时与原信号的最大误差小于振幅的 0.1%。声音用 Web Audio 播放，个别手机需先关闭静音键。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 匿名使用埋点 ============ */
+var EduTelemetry = (function(){
+  var KEY="edu_telemetry_T25", buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    var rows=[["time","type","detail"]].concat(buf.map(function(r){return [r.t,r.type,r.detail.replace(/[,\n]/g,";")];}));
+    var csv=rows.map(function(r){return r.join(",");}).join("\n");
+    var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T25_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log:log, exportCSV:exportCSV};
+})();
+
+var PI=Math.PI;
+/*CORE-BEGIN*/
+// 混叠：把 f 折回 [-fs/2, fs/2]，m 为最近的整数倍
+function aliasInfo(f,fs){
+  var m=Math.round(f/fs), d=f-m*fs;
+  return {m:m, signed:d, fa:Math.abs(d)};
+}
+function sincN(u){ return Math.abs(u)<1e-12?1:Math.sin(PI*u)/(PI*u); }
+// 理想低通重建（sinc 插值）：x(t)=Σ x_k sinc(t/T - k)；以 round(t/T) 为中心取 ±K 项，Hann 窗平滑截断
+// 用 sinc(u-k)=(-1)^k sin(πu)/(π(u-k)) 每点只算一次 sin
+function recon(xk,T,t,K){
+  var u=t/T, c=Math.round(u);
+  if(Math.abs(u-c)<1e-9) return xk(c);
+  var s=Math.sin(PI*u)/PI, sum=0;
+  for(var k=c-K;k<=c+K;k++){
+    var d=u-k, w=0.5*(1+Math.cos(PI*(k-c)/(K+1)));
+    sum+=((k&1)?-1:1)*xk(k)*w/d;
+  }
+  return s*sum;
+}
+// 车轮：N 根相同辐条 → 画面重复频率 N r；按帧率 F 折回 [-F/2,F/2]
+function wheelApparent(r,N,F){
+  var fe=N*r, a=aliasInfo(fe,F);
+  return {fe:fe, fa:a.signed, m:a.m, rev:a.signed/N};
+}
+// 摄像机第 k 帧拍到的转角（rad）：只在 t_k=k/F 时刻取样
+function cameraAngle(r,t,F){ return 2*PI*r*Math.floor(t*F+1e-9)/F; }
+// 声音：以 fs 采样纯音，再用 Blackman 窗 sinc（半宽 W 个输入样本）重建到输出采样率 out
+function resampleTone(f,fs,out,dur,W){
+  W=W||32;
+  var n=Math.floor(dur*out), y=new Float32Array(n);
+  for(var i=0;i<n;i++){
+    var v=i*fs/out, c=Math.floor(v), s=0;
+    for(var k=c-W+1;k<=c+W;k++){
+      var d=v-k; if(Math.abs(d)>=W) continue;
+      var bw=0.42+0.5*Math.cos(PI*d/W)+0.08*Math.cos(2*PI*d/W);
+      s+=Math.cos(2*PI*f*k/fs)*sincN(d)*bw;
+    }
+    y[i]=s;
+  }
+  return y;
+}
+// ② 的两个宽带信号（时域，B=最高频率）与归一化频谱
+var BSIG={
+  pulse:{ x:function(t,B){ var s=sincN(B*t); return s*s; },
+          spec:function(f,B){ var a=1-Math.abs(f)/B; return a>0?a:0; }, lines:null },
+  tones:{ fr:[0.3,0.65,1], am:[1,0.7,0.5],
+          x:function(t,B){ var s=0; for(var i=0;i<3;i++) s+=this.am[i]*Math.cos(2*PI*this.fr[i]*B*t); return s/2.2; },
+          spec:null }
+};
+/*CORE-END*/
+
+/* ============ 公共绘图 ============ */
+function mml(inner){ return '<math xmlns="http://www.w3.org/1998/Math/MathML">'+inner+'</math>'; }
+function mn(v,d){ var s=(+v).toFixed(d==null?2:d); if(/^-0(\.0+)?$/.test(s)) s=s.slice(1); return s.charAt(0)==="-"?'<mo>&#x2212;</mo><mn>'+s.slice(1)+'</mn>':'<mn>'+s+'</mn>'; }
+function trimN(v,d){ var s=(+v).toFixed(d==null?2:d); s=s.replace(/\.?0+$/,""); if(s==="-0")s="0"; return s.replace("-","−"); }
+var MI_FS='<msub><mi>f</mi><mi>s</mi></msub>', MI_FA='<msub><mi>f</mi><mi>a</mi></msub>';
+var BAND_C="rgba(43,108,176,0.35)";  /* 原信号画成半透明宽带，重建画成红虚线：重合时虚线落在宽带正中，一眼看出是两条线 */
+var INK="#1a202c", BLUE="#2b6cb0", RED="#c53030", GOLD="#b7791f", GREEN="#2f855a", PURP="#9f7aea";
+
+function setupCanvas(cv,ratio,minH,maxH){
+  var DPR=window.devicePixelRatio||1;
+  var P=cv.parentElement, ps=getComputedStyle(P);
+  var w=P.clientWidth-parseFloat(ps.paddingLeft)-parseFloat(ps.paddingRight)-2; if(w<240)w=240; w=Math.floor(w); if(w>896)w=896;
+  var h=Math.round(Math.min(maxH||9999,Math.max(minH,w*ratio)));
+  cv.width=w*DPR; cv.height=h*DPR; cv.style.width=w+"px"; cv.style.height=h+"px";
+  var c=cv.getContext("2d"); c.setTransform(DPR,0,0,DPR,0,0);
+  return {ctx:c,W:w,H:h};
+}
+function frame(g,x0,x1,y0,y1,xmin,xmax,ymin,ymax){
+  return { X:function(x){return x0+(x-xmin)/(xmax-xmin)*(x1-x0);},
+           Y:function(y){return y0+(1-(y-ymin)/(ymax-ymin))*(y1-y0);},
+           x0:x0,x1:x1,y0:y0,y1:y1,xmin:xmin,xmax:xmax };
+}
+function axes(c,F,xticks,xlab,ylab,dy){
+  dy=dy||0;
+  c.strokeStyle="#cbd5e0"; c.lineWidth=1;
+  c.strokeRect(F.x0,F.y0,F.x1-F.x0,F.y1-F.y0);
+  var yz=F.Y(0); c.strokeStyle="#a0aec0"; c.beginPath(); c.moveTo(F.x0,yz); c.lineTo(F.x1,yz); c.stroke();
+  c.fillStyle=INK; c.font="11px 'Segoe UI',sans-serif"; c.textAlign="center";
+  for(var i=0;i<xticks.length;i++){ var xv=xticks[i], px=F.X(xv);
+    c.strokeStyle="#cbd5e0"; c.beginPath(); c.moveTo(px,F.y1); c.lineTo(px,F.y1+4); c.stroke();
+    c.fillText(trimN(xv,2),px,F.y1+15+dy); }
+  c.textAlign="right"; c.font="italic 12px 'Cambria Math','STIX Two Math',serif"; c.fillText(xlab,F.x1,F.y1+28+dy);
+  c.textAlign="left"; c.font="12px 'Microsoft YaHei',sans-serif"; if(ylab) c.fillText(ylab,F.x0+6,F.y0+15);
+}
+function ticks(a,b,step){ var r=[]; for(var v=Math.ceil(a/step-1e-9)*step; v<=b+1e-9; v+=step) r.push(Math.round(v*1e6)/1e6); return r; }
+function niceStep(range,target){ var raw=range/target, p=Math.pow(10,Math.floor(Math.log10(raw))), n=raw/p; return (n<1.5?1:n<3.5?2:n<7.5?5:10)*p; }
+function curve(c,F,fn,col,lw,dash){
+  c.strokeStyle=col; c.lineWidth=lw; c.setLineDash(dash||[]); c.beginPath();
+  for(var px=F.x0;px<=F.x1;px+=1){ var x=F.xmin+(px-F.x0)/(F.x1-F.x0)*(F.xmax-F.xmin), y=F.Y(fn(x));
+    if(px===F.x0)c.moveTo(px,y); else c.lineTo(px,y); }
+  c.stroke(); c.setLineDash([]);
+}
+function arrowUp(c,x,y0,y1,col,lw){
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=lw;
+  c.beginPath(); c.moveTo(x,y0); c.lineTo(x,y1+6); c.stroke();
+  c.beginPath(); c.moveTo(x,y1); c.lineTo(x-4.5,y1+9); c.lineTo(x+4.5,y1+9); c.closePath(); c.fill();
+}
+function stems(c,F,T,fn,col){
+  var k0=Math.ceil(F.xmin/T-1e-9), k1=Math.floor(F.xmax/T+1e-9), n=k1-k0+1;
+  var r=n>120?1.8:n>60?2.6:3.6;
+  c.strokeStyle=col; c.fillStyle=col; c.lineWidth=n>120?0.8:1.3;
+  for(var k=k0;k<=k1;k++){ var x=F.X(k*T), y=F.Y(fn(k)); c.beginPath(); c.moveTo(x,F.Y(0)); c.lineTo(x,y); c.stroke();
+    c.beginPath(); c.arc(x,y,r,0,2*PI); c.fill(); }
+}
+function shadeBand(c,F,a,b,label,mlabel){
+  var xa=Math.max(F.x0,F.X(a)), xb=Math.min(F.x1,F.X(b));
+  c.fillStyle="rgba(198,246,213,.55)"; c.fillRect(xa,F.y0,xb-xa,F.y1-F.y0);
+  c.strokeStyle=GREEN; c.lineWidth=1.2; c.setLineDash([5,3]);
+  c.beginPath(); c.moveTo(xa,F.y0); c.lineTo(xa,F.y1); c.moveTo(xb,F.y0); c.lineTo(xb,F.y1); c.stroke(); c.setLineDash([]);
+  if(label){ c.fillStyle="#22543d"; c.textAlign="left";
+    var f1="11.5px 'Microsoft YaHei',sans-serif", f2="italic 12.5px 'Cambria Math','STIX Two Math',serif";
+    c.font=f1; var w1=c.measureText(label).width; c.font=f2; var w2=mlabel?c.measureText(mlabel).width:0;
+    var x=(xa+xb)/2-(w1+w2)/2; c.font=f1; c.fillText(label,x,F.y0+14);
+    if(mlabel){ c.font=f2; c.fillText(mlabel,x+w1,F.y0+14); } }
+}
+function logChange(el,name){ el.addEventListener("change",function(){ EduTelemetry.log(name,el.value); }); }
+
+/* ============ ① 单频 ============ */
+var A={f:3,fs:10,ph:0,orig:true,rec:true,sinc:false}, A_T0=0, A_T1=2;
+var cvAt=document.getElementById("cvAt"), cvAf=document.getElementById("cvAf"), gAt, gAf;
+function A_xk(k){ return Math.cos(2*PI*A.f*k/A.fs+A.ph); }
+function drawA(){
+  var c=gAt.ctx, W=gAt.W, H=gAt.H; c.clearRect(0,0,W,H);
+  var F=frame(gAt,40,W-12,26,H-34,A_T0,A_T1,-1.35,1.35), T=1/A.fs;
+  axes(c,F,ticks(0,2,W<500?0.5:0.25),"t (s)","时域");
+  c.fillStyle=INK; c.font="11px sans-serif"; c.textAlign="right"; c.fillText("1",F.x0-4,F.Y(1)+4); c.fillText("−1",F.x0-4,F.Y(-1)+4); c.textAlign="left";
+  if(A.orig) curve(c,F,function(t){return Math.cos(2*PI*A.f*t+A.ph);},BAND_C,8);
+  if(A.sinc){
+    var k0=Math.ceil(A_T0/T), k1=Math.floor(A_T1/T);
+    c.globalAlpha=0.55;
+    for(var k=k0;k<=k1;k++){ (function(k){ var xk=A_xk(k); if(Math.abs(xk)<1e-6) return;
+      curve(c,F,function(t){return xk*sincN(t/T-k);},PURP,1); })(k); }
+    c.globalAlpha=1;
+  }
+  if(A.rec){ var K=Math.max(400,Math.min(900,Math.round(60*A.fs)));
+    curve(c,F,function(t){return recon(A_xk,T,t,K);},RED,2.2,[9,5]); }
+  stems(c,F,T,A_xk,INK);
+  drawAf();
+}
+function lineColor(n,pos,half){
+  if(n===0) return BLUE;
+  if(Math.abs(Math.abs(pos)-half)<1e-9) return PURP;
+  return Math.abs(pos)<half?RED:GOLD;
+}
+function drawAf(){
+  var c=gAf.ctx, W=gAf.W, H=gAf.H; c.clearRect(0,0,W,H);
+  var XR=W<500?25:45;
+  var F=frame(gAf,14,W-14,22,H-38,-XR,XR,0,0.8), half=A.fs/2;
+  shadeBand(c,F,-half,half,"通带 ","|f| < fₛ/2");
+  axes(c,F,ticks(-XR,XR,10),"f (Hz)","",4);
+  // 采样频率刻度（金色小三角标 n·fs）
+  var nmax=Math.ceil((XR+A.f)/A.fs)+1, lines=[];
+  for(var n=-nmax;n<=nmax;n++){ [A.f,-A.f].forEach(function(s){ var p=s+n*A.fs; if(p>=-XR-1e-9&&p<=XR+1e-9) lines.push({p:p,n:n}); }); }
+  // 先画复制品，再画原谱线（叠在上面）
+  lines.sort(function(a,b){ return (a.n===0)-(b.n===0); });
+  for(var i=0;i<lines.length;i++){ var L=lines[i], col=lineColor(L.n,L.p,half), x=F.X(L.p);
+    var top=F.Y(0.5);
+    arrowUp(c,x,F.Y(0),top,col,L.n===0?2.6:(col===RED?2.6:1.6)); }
+  c.font="italic 12px 'Cambria Math',serif"; c.textAlign="center";
+  c.fillStyle=BLUE; var lbl=A.f===0?"f=0":"f";
+  c.fillText(lbl,F.X(A.f),F.Y(0.5)-4); if(A.f>0) c.fillText("−f",F.X(-A.f),F.Y(0.5)-4);
+  var al=aliasInfo(A.f,A.fs);
+  if(A.f>half+1e-9){ c.fillStyle=RED; c.fillText("fₐ",F.X(al.fa),F.Y(0.5)-18); if(al.fa>0.3) c.fillText("−fₐ",F.X(-al.fa),F.Y(0.5)-18); }
+  // 纵轴刻度 1/2（双边谱：振幅 1 的余弦在 ±f 处各高 1/2）
+  c.save(); c.setLineDash([3,4]); c.strokeStyle="#cbd5e0"; c.lineWidth=1; c.beginPath(); c.moveTo(F.x0,F.Y(0.5)); c.lineTo(F.x1,F.Y(0.5)); c.stroke(); c.restore();
+  c.fillStyle=INK; c.font="11px sans-serif"; c.textAlign="left"; c.fillText("1/2",F.x0+3,F.Y(0.5)-3);
+  // n·fs 标记
+  c.fillStyle=GOLD; c.font="10.5px sans-serif";
+  for(var n2=-nmax;n2<=nmax;n2++){ if(n2===0) continue; var p2=n2*A.fs; if(Math.abs(p2)>XR) continue; var xx=F.X(p2);
+    c.beginPath(); c.moveTo(xx,F.y1); c.lineTo(xx-4,F.y1+7); c.lineTo(xx+4,F.y1+7); c.closePath(); c.fill(); }
+  c.textAlign="left";
+}
+function readA(){
+  var al=aliasInfo(A.f,A.fs), half=A.fs/2;
+  document.getElementById("oA1").innerHTML="奈奎斯特频率 "+mml(MI_FS+'<mo>/</mo><mn>2</mn><mo>=</mo>'+mn(half,2))+" Hz，信号频率 "+mml('<mi>f</mi><mo>=</mo>'+mn(A.f,1))+" Hz。";
+  document.getElementById("oA2").innerHTML="冒充频率 "+mml(MI_FA+'<mo>=</mo><mo>|</mo><mi>f</mi><mo>&#x2212;</mo><mi>m</mi>'+MI_FS+'<mo>|</mo><mo>=</mo><mo>|</mo>'+mn(A.f,1)+'<mo>&#x2212;</mo>'+mn(al.m,0)+'<mo>&#xD7;</mo>'+mn(A.fs,1)+'<mo>|</mo><mo>=</mo>'+mn(al.fa,2))+" Hz（"+mml('<mi>m</mi><mo>=</mo>'+mn(al.m,0))+" 是离 "+mml('<mi>f</mi><mo>/</mo>'+MI_FS)+" 最近的整数）。";
+  document.getElementById("oA3").innerHTML="一个周期内的采样点数 "+mml(MI_FS+'<mo>/</mo><mi>f</mi><mo>=</mo>'+(A.f>0?mn(A.fs/A.f,2):'<mi>&#x221E;</mi>'))+"（要求大于 2）。";
+  var st=document.getElementById("oAst");
+  if(Math.abs(A.f-half)<1e-9 && A.f>0){ st.className="status mid"; st.innerHTML="恰好 "+mml('<mi>f</mi><mo>=</mo>'+MI_FS+'<mo>/</mo><mn>2</mn>')+"：每周期只有 2 个点，重建结果取决于初相 "+mml('<mi>φ</mi>')+"（振幅变成 "+mml('<mo>|</mo><mi>cos</mi><mi>φ</mi><mo>|</mo>')+"），"+mml('<mi>φ</mi><mo>=</mo><mn>90</mn><mo>&#xB0;</mo>')+" 时采样点全为 0。不满足严格不等式。"; }
+  else if(A.f<half){ var dmax=0, Tq=1/A.fs, Kq=Math.max(400,Math.min(900,Math.round(60*A.fs))); for(var q=0;q<=200;q++){ var tq=A_T0+(A_T1-A_T0)*q/200, dq=Math.abs(recon(A_xk,Tq,tq,Kq)-Math.cos(2*PI*A.f*tq+A.ph)); if(dq>dmax) dmax=dq; } st.className="status ok"; st.innerHTML="✓ "+mml(MI_FS+'<mo>&gt;</mo><mn>2</mn><mi>f</mi>')+"：红色虚线始终落在蓝色宽带正中——两条曲线重合（图中最大偏差 "+(dmax<0.001?"&lt; 0.1%":(100*dmax).toFixed(1)+"%")+" 振幅），采样点完整保存了信号。"; }
+  else if(Math.abs(al.fa-half)<1e-9){ st.className="status bad"; st.innerHTML="✗ 混叠："+trimN(A.f,1)+" Hz 被折到恰好 "+mml(MI_FS+'<mo>/</mo><mn>2</mn><mo>=</mo><mn>'+trimN(half,2)+'</mn>')+" Hz：既是混叠，又和“恰好两倍”一样，重建结果还取决于初相 "+mml('<mi>φ</mi>')+"（拖 "+mml('<mi>φ</mi>')+" 试试）。"; }
+  else if(al.fa<1e-9){ st.className="status bad"; st.innerHTML="✗ 混叠："+mml('<mi>f</mi>')+" 是 "+mml(MI_FS)+" 的整数倍，每次都在同一相位采到，看起来是<b>常数</b>（0 Hz）。"; }
+  else { st.className="status bad"; st.innerHTML="✗ 混叠："+trimN(A.f,1)+" Hz 被冒充成 <b>"+trimN(al.fa,2)+" Hz</b>。黑点同时落在蓝线和红线上，重建只会给出更慢的红线。"; }
+}
+function updA(){ document.getElementById("vAf").textContent=A.f.toFixed(1);
+  document.getElementById("vAfs").textContent=A.fs.toFixed(1); document.getElementById("vAfs2").textContent=trimN(A.fs,1);
+  document.getElementById("vAts").textContent=(1/A.fs).toFixed(3); document.getElementById("vAph").textContent=Math.round(A.ph*180/PI);
+  drawA(); readA(); syncBar(); }
+var sAf=document.getElementById("sAf"), sAfs=document.getElementById("sAfs"), sAph=document.getElementById("sAph");
+sAf.addEventListener("input",function(){ A.f=+sAf.value; updA(); });
+sAfs.addEventListener("input",function(){ A.fs=+sAfs.value; updA(); });
+sAph.addEventListener("input",function(){ A.ph=+sAph.value*PI/180; updA(); });
+logChange(sAf,"A_f"); logChange(sAfs,"A_fs"); logChange(sAph,"A_phi");
+[["cAorig","orig"],["cArec","rec"],["cAsinc","sinc"]].forEach(function(p){ var el=document.getElementById(p[0]);
+  el.addEventListener("change",function(){ A[p[1]]=el.checked; EduTelemetry.log("A_toggle",p[1]+"="+el.checked); drawA(); }); });
+document.querySelectorAll("#preA .pre").forEach(function(b){ b.addEventListener("click",function(){
+  A.f=+b.dataset.f; A.fs=+b.dataset.fs; sAf.value=A.f; sAfs.value=A.fs; EduTelemetry.log("A_preset",A.f+"@"+A.fs); updA(); }); });
+
+/* ============ ② 宽带 ============ */
+var Bst={key:"pulse",B:2,fs:6};
+var cvBt=document.getElementById("cvBt"), cvBf=document.getElementById("cvBf"), gBt, gBf;
+function B_x(t){ return BSIG[Bst.key].x(t,Bst.B); }
+function B_range(){ return Bst.key==="pulse"?[-2.5,2.5]:[0,3]; }
+function drawB(){
+  var c=gBt.ctx, W=gBt.W, H=gBt.H; c.clearRect(0,0,W,H);
+  var R=B_range(), T=1/Bst.fs;
+  var ymin=Bst.key==="pulse"?-0.35:-1.15, ymax=Bst.key==="pulse"?1.25:1.4;
+  var F=frame(gBt,40,W-12,24,H-34,R[0],R[1],ymin,ymax);
+  axes(c,F,ticks(R[0],R[1],0.5),"t (s)","时域");
+  curve(c,F,B_x,BAND_C,8);
+  var xk=function(k){ return B_x(k*T); }, K=Bst.key==="pulse"?400:Math.max(400,Math.min(900,Math.round(60*Bst.fs)));
+  curve(c,F,function(t){ return recon(xk,T,t,K); },RED,2.2,[9,5]);
+  stems(c,F,T,xk,INK);
+  drawBf();
+}
+function drawBf(){
+  var c=gBf.ctx, W=gBf.W, H=gBf.H; c.clearRect(0,0,W,H);
+  var XR=W<500?10:15, half=Bst.fs/2, B=Bst.B, fs=Bst.fs;
+  var isP=Bst.key==="pulse";
+  var F=frame(gBf,14,W-14,22,H-38,-XR,XR,0,isP?2.15:0.32);
+  shadeBand(c,F,-half,half,"通带 ","|f| < fₛ/2");
+  axes(c,F,ticks(-XR,XR,W<500?2:3),"f (Hz)","",4);
+  var nmax=Math.ceil((XR+B)/fs)+1;
+  if(isP){
+    var spec=BSIG.pulse.spec;
+    // 重叠：每个像素处第二大的复制品高度
+    for(var px=F.x0;px<=F.x1;px++){ var f=F.xmin+(px-F.x0)/(F.x1-F.x0)*(F.xmax-F.xmin), a1=0,a2=0;
+      for(var n=-nmax;n<=nmax;n++){ var v=spec(f-n*fs,B); if(v>a1){a2=a1;a1=v;} else if(v>a2)a2=v; }
+      if(a2>1e-6){ c.strokeStyle="rgba(197,48,48,.55)"; c.lineWidth=1; c.beginPath(); c.moveTo(px+0.5,F.Y(0)); c.lineTo(px+0.5,F.Y(a2)); c.stroke(); } }
+    for(var n1=-nmax;n1<=nmax;n1++){ var ctr=n1*fs; if(ctr-B>XR||ctr+B<-XR) continue;
+      c.beginPath(); c.moveTo(F.X(ctr-B),F.Y(0)); c.lineTo(F.X(ctr),F.Y(1)); c.lineTo(F.X(ctr+B),F.Y(0)); c.closePath();
+      c.fillStyle=n1===0?"rgba(43,108,176,.18)":"rgba(183,121,31,.14)"; c.fill();
+      c.strokeStyle=n1===0?BLUE:GOLD; c.lineWidth=n1===0?2.2:1.5; c.stroke(); }
+    c.save(); c.beginPath(); c.rect(F.x0,F.y0,F.x1-F.x0,F.y1-F.y0); c.clip();
+    curve(c,F,function(f){ var s=0; for(var n=-nmax;n<=nmax;n++) s+=spec(f-n*fs,B); return s; },INK,1.6);
+    c.restore();
+  } else {
+    var S=BSIG.tones, lines=[];
+    for(var n=-nmax;n<=nmax;n++) for(var i=0;i<3;i++) [1,-1].forEach(function(sg){ var p=sg*S.fr[i]*B+n*fs; if(Math.abs(p)<=XR) lines.push({p:p,n:n,a:S.am[i]/2.2/2}); });
+    lines.sort(function(a,b){ return (a.n===0)-(b.n===0); });
+    for(var j=0;j<lines.length;j++){ var L=lines[j], col=lineColor(L.n,L.p,half);
+      arrowUp(c,F.X(L.p),F.Y(0),F.Y(L.a),col,(L.n===0||col===RED)?2.4:1.5); }
+  }
+  // n·fs 标记
+  c.fillStyle=GOLD;
+  for(var n2=-nmax;n2<=nmax;n2++){ if(n2===0) continue; var p2=n2*fs; if(Math.abs(p2)>XR) continue; var xx=F.X(p2);
+    c.beginPath(); c.moveTo(xx,F.y1); c.lineTo(xx-4,F.y1+7); c.lineTo(xx+4,F.y1+7); c.closePath(); c.fill(); }
+}
+function readB(){
+  var B=Bst.B, fs=Bst.fs, R=B_range(), T=1/fs, xk=function(k){ return B_x(k*T); };
+  var K=Bst.key==="pulse"?400:600, e2=0, s2=0, M=300;
+  for(var i=0;i<=M;i++){ var t=R[0]+(R[1]-R[0])*i/M+1e-4, x=B_x(t), r=recon(xk,T,t,K); e2+=(r-x)*(r-x); s2+=x*x; }
+  var err=Math.sqrt(e2/s2)*100;
+  document.getElementById("oB1").innerHTML="最高频率 "+mml('<mi>B</mi><mo>=</mo>'+mn(B,1))+" Hz，需要 "+mml(MI_FS+'<mo>&gt;</mo><mn>2</mn><mi>B</mi><mo>=</mo>'+mn(2*B,1))+" Hz；当前 "+mml(MI_FS+'<mo>=</mo>'+mn(fs,1))+" Hz，"+mml(MI_FS+'<mo>/</mo><mo>(</mo><mn>2</mn><mi>B</mi><mo>)</mo><mo>=</mo>'+mn(fs/(2*B),2))+"。";
+  document.getElementById("oB2").innerHTML="重建的相对误差（窗口内均方根）："+"<b>"+(err<0.05?"&lt; 0.05":err.toFixed(err<1?2:1))+"%</b>。";
+  var st=document.getElementById("oBst"), ov=2*B-fs, half=fs/2;
+  if(fs>2*B+1e-9){ st.className="status ok"; st.innerHTML="✓ 复制品之间留有空隙 "+trimN(fs-2*B,2)+" Hz，低通滤波能把蓝色的原频谱完整取出。"; }
+  else if(Math.abs(fs-2*B)<1e-9){ st.className="status mid"; st.innerHTML="临界 "+mml(MI_FS+'<mo>=</mo><mn>2</mn><mi>B</mi>')+"：复制品首尾相接。"+(Bst.key==="tones"?"最高音恰落在通带边界上，和 ① 的“恰好两倍”一样，结果取决于初相：这里三个余弦的初相都是 0，碰巧还能还原；初相换成 90° 时最高音的采样值全为 0，就还原不出来了。所以采样定理要求严格大于。":"三角形谱在边界处为 0，这个脉冲仍几乎能恢复；但只要谱在边界不为 0（如“三个音的和”里落在边界上的谱线），结果就取决于相位，不可靠。"); }
+  else if(Bst.key==="tones"){ var S=BSIG.tones, bad=[];
+    for(var i=0;i<3;i++){ var fi=S.fr[i]*B, ai=aliasInfo(fi,fs); if(fi>half-1e-9) bad.push(trimN(fi,2)+" Hz → "+trimN(ai.fa,2)+" Hz"); }
+    st.className="status bad"; st.innerHTML="✗ 混叠：高于 "+mml(MI_FS+'<mo>/</mo><mn>2</mn><mo>=</mo><mn>'+trimN(half,2)+'</mn>')+" Hz 的音被冒充成低频（"+bad.join("，")+"），它们的复制品谱线闯进了通带（红色），重建出错。"; }
+  else { st.className="status bad"; st.innerHTML="✗ 混叠：相邻复制品重叠 "+trimN(ov,2)+" Hz 宽（红色），重叠部分叠加后分不开，重建出错。"; }
+}
+function updB(){ document.getElementById("vBb").textContent=Bst.B.toFixed(1); document.getElementById("vBfs").textContent=Bst.fs.toFixed(1);
+  var fb=document.getElementById("fbB");
+  fb.innerHTML=Bst.key==="pulse"
+    ? "平滑脉冲 "+mml('<mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><msup><mrow><mo>[</mo><mfrac><mrow><mi>sin</mi><mo>(</mo><mi>π</mi><mi>B</mi><mi>t</mi><mo>)</mo></mrow><mrow><mi>π</mi><mi>B</mi><mi>t</mi></mrow></mfrac><mo>]</mo></mrow><mn>2</mn></msup>')+"，它的频谱是底宽 "+mml('<mrow><mo>[</mo><mo>&#x2212;</mo><mi>B</mi><mo>,</mo><mi>B</mi><mo>]</mo></mrow>')+" 的<b>三角形</b>（矩形谱 ↔ Sa，矩形自卷积 = 三角形，再由 T15 卷积定理得到）。"
+    : "三个音的和 "+mml('<mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2.2</mn></mfrac><mo>[</mo><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mo>&#x22C5;</mo><mn>0.3</mn><mi>B</mi><mi>t</mi><mo>)</mo><mo>+</mo><mn>0.7</mn><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mo>&#x22C5;</mo><mn>0.65</mn><mi>B</mi><mi>t</mi><mo>)</mo><mo>+</mo><mn>0.5</mn><mi>cos</mi><mo>(</mo><mn>2</mn><mi>π</mi><mi>B</mi><mi>t</mi><mo>)</mo><mo>]</mo>')+"，每个余弦贡献 "+mml('<mo>&#xB1;</mo>')+" 两根谱线（例7.11），高度是各自振幅的一半；最高频率是 "+mml('<mi>B</mi>')+"。";
+  drawB(); readB(); syncBar(); }
+var sBb=document.getElementById("sBb"), sBfs=document.getElementById("sBfs"), selB=document.getElementById("selB");
+sBb.addEventListener("input",function(){ Bst.B=+sBb.value; updB(); });
+sBfs.addEventListener("input",function(){ Bst.fs=+sBfs.value; updB(); });
+selB.addEventListener("change",function(){ Bst.key=selB.value; EduTelemetry.log("B_sig",Bst.key); updB(); });
+logChange(sBb,"B_B"); logChange(sBfs,"B_fs");
+document.querySelectorAll("#preB .pre").forEach(function(b){ b.addEventListener("click",function(){
+  var ratio=(+b.dataset.fs)/2; Bst.fs=Math.round(Bst.B*ratio*10)/10; if(Bst.fs<0.5)Bst.fs=0.5; if(Bst.fs>12)Bst.fs=12; sBfs.value=Bst.fs;
+  EduTelemetry.log("B_preset",b.dataset.fs); updB(); }); });
+
+/* ============ ③ 车轮 ============ */
+var C={r:3.8,N:6,F:24,red:false,slow:1}, simT=0, lastWall=null, gC;
+var cvC=document.getElementById("cvC");
+function drawWheel(c,cx,cy,R,ang,N,red,blurSpan){
+  // 轮圈
+  c.strokeStyle=INK; c.lineWidth=Math.max(3,R*0.07); c.beginPath(); c.arc(cx,cy,R,0,2*PI); c.stroke();
+  var S=blurSpan>1e-3?18:1;
+  c.lineCap="round";
+  for(var s=0;s<S;s++){
+    var a0=ang+(S>1?blurSpan*s/(S-1):0);
+    c.globalAlpha=S>1?Math.max(0.07,1.6/S):1;
+    for(var i=0;i<N;i++){ var a=a0+2*PI*i/N;
+      c.strokeStyle=(red&&i===0)?RED:"#2d3748"; c.lineWidth=(red&&i===0)?Math.max(3,R*0.075):Math.max(2.5,R*0.055);
+      c.beginPath(); c.moveTo(cx+R*0.12*Math.cos(a),cy+R*0.12*Math.sin(a)); c.lineTo(cx+R*0.93*Math.cos(a),cy+R*0.93*Math.sin(a)); c.stroke(); }
+  }
+  c.globalAlpha=1; c.lineCap="butt";
+  c.fillStyle=INK; c.beginPath(); c.arc(cx,cy,R*0.12,0,2*PI); c.fill();
+}
+function drawC(){
+  var c=gC.ctx, W=gC.W, H=gC.H; c.clearRect(0,0,W,H);
+  var R=Math.min(W/4-18,(H-70)/2), cy=24+R+8, cxL=W/4, cxR=3*W/4;
+  c.fillStyle=INK; c.font="bold 13px 'Microsoft YaHei',sans-serif"; c.textAlign="center";
+  c.fillText("真实的车轮（连续转动）",cxL,18); c.fillText("摄像机拍到的（每秒 "+C.F+" 帧）",cxR,18);
+  // 真实轮：屏幕每刷新一次(≈1/60 s)期间转过的角度画成糊影
+  var span=2*PI*C.r*C.slow/60;
+  drawWheel(c,cxL,cy,R,2*PI*C.r*simT,C.N,C.red,Math.min(span,2*PI));
+  drawWheel(c,cxR,cy,R,cameraAngle(C.r,simT,C.F),C.N,C.red,0);
+  var k=Math.floor(simT*C.F+1e-9);
+  c.fillStyle=RED; c.beginPath(); c.arc(cxR+R+12,cy-R+2,4.5,0,2*PI); c.fill();
+  c.font="12px 'Microsoft YaHei',sans-serif"; c.textAlign="right"; c.fillStyle=INK; c.fillText("第 "+k+" 帧",cxR+R+4,cy-R+6);
+  var ap=wheelApparent(C.r,C.N,C.F);
+  c.textAlign="center"; c.font="13px 'Microsoft YaHei',sans-serif";
+  c.fillText("实际 "+C.r.toFixed(2)+" 圈/秒",cxL,cy+R+24);
+  var dir=Math.abs(ap.fa)<1e-9?"静止":(Math.abs(Math.abs(ap.fa)-C.F/2)<1e-9?"方向不定":(ap.rev>0?"正转":"倒转"));
+  c.fillStyle=dir==="倒转"?RED:(dir==="正转"?GREEN:GOLD);
+  c.fillText("看起来 "+trimN(ap.rev,3)+" 圈/秒（"+dir+"）",cxR,cy+R+24);
+  if(C.red){ var apr=wheelApparent(C.r,1,C.F); c.fillStyle=RED; c.font="12px 'Microsoft YaHei',sans-serif";
+    c.fillText("红辐条：看起来 "+trimN(apr.rev,3)+" 圈/秒",cxR,cy+R+42); }
+  c.textAlign="left";
+}
+function readC(){
+  var ap=wheelApparent(C.r,C.N,C.F);
+  document.getElementById("oC1").innerHTML="画面重复频率 "+mml('<mi>N</mi><mi>r</mi><mo>=</mo>'+mn(C.N,0)+'<mo>&#xD7;</mo>'+mn(C.r,2)+'<mo>=</mo>'+mn(ap.fe,2))+" 次/秒，帧率的一半 "+mml('<mi>F</mi><mo>/</mo><mn>2</mn><mo>=</mo>'+mn(C.F/2,1))+"。";
+  document.getElementById("oC2").innerHTML=mml(MI_FA+'<mo>=</mo>'+mn(ap.fe,2)+'<mo>&#x2212;</mo>'+mn(ap.m,0)+'<mo>&#xD7;</mo>'+mn(C.F,0)+'<mo>=</mo>'+mn(ap.fa,2))+"，看起来的转速 "+mml('<mfrac>'+MI_FA+'<mi>N</mi></mfrac><mo>=</mo>'+mn(ap.rev,3))+" 圈/秒。";
+  var st=document.getElementById("oCst");
+  if(ap.fe<C.F/2-1e-9){ st.className="status ok"; st.innerHTML="✓ "+mml('<mi>N</mi><mi>r</mi><mo>&lt;</mo><mi>F</mi><mo>/</mo><mn>2</mn>')+"：画面如实反映转动。"; }
+  else if(Math.abs(ap.fa)<1e-9){ st.className="status bad"; st.innerHTML="✗ "+mml('<mi>N</mi><mi>r</mi>')+" 恰是帧率的整数倍：每帧辐条都回到同样位置，轮子<b>看起来静止</b>。"; }
+  else if(Math.abs(Math.abs(ap.fa)-C.F/2)<1e-9){ st.className="status mid"; st.innerHTML="恰在 "+mml('<mi>N</mi><mi>r</mi><mo>=</mo><mi>F</mi><mo>/</mo><mn>2</mn>')+" 的奇数倍：每帧转过半个辐条间隔，正转、倒转都说得通（方向不定）。"; }
+  else if(ap.fa<0){ st.className="status bad"; st.innerHTML="✗ 混叠：轮子在正转，画面里却<b>倒转</b>（"+mml(MI_FA+'<mo>/</mo><mi>N</mi><mo>=</mo>'+mn(ap.rev,3))+" 圈/秒）。"; }
+  else { st.className="status bad"; st.innerHTML="✗ 混叠：方向对了，但看起来只有 "+mml(MI_FA+'<mo>/</mo><mi>N</mi><mo>=</mo>'+mn(ap.rev,3))+" 圈/秒，比实际慢得多。"; }
+}
+function updC(){ document.getElementById("vCr").textContent=C.r.toFixed(2); document.getElementById("vCn").textContent=C.N; document.getElementById("vCF").textContent=C.F; readC(); syncBar(); }
+var sCr=document.getElementById("sCr"), sCn=document.getElementById("sCn"), sCF=document.getElementById("sCF");
+sCr.addEventListener("input",function(){ C.r=+sCr.value; updC(); });
+sCn.addEventListener("input",function(){ C.N=+sCn.value; updC(); });
+sCF.addEventListener("input",function(){ C.F=+sCF.value; updC(); });
+logChange(sCr,"C_r"); logChange(sCn,"C_N"); logChange(sCF,"C_F");
+document.getElementById("cCred").addEventListener("change",function(e){ C.red=e.target.checked; EduTelemetry.log("C_red",C.red); });
+document.getElementById("selCslow").addEventListener("change",function(e){ C.slow=+e.target.value; EduTelemetry.log("C_slow",C.slow); });
+document.querySelectorAll("#preC .pre").forEach(function(b){ b.addEventListener("click",function(){
+  C.r=+b.dataset.r; C.N=+b.dataset.n; C.F=+b.dataset.f; sCr.value=C.r; sCn.value=C.N; sCF.value=C.F;
+  EduTelemetry.log("C_preset",C.r+"/"+C.N+"/"+C.F); updC(); }); });
+var cVisible=true;
+if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ cVisible=es[0].isIntersecting; }).observe(cvC); }
+function loopC(now){
+  if(lastWall!=null){ var dt=Math.min(0.1,(now-lastWall)/1000); simT+=dt*C.slow; if(simT>1e5) simT=0; }
+  lastWall=now;
+  if(cVisible && gC) drawC();
+  requestAnimationFrame(loopC);
+}
+
+/* ============ ④ 声音 ============ */
+var D={f:5000,fs:8000}, actx=null, curSrc=[];
+function getCtx(){ if(!actx){ var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; actx=new AC(); } if(actx.state==="suspended") actx.resume(); return actx; }
+function shape(y,out){ var n=y.length, fade=Math.floor(0.02*out), mx=0;
+  for(var i=0;i<n;i++) if(Math.abs(y[i])>mx) mx=Math.abs(y[i]);
+  var g=mx>1e-6?0.18/mx:0;
+  for(var j=0;j<n;j++){ var e=1; if(j<fade) e=j/fade; else if(j>n-fade) e=(n-j)/fade; y[j]*=g*e; } return y; }
+function makeBuf(kind){
+  var ac=getCtx(); if(!ac) return null; var out=ac.sampleRate, dur=1.2, y;
+  if(kind==="true"){ y=new Float32Array(Math.floor(dur*out)); for(var i=0;i<y.length;i++) y[i]=Math.cos(2*PI*D.f*i/out); }
+  else y=resampleTone(D.f,D.fs,out,dur,32);
+  shape(y,out); var b=ac.createBuffer(1,y.length,out); b.getChannelData(0).set(y); return b;
+}
+function stopAll(){ curSrc.forEach(function(s){ try{s.stop();}catch(e){} }); curSrc=[]; }
+function play(kinds){
+  var ac=getCtx(); if(!ac){ document.getElementById("oDst").textContent="此浏览器不支持 Web Audio。"; return; }
+  stopAll(); var t=ac.currentTime+0.05;
+  kinds.forEach(function(k){ var b=makeBuf(k), s=ac.createBufferSource(); s.buffer=b; s.connect(ac.destination); s.start(t); curSrc.push(s); t+=b.duration+0.35; });
+  EduTelemetry.log("D_play",kinds.join("+")+":"+D.f+"@"+D.fs);
+}
+function readD(){
+  var al=aliasInfo(D.f,D.fs), half=D.fs/2;
+  document.getElementById("oD1").innerHTML="真实声音 "+mml('<mi>f</mi><mo>=</mo><mn>'+D.f+'</mn>')+" Hz；奈奎斯特频率 "+mml(MI_FS+'<mo>/</mo><mn>2</mn><mo>=</mo><mn>'+trimN(half,1)+'</mn>')+" Hz。";
+  document.getElementById("oD2").innerHTML="采样后听到 "+mml(MI_FA+'<mo>=</mo><mo>|</mo><mn>'+D.f+'</mn><mo>&#x2212;</mo>'+mn(al.m,0)+'<mo>&#xD7;</mo><mn>'+D.fs+'</mn><mo>|</mo><mo>=</mo><mn>'+trimN(al.fa,1)+'</mn>')+" Hz。";
+  var st=document.getElementById("oDst");
+  if(D.f<half-1e-9){ st.className="status ok"; st.textContent="✓ 两次听到的是同一个音高。"; }
+  else if(Math.abs(D.f-half)<1e-9){ st.className="status mid"; st.innerHTML="恰在 "+mml(MI_FS+'<mo>/</mo><mn>2</mn>')+"：结果取决于相位。本页初相为 0，碰巧还能听到原音高；换一个初相，声音会变弱，90° 时完全消失。"; }
+  else if(al.fa<1e-9){ st.className="status bad"; st.innerHTML="✗ 混叠："+D.f+" Hz 恰是 "+D.fs+" Hz 的整数倍，每次都在同一相位采到，采样值是<b>常数</b>（0 Hz）——播放出来几乎<b>听不到声音</b>。"; }
+  else { st.className="status bad"; st.innerHTML="✗ 混叠："+D.f+" Hz 的高音被听成 <b>"+trimN(al.fa,1)+" Hz</b>"+(al.fa<D.f?"（更低）":"")+"。"; }
+}
+function updD(){ document.getElementById("vDf").textContent=D.f; readD(); }
+var sDf=document.getElementById("sDf"), selDfs=document.getElementById("selDfs");
+sDf.addEventListener("input",function(){ D.f=+sDf.value; updD(); });
+selDfs.addEventListener("change",function(){ D.fs=+selDfs.value; EduTelemetry.log("D_fs",D.fs); updD(); });
+logChange(sDf,"D_f");
+document.getElementById("bDtrue").addEventListener("click",function(){ play(["true"]); });
+document.getElementById("bDsamp").addEventListener("click",function(){ play(["samp"]); });
+document.getElementById("bDboth").addEventListener("click",function(){ play(["true","samp"]); });
+document.getElementById("bDstop").addEventListener("click",stopAll);
+document.querySelectorAll("#preD .pre").forEach(function(b){ b.addEventListener("click",function(){
+  D.f=+b.dataset.f; D.fs=+b.dataset.fs; sDf.value=D.f; selDfs.value=String(D.fs); EduTelemetry.log("D_preset",D.f+"@"+D.fs); updD(); }); });
+
+/* ============ 改了就提示：受影响的图卡片闪一下；不在视口内时弹 toast ============ */
+var CARD={At:document.getElementById("cardAt"), Af:document.getElementById("cardAf"), Ar:document.getElementById("cardAr"),
+          Bt:document.getElementById("cardBt"), Bf:document.getElementById("cardBf"), Br:document.getElementById("cardBr"),
+          C:document.getElementById("cardC"), Cr:document.getElementById("cardCr"), Dr:document.getElementById("cardDr")};
+var CARDNAME={At:"① 时域图", Af:"① 频域图", Ar:"① 读数", Bt:"② 时域图", Bf:"② 频域图", Br:"② 读数", C:"③ 车轮图", Cr:"③ 读数", Dr:"④ 读数"};
+// 控件 → 受影响卡片（第一个 = 主卡片，toast 指向它）
+var HINTMAP={A:["At","Af","Ar"], Aorig:["At"], Arec:["At"], Asinc:["At"],
+             B:["Bt","Bf","Br"], C:["C","Cr"], Cview:["C"], D:["Dr"]};
+function flashCard(el){ if(!el) return; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  clearTimeout(el._flT); el._flT=setTimeout(function(){ el.classList.remove("flash"); },650); }
+var mbar=document.getElementById("mbar"), toastEl=document.getElementById("toast"), _toT=null, _toTarget=null;
+function barH(){ return getComputedStyle(mbar).display!=="none"?mbar.offsetHeight:0; }
+function inView(el){ var r=el.getBoundingClientRect(), vb=window.innerHeight-barH(), vis=Math.min(r.bottom,vb)-Math.max(r.top,0);
+  return vis>=Math.min(120,r.height*0.4); }
+function showToast(key){ var el=CARD[key], r=el.getBoundingClientRect();
+  toastEl.textContent=(r.top>=window.innerHeight-barH()?"↓ ":"↑ ")+CARDNAME[key]+"已更新"; _toTarget=el;
+  toastEl.classList.add("on"); clearTimeout(_toT); _toT=setTimeout(function(){ toastEl.classList.remove("on"); },2500); }
+toastEl.addEventListener("click",function(){ if(_toTarget) _toTarget.scrollIntoView({behavior:"smooth",block:"center"}); toastEl.classList.remove("on"); });
+// opt.flash / opt.toast 默认都为 true；受影响的卡片只要有一张在屏幕内就不弹 toast
+function hint(name,opt){ var ks=HINTMAP[name]||[]; opt=opt||{};
+  if(opt.flash!==false) ks.forEach(function(k){ flashCard(CARD[k]); });
+  if(opt.toast!==false && ks.length && !ks.some(function(k){ return inView(CARD[k]); })) showToast(ks[0]); }
+// 拖滑杆：拖动中只闪一次；松手（change）时才判断要不要 toast
+var _drag={};
+function dragHint(name){ if(!_drag[name]){ _drag[name]=true; hint(name,{toast:false}); } }
+function dragEnd(name){ _drag[name]=false; hint(name,{flash:false}); }
+function hintRange(el,name){ el.addEventListener("input",function(){ dragHint(name); }); el.addEventListener("change",function(){ dragEnd(name); }); }
+function hintChange(el,name){ el.addEventListener("change",function(){ hint(name); }); }
+function hintPresets(sel,name){ document.querySelectorAll(sel+" .pre").forEach(function(b){ b.addEventListener("click",function(){ hint(name); }); }); }
+hintRange(sAf,"A"); hintRange(sAfs,"A"); hintRange(sAph,"A"); hintPresets("#preA","A");
+hintChange(document.getElementById("cAorig"),"Aorig"); hintChange(document.getElementById("cArec"),"Arec"); hintChange(document.getElementById("cAsinc"),"Asinc");
+hintRange(sBb,"B"); hintRange(sBfs,"B"); hintChange(selB,"B"); hintPresets("#preB","B");
+hintRange(sCr,"C"); hintRange(sCn,"C"); hintRange(sCF,"C"); hintPresets("#preC","C");
+hintChange(document.getElementById("cCred"),"Cview"); hintChange(document.getElementById("selCslow"),"Cview");
+hintRange(sDf,"D"); hintChange(selDfs,"D"); hintPresets("#preD","D");
+
+/* ============ 手机底部条：采样频率，跟着当前所在面板 ①/②/③ 切换 ============ */
+// 底部条 mFs 与面板里的滑杆是同一个状态：拖底部条 → 改面板滑杆并触发它自己的 input/change；面板改动 → updA/updB/updC 里 syncBar 回写底部条
+var FS_M='<math><msub><mi>f</mi><mi>s</mi></msub></math>';
+var MBAR={A:{sl:sAfs, sec:"secA", lbl:"① 采样频率 "+FS_M, val:function(){ return A.fs.toFixed(1)+" Hz"; }},
+          B:{sl:sBfs, sec:"secB", lbl:"② 采样频率 "+FS_M, val:function(){ return Bst.fs.toFixed(1)+" Hz"; }},
+          C:{sl:sCF,  sec:"secC", lbl:"③ 帧率 <math><mi>F</mi></math>", val:function(){ return C.F+" 帧/秒"; }}};
+var mFs=document.getElementById("mFs"), mvFs=document.getElementById("mvFs"), mLbl=document.getElementById("mLbl"), mMode=null;
+function setBarMode(k){ if(k===mMode) return; mMode=k; var m=MBAR[k];
+  mFs.min=m.sl.min; mFs.max=m.sl.max; mFs.step=m.sl.step; mLbl.innerHTML=m.lbl;
+  mFs.setAttribute("aria-label",k==="C"?"③ 帧率 F":(k==="A"?"① 采样频率":"② 采样频率")); syncBar(); }
+function syncBar(){ if(!mFs||!mMode) return; var m=MBAR[mMode]; mFs.value=m.sl.value; mvFs.textContent=m.val(); }
+mFs.addEventListener("input",function(){ var sl=MBAR[mMode].sl; sl.value=mFs.value; sl.dispatchEvent(new Event("input")); });
+mFs.addEventListener("change",function(){ MBAR[mMode].sl.dispatchEvent(new Event("change")); });
+// 当前所在面板 = ①②③ 中在屏幕（底部条以上）露出最多的那个；都看不到时保持不变
+function pickBarMode(){ var vb=window.innerHeight-barH(), best=null, bv=0;
+  ["A","B","C"].forEach(function(k){ var r=document.getElementById(MBAR[k].sec).getBoundingClientRect(), v=Math.min(r.bottom,vb)-Math.max(r.top,0); if(v>bv){ bv=v; best=k; } });
+  if(best) setBarMode(best); }
+var _pk=false;
+window.addEventListener("scroll",function(){ if(_pk) return; _pk=true; requestAnimationFrame(function(){ _pk=false; pickBarMode(); }); },{passive:true});
+setBarMode("A");
+
+/* ============ 使用说明 / 导出 ============ */
+document.getElementById("helpBtn").addEventListener("click",function(){ document.getElementById("mask").classList.add("on"); EduTelemetry.log("help_open"); });
+document.getElementById("helpX").addEventListener("click",function(){ document.getElementById("mask").classList.remove("on"); });
+document.getElementById("mask").addEventListener("click",function(e){ if(e.target===this)this.classList.remove("on"); });
+document.getElementById("bExport").addEventListener("click",function(){ EduTelemetry.log("export"); EduTelemetry.exportCSV(); });
+
+function resize(){
+  gAt=setupCanvas(cvAt,0.36,230,330); gAf=setupCanvas(cvAf,0.26,190,250);
+  gBt=setupCanvas(cvBt,0.32,210,300); gBf=setupCanvas(cvBf,0.26,190,250);
+  gC=setupCanvas(cvC,0.42,230,370);
+  updA(); updB(); updC(); updD();
+}
+var _rt=null;
+window.addEventListener("resize",function(){ clearTimeout(_rt); _rt=setTimeout(function(){ resize(); pickBarMode(); },120); });
+// 折叠块展开/收起后页面宽度可能变化（出现/消失滚动条）：重画一次
+document.querySelectorAll("details").forEach(function(d){ d.addEventListener("toggle",function(){ clearTimeout(_rt); _rt=setTimeout(function(){ resize(); pickBarMode(); },60); }); });
+resize(); pickBarMode(); EduTelemetry.log("open");
+requestAnimationFrame(loopC);
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT = "https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-sampling-alias";
+  if(!CNT_ENDPOINT || CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{ var seenKey="fbtool_seen:"+TOOL; var first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

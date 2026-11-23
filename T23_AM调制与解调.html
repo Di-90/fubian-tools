@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AM 调制与解调 · 复变函数与积分变换</title>
+<style>
+  :root{
+    --blue:#2b6cb0; --gold:#b7791f; --green:#2f855a; --purple:#6b46c1; --orange:#c05621; --red:#c53030;
+    --ink:#1a202c; --sub:#1a202c; --line:#e2e8f0; --bg:#f7fafc; --card:#fff;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.6;}
+  math{font-family:"Cambria Math","STIX Two Math",serif;}
+  .wrap{max-width:1260px; margin:0 auto; padding:0 0 60px;}
+  .top{background:linear-gradient(90deg,#1e3a8a,#2563eb); color:#fff;
+       padding:16px 22px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;}
+  .top h1{font-size:20px; margin:0; font-weight:700;}
+  .top .tag{margin-left:auto; background:rgba(255,255,255,.18); color:#fff;
+            padding:5px 12px; border-radius:20px; font-size:12.5px;}
+  .top .help{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.5);
+             color:#fff; padding:5px 12px; border-radius:20px; font-size:12.5px; cursor:pointer;}
+  .lead{color:var(--ink); font-size:14px; padding:8px 22px 0; margin:0;}
+  .lead math{font-size:15px;}
+  /* ---- 从生活到数学 ---- */
+  .bridge{margin:14px 22px 0; background:#fffdf5; border:1px solid #f6e05e; border-left:5px solid var(--gold);
+          border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .bridge h2{font-size:16px; color:#744210; margin:0 0 10px;}
+  .bridge h3{font-size:14.5px; color:#744210; margin:14px 0 6px;}
+  .story{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;}
+  @media(max-width:900px){ .story{grid-template-columns:1fr;} }
+  .story .st{background:#fff; border:1px solid #faf089; border-radius:10px; padding:10px 12px; font-size:13.6px;}
+  .story .st b.h{display:block; color:#744210; font-size:14px; margin-bottom:3px;}
+  .tblwrap{overflow-x:auto;}
+  table.map{width:100%; border-collapse:collapse; font-size:13.4px; background:#fff; min-width:560px;}
+  table.map th{background:#fefcbf; color:#744210; text-align:left; padding:6px 9px; border:1px solid #f6e05e;}
+  table.map td{padding:6px 9px; border:1px solid #faf089; vertical-align:top;}
+  table.map td:first-child{font-weight:700; white-space:nowrap;}
+  table.map td:nth-child(2){white-space:nowrap;}
+  table.map math{font-size:15px;}
+  .freqnote{margin:12px 0 2px; padding:9px 12px; background:#ebf8ff; border:1px solid #90cdf4; border-radius:8px; font-size:13.4px;}
+  .freqnote math{font-size:14.5px;}
+  /* ---- 模式 ---- */
+  .modes{display:flex; gap:10px; flex-wrap:wrap; padding:16px 22px 0;}
+  .modes button{flex:1 1 260px; border:2px solid var(--blue); background:#fff; color:var(--blue); font-size:14.5px; font-weight:700;
+                padding:9px 14px; border-radius:10px; cursor:pointer;}
+  .modes button.on{background:var(--blue); color:#fff;}
+  .main{padding:12px 22px 0;}
+  .layout{display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:16px; align-items:start;}
+  @media(max-width:980px){ .layout{grid-template-columns:minmax(0,1fr) 280px; gap:12px;} .main{padding:12px 14px 0;} }
+  .side{position:sticky; top:8px; max-height:calc(100vh - 16px); overflow-y:auto; display:flex; flex-direction:column; gap:10px;}
+  .stage{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:10px 14px 10px; margin-bottom:12px;}
+  .sh{font-size:15px; font-weight:700; color:var(--blue); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .sh .no{display:inline-flex; width:24px; height:24px; border-radius:50%; background:var(--gold); color:#fff; align-items:center; justify-content:center; font-size:14px;}
+  .sh .life{font-size:12.5px; font-weight:600; color:#744210; background:#fefcbf; border-radius:10px; padding:1px 9px;}
+  .fm{margin:6px 0 8px; padding:6px 10px; background:#f0fff4; border:1px solid #9ae6b4; border-radius:8px; font-size:13.4px; overflow-x:auto;}
+  .fm math{font-size:15.5px;}
+  .fm .ref{display:inline-block; margin-left:6px; font-size:12px; font-weight:700; color:#22543d; background:#c6f6d5; border-radius:8px; padding:0 7px;}
+  .plots{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:10px;}
+  canvas{display:block; width:100%; background:#fbfdff; border:1px solid var(--line); border-radius:8px;}
+  .cap{font-size:13px; margin:6px 2px 0; overflow-x:auto;}
+  .cap math{font-size:14px;}
+  .cap .obs{display:block; margin-top:4px; padding:5px 9px; background:#f7fafc; border:1px solid var(--line); border-radius:7px;}
+  .warn{color:#9b2c2c; font-weight:700;}
+  .ok{color:#22543d; font-weight:700;}
+  .ctrls{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:11px 14px;}
+  .ctrls h2{font-size:14px; color:var(--blue); margin:0 0 6px; border-left:3px solid var(--gold); padding-left:9px;}
+  .ctrl{margin:7px 0;}
+  .ctrl label{display:block; font-size:13px; color:var(--ink); margin-bottom:2px;}
+  .ctrl label math{font-size:14px;}
+  .ctrl .v{font-weight:700; font-variant-numeric:tabular-nums; color:var(--blue);}
+  .ctrl small{display:block; font-size:12px; color:var(--ink);}
+  input[type=range]{width:100%;}
+  select{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; color:var(--ink);}
+  .radio{display:flex; flex-direction:column; gap:3px; font-size:13px;}
+  .radio label{display:flex; gap:6px; align-items:center; cursor:pointer;}
+  .radio math{font-size:14px;}
+  .pbtns{display:flex; flex-direction:column; gap:6px;}
+  .btn{border:1px solid var(--blue); background:var(--blue); color:#fff; padding:7px 12px; border-radius:8px; cursor:pointer; font-size:13.5px; text-align:left;}
+  .btn.ghost{background:#fff; color:var(--blue);}
+  .btn.stop{background:#fff; color:var(--red); border-color:var(--red);}
+  .know{margin:16px 22px 0; background:var(--card); border:1px solid var(--line);
+        border-radius:12px; box-shadow:var(--shadow); padding:14px 20px;}
+  .know h2{font-size:15px; color:var(--blue); border-left:3px solid var(--gold); padding-left:10px; margin:0 0 10px;}
+  .know p{margin:8px 0; font-size:13.6px;}
+  .know math{font-size:15px;}
+  footer{margin:30px 22px 0; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink);}
+  .mask{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
+  .mask.on{display:flex;}
+  .modal{background:#fff; border-radius:14px; max-width:640px; width:92%; max-height:84vh; overflow:auto; padding:22px 24px;}
+  .modal h3{margin:0 0 12px; color:var(--blue);}
+  .modal h4{margin:14px 0 4px; color:var(--blue); font-size:14px;}
+  .modal p,.modal li{font-size:13.8px; margin:6px 0;}
+  .modal math{font-size:15px;}
+  .modal .x{float:right; cursor:pointer; font-size:22px; line-height:1;}
+  #errbox{display:none; margin:10px 22px; padding:8px 12px; background:#fff5f5; border:1px solid #feb2b2; color:#9b2c2c; font-size:13px; white-space:pre-wrap;}
+  /* ---- 主线 + 折叠细节 ---- */
+  details.more{margin-top:6px;border:1px solid #cbd5e0;border-radius:8px;background:#fff;}
+  details.more>summary{cursor:pointer;padding:5px 10px;font-size:13px;font-weight:700;color:#2b6cb0;list-style:none;}
+  details.more>summary::-webkit-details-marker{display:none;}
+  details.more>summary::before{content:"▸ ";}
+  details.more[open]>summary::before{content:"▾ ";}
+  details.more[open]>summary{border-bottom:1px solid #e2e8f0;}
+  details.more>.in{padding:8px 10px;}
+  details.adv{margin-top:14px;}
+  details.adv>summary{cursor:pointer;list-style:none;}
+  details.adv>summary::-webkit-details-marker{display:none;}
+  details.adv>summary .advhint{margin-left:auto; font-size:12.5px; font-weight:700; color:var(--blue); border:1px solid var(--blue); border-radius:10px; padding:0 9px;}
+  details.adv>summary .advhint::after{content:"点开 ▸";}
+  details.adv[open]>summary .advhint::after{content:"收起 ▾";}
+  details.adv[open]>summary{margin-bottom:4px;}
+  .concl{font-size:13.4px;}
+  .wv:empty{display:none;}
+  .in>.cap:first-child{margin-top:0;}
+  .in>.fm:first-child{margin-top:0;}
+  .plotsCol,.side{min-width:0;}
+  /* ---- 图卡片 + 标题栏开关（四个工具共用） ---- */
+  .cardbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 6px;}
+  .cardbar .ttl{font-weight:700;font-size:14px;color:#1a202c;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;padding:3px 9px;border:1px solid #90cdf4;border-radius:999px;background:#ebf8ff;color:#1a202c;cursor:pointer;user-select:none;}
+  .chip input{margin:0;}
+  .chip select{font-size:12.5px;border:none;background:transparent;}
+  .chip:has(input:checked){background:#bee3f8;border-color:#3182ce;}
+  .chip select{padding:0 2px; color:#1a202c;}
+  button.chip{font-family:inherit; line-height:1.4;}
+  .cardbar .sh{flex:1 1 auto; min-width:0;}
+  /* 正在播放：试听按钮高亮，再点一次＝停止 */
+  .chip.playing,.btn.playing{background:var(--blue); border-color:var(--blue); color:#fff;}
+  .btn.ghost.playing{background:var(--blue); color:#fff;}
+  /* ---- 改了就提示 ---- */
+  @keyframes cardflash{0%{box-shadow:0 0 0 0 rgba(66,153,225,.75);}100%{box-shadow:0 0 0 10px rgba(66,153,225,0);}}
+  .flash{animation:cardflash .6s ease-out;}
+  .toast{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:45; display:none;
+         background:#fff; color:#1a202c; border:1px solid #90cdf4; border-radius:999px; box-shadow:0 4px 14px rgba(0,0,0,.18);
+         padding:8px 16px; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .toast.on{display:block;}
+  /* ---- 手机底部控制条 ---- */
+  .mbar{display:none;}
+  @media(max-width:720px){
+    body{padding-bottom:72px;}
+    .wrap{display:flex; flex-direction:column; padding-bottom:20px;}
+    .wrap>*{min-width:0;}
+    .main,.layout{display:contents;}
+    .top{order:0;} .lead{order:0;} #errbox{order:0;}
+    .modes{order:1;} .plotsCol{order:2;} .side{order:3;} .bridge{order:4;} .know{order:5;} footer{order:6;}
+    .modes{padding:12px 12px 0;} .modes button{flex:1 1 100%;}
+    .plotsCol{margin:12px 12px 0;}
+    .side{margin:6px 12px 0; position:static; max-height:none; overflow:visible;}
+    .bridge{margin:14px 12px 0; padding:12px 14px;} .know{margin:14px 12px 0; padding:12px 14px;}
+    .top{padding:12px 14px;} .top h1{font-size:18px;}
+    .lead{padding:10px 14px 0;}
+    footer{margin:24px 14px 0;}
+    .stage{padding:10px 10px;}
+    .mbar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; align-items:center; gap:6px;
+          min-height:56px; padding:4px 8px; background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(0,0,0,.10);}
+    .mbar .ml{font-size:14px; font-weight:700; white-space:nowrap; line-height:1.2; text-align:center;}
+    .mbar .ml .mv{display:block; color:var(--blue); font-variant-numeric:tabular-nums;}
+    .mbar input[type=range]{flex:1; min-width:0; height:36px; margin:0;}
+    .mbar .btn{min-height:44px; padding:6px 10px; white-space:nowrap; text-align:center; font-size:14px;}
+    .toast{bottom:74px; white-space:normal; max-width:calc(100vw - 24px); width:max-content; border-radius:14px; text-align:center;}
+    /* 字号与触控 */
+    .lead,.know p,.cap,.ctrl label,.ctrl small,.radio,.btn,select,.chip,.story .st,table.map,.freqnote,.fm,details.more>summary,.modal p,.modal li{font-size:14px;}
+    [style*="font-size:12"],[style*="font-size:13"]{font-size:14px !important;}
+    .btn,select{min-height:40px;}
+    .pbtns .btn{min-height:46px; font-size:15px;}
+    .chip{min-height:36px; padding:4px 12px;}
+    button.chip{min-height:40px; font-size:14px; font-weight:700;}
+    .radio label{min-height:36px;} .radio input{width:18px; height:18px;}
+    input[type=range]{height:36px;}
+    details.more>summary{padding-top:8px; padding-bottom:8px;}
+    .know p,.story .st,.bridge p,.modal p,.modal li,.ctrl small,.ctrl label,.lead{overflow-x:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>AM 调制与解调：收音机里的傅里叶变换</h1>
+    <button class="help" id="helpBtn">？使用说明</button>
+    <a class="tag" href="./index.html" style="color:#fff;text-decoration:none;cursor:pointer">← 返回主页</a>
+  </div>
+  <p class="lead">一句话：<b>声音 × 载波</b>（调制）→ 频谱搬到 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> → 收音机<b>再乘载波 + 低通</b>（解调）→ 声音回来。拖滑杆（电脑在右侧；手机在图的下方，底部固定条可直接拖载波 / 调台），看五步图怎么联动；点 ▶（各步图的标题栏里也有）用耳朵听一听。</p>
+  <div id="errbox"></div>
+
+  <!-- ================= 从生活到数学 ================= -->
+  <div class="bridge">
+    <h2>从生活到数学：一台收音机里藏着一条傅里叶变换性质</h2>
+    <div class="story">
+      <div class="st"><b class="h">① 声音为什么不能直接"广播"？</b>
+        声音只有几十到几千<b>赫兹</b>（Hz）：天线得几十公里长才发得出去；而且各家电台全挤在同一段频率上，收音机分不开。</div>
+      <div class="st"><b class="h">② 电台的办法：让声音"骑"在高频载波上</b>
+        每家电台分到一个专属的高频正弦波（<b>载波</b>），让它的<b>幅度</b>跟着声音起伏，这叫<b>调幅</b>（AM）。不同电台载波不同，在频率上就错开了。</div>
+      <div class="st"><b class="h">③ 收音机的办法：先挑、再搬回、再筛</b>
+        调台＝只放行所选载波附近的一小段频率；再乘一次同频正弦波把声音"卸"下来；最后<b>低通滤波</b>滤掉高频残渣。这叫<b>解调</b>。</div>
+    </div>
+    <details class="more"><summary>展开：三段故事的完整说法（波长与天线、电台频率、什么是低通）</summary><div class="in">
+      <p style="margin:4px 0;font-size:13.6px"><b>①</b>说话、唱歌的声音每秒振动几十到几千次，即<b>频率</b>为几十到几千<b>赫兹</b>（Hz）。要把它变成电磁波发到几十公里外，天线长度得和电磁波的<b>波长</b>差不多（约四分之一波长）。1000 Hz 电磁波的波长是 300 km——天线要几十公里长，做不出来。更麻烦的是：每家电台播的都是"几十～几千 Hz"的声音，直接发射的话所有电台全挤在同一段频率上，收音机根本分不开。</p>
+      <p style="margin:4px 0;font-size:13.6px"><b>②</b>每家电台分到一个专属的高频正弦波，叫<b>载波</b>（"运载"声音的波；中波 AM 电台在约 530–1600 kHz，收音机刻度上的数字就是它的频率）。电台让载波的<b>幅度</b>（波的高低）跟着声音起伏，这叫<b>调幅</b>（AM，Amplitude Modulation；<b>调制</b>＝把消息"加载"到载波上）。高频的波长短，天线好做；不同电台用不同载波，在频率上就错开了。</p>
+      <p style="margin:4px 0;font-size:13.6px"><b>③</b>转旋钮"调台"，就是只放行所选载波附近的一小段频率；然后在机器里<b>再乘一次</b>同频率的正弦波，把声音"卸"下来；最后用<b>低通滤波器</b>（只让低频通过的"筛子"）滤掉高频残渣，喇叭里就是原来的声音。这一整套叫<b>解调</b>。</p>
+    </div></details>
+
+    <p style="margin:10px 0 0;font-size:13.4px;"><b>⚠ 本页用的是按比例缩小的"教学频率"</b>（声音 200–900 Hz、载波 2–8 kHz；真实中波电台约 530–1600 kHz），原理与公式完全相同。生活说法与课本符号的逐条对照见下面的折叠表。</p>
+    <details class="more"><summary>展开：生活说法 ↔ 课本符号对照表</summary><div class="in">
+    <div class="tblwrap">
+    <table class="map">
+      <thead><tr><th>生活里</th><th>数学里</th><th>一句话解释</th></tr></thead>
+      <tbody>
+        <tr><td>声音 / 语音</td><td><math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></td>
+          <td>话筒把空气振动变成随时间变化的电压，就是一个<b>时域信号</b>（以时间 <math><mi>t</mi></math> 为自变量的函数）。本页称它为<b>消息信号</b>。</td></tr>
+        <tr><td>音调高低</td><td><math><mrow><mi>f</mi></mrow></math>（Hz）；<math><mrow><mi>ω</mi><mo>=</mo><mn>2</mn><mi>π</mi><mi>f</mi></mrow></math></td>
+          <td>每秒振动的次数叫<b>频率</b> <math><mi>f</mi></math>，单位赫兹（Hz，1 kHz = 1000 Hz），音调越高 <math><mi>f</mi></math> 越大。课本公式里用<b>角频率</b> <math><mrow><mi>ω</mi><mo>=</mo><mn>2</mn><mi>π</mi><mi>f</mi></mrow></math>（rad/s）。本页频谱图的横轴标 <math><mi>f</mi></math>（kHz），图上写 <math><msub><mi>ω</mi><mn>0</mn></msub></math> 的位置就是 <math><mrow><msub><mi>f</mi><mn>0</mn></msub><mo>=</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>/</mo><mo stretchy="false">(</mo><mn>2</mn><mi>π</mi><mo stretchy="false">)</mo></mrow></math>。</td></tr>
+        <tr><td>声音里有哪些音、各多响</td><td>频谱 <math><mrow><mo>|</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math>，<math><mrow><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mi>ℱ</mi><mo>[</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo></mrow></math></td>
+          <td>对 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 做傅里叶变换，<math><mrow><mo>|</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math> 告诉你每个频率的成分有多强，是声音的"配料表"。一个纯音只有一对谱线（在 <math><mrow><mo>±</mo><msub><mi>ω</mi><mi>m</mi></msub></mrow></math>）；一段旋律是一片分布（参见 T12）。</td></tr>
+        <tr><td>电台的"载波"</td><td><math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math></td>
+          <td>电台专属的高频余弦波，<math><msub><mi>ω</mi><mn>0</mn></msub></math> 远大于声音里的频率。</td></tr>
+        <tr><td>调幅（双边带 DSB）</td><td><math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math></td>
+          <td>"让载波的幅度跟着声音变"，数学上就是<b>相乘</b>。把 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 各个波峰连起来的轮廓线叫<b>包络</b>，这里是 <math><mrow><mo>±</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>。</td></tr>
+        <tr><td>普通调幅（中波广播实际用）</td><td><math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mo>[</mo><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math></td>
+          <td>先给声音加一个常数 <math><mi>A</mi></math>（要求 <math><mrow><mi>A</mi><mo>≥</mo><mi>max</mi><mo>⁡</mo><mrow><mo>|</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></mrow></math>），上包络 <math><mrow><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 就恰好是声音的形状；收音机只要"描出包络"就能出声，电路最便宜。</td></tr>
+        <tr><td>频谱"搬家"</td><td><math><mrow><mi>ℱ</mi><mo>[</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>]</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math></td>
+          <td>课件<b>例 7.9（调制性质）</b>：乘 <math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math> 之后，原来在 0 附近的频谱被<b>原样复制</b>到 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两处，每份<b>高度减半</b>。不同电台搬到不同位置，所以互不干扰。</td></tr>
+        <tr><td>调台</td><td>带通滤波 <math><mrow><msub><mi>H</mi><mtext>BP</mtext></msub><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math></td>
+          <td><b>滤波器</b>＝按频率"放行 / 拦截"的筛子，数学上就是把频谱乘一个函数 <math><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math>（放行处为 1，拦截处为 0）。<b>带通</b>：只放行 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 附近一段。</td></tr>
+        <tr><td>收音机解调</td><td>再乘 <math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math>，再低通</td>
+          <td>再乘一次载波，频谱再搬一次：一份回到 0 附近（正是声音的 <math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>），另两份跑到 <math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math>。<b>低通</b>（只放行 <math><mrow><mrow><mo>|</mo><mi>ω</mi><mo>|</mo></mrow><mo>≤</mo><msub><mi>ω</mi><mi>c</mi></msub></mrow></math>，<math><msub><mi>ω</mi><mi>c</mi></msub></math> 叫<b>截止频率</b>）把 <math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 的两份去掉，剩下 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>。"频域乘 <math><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math> ＝ 时域做卷积"正是<b>定理 7.3（卷积定理）</b>。</td></tr>
+      </tbody>
+    </table>
+    </div>
+    </div></details>
+    <details class="more"><summary>展开：为什么要用"教学频率"</summary><div class="in">
+    <p class="freqnote" style="margin:0"><b>⚠ 本页用的是按比例缩小的"教学频率"。</b>真实中波电台的载波约为 530–1600 kHz，比声音高几百倍：人耳听不见（人耳上限约 20 kHz），屏幕上 1 毫秒内就有上千个周期，也画不出来。本页把声音放在 200–900 Hz、载波放在 2–8 kHz，仍保持"载波频率明显高于声音最高频率"（至少 2 倍多，保证搬过去的频谱副本不与 0 附近、也不彼此重叠；真实电台是几百倍），<b>原理与公式和真实电台完全相同</b>，而且能直接用电脑 / 手机喇叭放出来听。</p>
+    </div></details>
+  </div>
+
+  <div class="modes">
+    <button id="mSingle" class="on">模式一：一个电台 —— 调制与解调全过程</button>
+    <button id="mDual">模式二：两个电台 —— 收音机怎么"调台"</button>
+  </div>
+
+  <div class="main">
+    <div class="layout">
+      <div class="plotsCol">
+        <!-- ============ 模式一 ============ -->
+        <div id="modeSingle">
+          <div class="stage" id="st1">
+            <div class="cardbar"><div class="sh"><span class="no">1</span>原始声音（消息信号）<span class="life">生活：话筒里的声音</span></div>
+              <div class="chips"><button class="chip pchip" id="cpM" data-play="m" aria-label="试听原始声音">▶ 听 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button></div></div>
+            <div class="fm"><math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>⟶</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mi>ℱ</mi><mo>[</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo><mo>=</mo><msubsup><mo>∫</mo><mrow><mo>−</mo><mi>∞</mi></mrow><mi>∞</mi></msubsup><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>j</mi><mi>ω</mi><mi>t</mi></mrow></msup><mi>d</mi><mi>t</mi></mrow></math></div>
+            <div class="plots"><canvas id="t1"></canvas><canvas id="f1"></canvas></div>
+            <div class="cap concl">结论：声音的整片频谱都挤在 <b>0 附近</b>——声音是低频信号。</div>
+            <details class="more"><summary>看图注与谱线读数</summary><div class="in"><div class="cap" id="fm1x"></div><div class="cap">左：时域波形 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2b6cb0;font-weight:700">蓝</span>）；右：幅度谱 <math><mrow><mo>|</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math>。<span class="obs" id="n1"></span></div></div></details>
+          </div>
+          <div class="stage" id="st2">
+            <div class="sh"><span class="no">2</span>载波<span class="life">生活：电台专属的高频"运输车"</span></div>
+            <div class="fm"><math><mrow><mi>c</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>⟶</mo><mi>ℱ</mi><mo>[</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>]</mo><mo>=</mo><mi>π</mi><mo>[</mo><mi>δ</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>δ</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math>（两根谱线）<span class="ref">课件 例 7.11；另见 T12</span></div>
+            <div class="plots"><canvas id="t2"></canvas><canvas id="f2"></canvas></div>
+            <div class="cap concl">结论：载波振动得比声音快得多，频谱只有 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两根线。</div>
+            <details class="more"><summary>看图注与数值</summary><div class="in"><div class="cap">左：载波 <math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math>（<span style="color:#b7791f;font-weight:700">金</span>），在同样时长里振动得比声音快得多；右：它的频谱只有 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两根线。<span class="obs" id="n2"></span></div></div></details>
+          </div>
+          <div class="stage" id="st3">
+            <div class="cardbar"><div class="sh"><span class="no">3</span>调制：声音 × 载波<span class="life">生活：电台发射</span></div>
+              <div class="chips"><button class="chip pchip" id="cpS" data-play="s" aria-label="试听调制后的信号">▶ 听 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button></div></div>
+            <div class="fm" id="fm3dsb"><math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>⟶</mo><mi>S</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math><span class="ref">课件 例 7.9 调制性质</span></div>
+            <div class="fm" id="fm3am" style="display:none"><math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mo>[</mo><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>⟶</mo><mi>S</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo><mo>+</mo><mi>A</mi><mi>π</mi><mo>[</mo><mi>δ</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>δ</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math><span class="ref">例 7.9 ＋ 线性性质</span></div>
+            <div class="plots"><canvas id="t3"></canvas><canvas id="f3"></canvas></div>
+            <div class="cap concl">结论：频谱被原样搬到 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两处，每份高度减半；0 附近空了。</div>
+            <div class="cap wv" id="n3w"></div>
+            <details class="more"><summary>看图注与数值验证</summary><div class="in"><div class="cap">左：已调信号 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2f855a;font-weight:700">绿</span>）与包络（<span style="color:#c53030;font-weight:700">红虚线</span>）；右：<math><mrow><mo>|</mo><mi>S</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math>，黑虚线标出第 1 步的峰高和它的一半。<math><mrow><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 右侧那半份叫<b>上边带</b>，左侧那半份叫<b>下边带</b>。<span class="obs" id="n3"></span></div></div></details>
+          </div>
+          <div class="stage" id="st4">
+            <div class="sh"><span class="no">4</span>解调第一步：收音机再乘一次本地载波<span class="life">生活：收音机内部的"本地振荡器"</span></div>
+            <div class="fm"><math><mrow><mi>v</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>+</mo><mi>φ</mi><mo stretchy="false">)</mo><mo>=</mo><munder><munder><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow><mo>⏟</mo></munder><mtext>回到 0 附近</mtext></munder><mo>+</mo><munder><munder><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>+</mo><mi>φ</mi><mo stretchy="false">)</mo></mrow><mo>⏟</mo></munder><mrow><mtext>搬到 </mtext><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></munder></mrow></math>
+</div>
+            <div class="plots"><canvas id="t4"></canvas><canvas id="f4"></canvas></div>
+            <div class="cap concl">结论：再乘一次载波，频谱分成三份：0 处一份、<math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 各一份。</div>
+            <details class="more"><summary>看推导（频域表达式）与数值验证</summary><div class="in"><div class="fm"><math><mrow><mo>⟶</mo><mi>V</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow><mn>2</mn></mfrac><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>+</mo><mfrac><mn>1</mn><mn>4</mn></mfrac><mo>[</mo><msup><mi>e</mi><mrow><mi>j</mi><mi>φ</mi></mrow></msup><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>j</mi><mi>φ</mi></mrow></msup><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math>
+<span class="ref">再用一次例 7.9；也是定理 7.3 频域卷积 <math><mrow><mi>ℱ</mi><mo>[</mo><msub><mi>f</mi><mn>1</mn></msub><msub><mi>f</mi><mn>2</mn></msub><mo>]</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>2</mn><mi>π</mi></mrow></mfrac><msub><mi>F</mi><mn>1</mn></msub><mo>∗</mo><msub><mi>F</mi><mn>2</mn></msub></mrow></math> 的特例</span>
+<span id="fm4am" style="display:none"><br>普通调幅时把上式的 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 换成 <math><mrow><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>，于是 0 处和 <math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 处还各多一根载波带来的谱线。</span></div><div class="cap">左：<math><mrow><mi>v</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#6b46c1;font-weight:700">紫</span>）——它快速抖动，但"平均位置"（<span style="color:#c53030;font-weight:700">红虚线</span>）正是 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>；右：频谱有三份副本——0 处一份、<math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 各一份。<span class="obs" id="n4"></span></div></div></details>
+          </div>
+          <div class="stage" id="st5">
+            <div class="cardbar"><div class="sh"><span class="no">5</span>解调第二步：低通滤波，声音回来了<span class="life">生活：喇叭里的声音</span></div>
+              <div class="chips"><button class="chip pchip" id="cpY" data-play="y" aria-label="试听同步解调恢复的声音">▶ 听恢复的 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button></div></div>
+            <div class="fm"><math><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mrow><mo>{</mo><mtable columnalign="left"><mtr><mtd><mn>1</mn><mo>,</mo></mtd><mtd><mrow><mo>|</mo><mi>ω</mi><mo>|</mo></mrow><mo>≤</mo><msub><mi>ω</mi><mi>c</mi></msub></mtd></mtr><mtr><mtd><mn>0</mn><mo>,</mo></mtd><mtd><mrow><mo>|</mo><mi>ω</mi><mo>|</mo></mrow><mo>&gt;</mo><msub><mi>ω</mi><mi>c</mi></msub></mtd></mtr></mtable></mrow><mspace width="1em"/><mi>Y</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mi>V</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow><mn>2</mn></mfrac><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mspace width="0.6em"/><mo>⟹</mo><mspace width="0.6em"/><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math></div>
+            <div class="plots"><canvas id="t5"></canvas><canvas id="f5"></canvas></div>
+            <div class="cap concl">结论：低通只留下 0 处那份，得到 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>——声音回来了。</div>
+            <div class="cap wv" id="n5w"></div>
+            <details class="more"><summary>看图注与数值验证</summary><div class="in"><div class="cap">依据：<span class="ref">定理 7.3：频域相乘 ⟺ 时域 <math><mrow><mi>y</mi><mo>=</mo><mi>h</mi><mo>∗</mo><mi>v</mi></mrow></math></span></div><div class="cap">左：恢复的 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2f855a;font-weight:700">绿粗线</span>）、理论值 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>（<b>黑点线</b>）、原声音 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2b6cb0;font-weight:700">蓝虚线</span>）；右：浅紫为第 4 步的 <math><mrow><mo>|</mo><mi>V</mi><mo>|</mo></mrow></math>，蓝框为低通的放行区，绿色为滤波后剩下的 <math><mrow><mo>|</mo><mi>Y</mi><mo>|</mo></mrow></math>。<span class="obs" id="n5"></span></div></div></details>
+          </div>
+          <details class="adv stage" id="adv6">
+            <summary class="sh"><span class="no">6</span>进阶：普通调幅为什么要加 <math><mi>A</mi></math>？——包络检波<span class="life">生活：老式矿石收音机、便宜的中波收音机</span><span class="advhint"></span></summary>
+            <div class="cardbar"><span class="ttl">检波器输出可以直接听</span>
+              <div class="chips"><button class="chip pchip" id="cpE" data-play="e" aria-label="试听包络检波输出">▶ 听包络检波</button></div></div>
+            <div class="fm">检波器 = 二极管整流 + 低通：<math><mrow><msub><mi>y</mi><mtext>包</mtext></msub><mo>=</mo><mfrac><mi>π</mi><mn>2</mn></mfrac><mo>⋅</mo><mtext>低通</mtext><mo stretchy="false">[</mo><mrow><mo>|</mo><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>|</mo></mrow><mo stretchy="false">]</mo><mo>≈</mo><mrow><mo>|</mo><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></mrow></math>　（双边带取 <math><mrow><mi>A</mi><mo>=</mo><mn>0</mn></mrow></math>）</div>
+            <div class="plots"><canvas id="t6"></canvas></div>
+            <div class="cap concl">结论：检波器<b>不需要本地载波</b>，也就没有相位误差 <math><mrow><mi>φ</mi></mrow></math> 的问题；但要求 <math><mrow><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 始终为正。</div>
+            <div class="cap wv" id="n6w"></div>
+            <details class="more"><summary>看图注与数值验证</summary><div class="in"><div class="cap">淡绿 = 收到的 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>；<span style="color:#c53030;font-weight:700">红粗线</span> = 检波器输出（沿着 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 的上轮廓走）；<span style="color:#2b6cb0;font-weight:700">蓝虚线</span> = <math><mrow><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>。两条线重合，去掉直流 <math><mrow><mi>A</mi></mrow></math> 就是声音；不重合（<math><mrow><mi>A</mi><mo>+</mo><mi>m</mi></mrow></math> 变负的地方被"翻上来"）就是失真。点右侧"▶ 包络检波"可以听。
+              <span class="obs" id="n6"></span></div></div></details>
+          </details>
+        </div>
+
+        <!-- ============ 模式二 ============ -->
+        <div id="modeDual" style="display:none">
+          <div class="stage" id="dst1">
+            <div class="cardbar"><div class="sh"><span class="no">1</span>两家电台各播各的声音<span class="life">生活：两个节目</span></div>
+              <div class="chips"><button class="chip pchip" id="cpDM" data-play="m" aria-label="试听电台 1 的声音">▶ 听电台 1</button></div></div>
+            <div class="fm"><math><mrow><msub><mi>m</mi><mn>1</mn></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>⟶</mo><msub><mi>M</mi><mn>1</mn></msub><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>,</mo><mspace width="1em"/><msub><mi>m</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>⟶</mo><msub><mi>M</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math>　——两段声音的频谱<b>都在 0 附近</b>，直接发射必然重叠。</div>
+            <div class="plots"><canvas id="dt1"></canvas><canvas id="df1"></canvas></div>
+            <div class="cap concl"><span style="color:#2b6cb0;font-weight:700">蓝</span>＝电台 1，<span style="color:#c05621;font-weight:700">橙</span>＝电台 2。</div>
+            <details class="more"><summary>展开：为什么不调制就分不开</summary><div class="in"><div class="cap"><span class="obs" id="dn1"></span></div></div></details>
+          </div>
+          <div class="stage" id="dst2">
+            <div class="cardbar"><div class="sh"><span class="no">2</span>各自调制到自己的载波，在空中叠加<span class="life">生活：天线收到所有电台</span></div>
+              <div class="chips"><button class="chip pchip" id="cpDR" data-play="s" aria-label="试听天线收到的总信号">▶ 听 <math><mrow><mi>r</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button></div></div>
+            <div class="fm"><math><mrow><mi>r</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>m</mi><mn>1</mn></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>1</mn></msub><mi>t</mi><mo>+</mo><msub><mi>m</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>2</mn></msub><mi>t</mi><mo>⟶</mo><mi>R</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><msub><mi>M</mi><mn>1</mn></msub><mo stretchy="false">(</mo><mi>ω</mi><mo>∓</mo><msub><mi>ω</mi><mn>1</mn></msub><mo stretchy="false">)</mo><mo>]</mo><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><msub><mi>M</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>ω</mi><mo>∓</mo><msub><mi>ω</mi><mn>2</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math><span class="ref">例 7.9 ＋ 线性性质</span></div>
+            <div class="plots"><canvas id="dt2"></canvas><canvas id="df2"></canvas></div>
+            <div class="cap concl">结论：时域里两家混在一起，频域里<b>各占一段</b>；金色框＝收音机当前调到的放行区。</div>
+            <div class="cap wv" id="dn2w"></div>
+            <details class="more"><summary>看记号说明、图注与间距读数</summary><div class="in"><div class="cap">（记号 <math><mrow><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>∓</mo><msub><mi>ω</mi><mn>1</mn></msub><mo stretchy="false">)</mo></mrow></math> 是 <math><mrow><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>1</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>M</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>1</mn></msub><mo stretchy="false">)</mo></mrow></math> 的简写<span id="dfm2am" style="display:none">；普通调幅时每台还各多一对载波谱线 <math><mrow><mi>A</mi><mi>π</mi><mi>δ</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>∓</mo><msub><mi>ω</mi><mi>k</mi></msub><mo stretchy="false">)</mo></mrow></math></span>）</div><div class="cap">左：天线收到的总信号 <math><mrow><mi>r</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>，时域里两家混在一起，眼睛分不出；右：频域里两家<b>各占一段</b>，一目了然。金色框＝收音机当前调到的放行区（带通）。<span class="obs" id="dn2"></span></div></div></details>
+          </div>
+          <div class="stage" id="dst3">
+            <div class="sh"><span class="no">3</span>调台＝带通滤波：只放行所选电台<span class="life">生活：转调台旋钮</span></div>
+            <div class="fm"><math><mrow><msub><mi>H</mi><mtext>BP</mtext></msub><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><mrow><mo>{</mo><mtable columnalign="left"><mtr><mtd><mn>1</mn><mo>,</mo></mtd><mtd><mrow><mo>|</mo>><mrow><mo>|</mo><mi>ω</mi><mo>|</mo></mrow><mo>−</mo><msub><mi>ω</mi><mi>r</mi></msub><<mo>|</mo></mrow><mo>≤</mo><msub><mi>ω</mi><mi>c</mi></msub></mtd></mtr><mtr><mtd><mn>0</mn><mo>,</mo></mtd><mtd><mtext>其他</mtext></mtd></mtr></mtable></mrow><mspace width="1em"/><mi>B</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>H</mi><mtext>BP</mtext></msub><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mi>R</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math>（<math><msub><mi>ω</mi><mi>r</mi></msub></math>：收音机调到的频率）</div>
+            <div class="plots"><canvas id="dt3"></canvas><canvas id="df3"></canvas></div>
+            <div class="cap">左：带通后的 <math><mrow><mi>b</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2f855a;font-weight:700">绿</span>）；右：只剩金色框里的那一家。<span class="obs" id="dn3"></span></div>
+          </div>
+          <div class="stage" id="dst4">
+            <div class="sh"><span class="no">4</span>乘本地载波 <math><mrow><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mi>r</mi></msub><mi>t</mi><mo>+</mo><mi>φ</mi><mo stretchy="false">)</mo></mrow></math>，把频谱搬回 0</div>
+            <div class="fm"><math><mrow><mi>v</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>b</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mi>r</mi></msub><mi>t</mi><mo>+</mo><mi>φ</mi><mo stretchy="false">)</mo></mrow></math>：若 <math><mrow><msub><mi>ω</mi><mi>r</mi></msub><mo>=</mo><msub><mi>ω</mi><mi>k</mi></msub></mrow></math>（调准了第 <math><mi>k</mi></math> 台），与模式一第 4 步完全相同。<span class="ref">例 7.9</span></div>
+            <div class="plots"><canvas id="dt4"></canvas><canvas id="df4"></canvas></div>
+            <div class="cap">左：<math><mrow><mi>v</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#6b46c1;font-weight:700">紫</span>）；右：<math><mrow><mo>|</mo><mi>V</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math>。<span class="obs" id="dn4"></span></div>
+          </div>
+          <div class="stage" id="dst5">
+            <div class="cardbar"><div class="sh"><span class="no">5</span>低通 → 听到的声音</div>
+              <div class="chips"><button class="chip pchip" id="cpDY" data-play="y" aria-label="试听调台后恢复的声音">▶ 听调台结果 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button></div></div>
+            <div class="fm"><math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mi>ℱ</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo>[</mo><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mi>V</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>]</mo><mo>≈</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><msub><mi>m</mi><mi>k</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>（调准第 <math><mi>k</mi></math> 台且两台频谱不重叠时）<span class="ref">定理 7.3</span></div>
+            <div class="plots"><canvas id="dt5"></canvas><canvas id="df5"></canvas></div>
+            <div class="cap concl">结论：调准某一台，低通后就只剩这一台的声音。</div>
+            <div class="cap wv" id="dn5w"></div>
+            <details class="more"><summary>看图注与数值验证</summary><div class="in"><div class="cap">左：恢复的 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（<span style="color:#2f855a;font-weight:700">绿粗线</span>）与所调电台理论值 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><msub><mi>m</mi><mi>k</mi></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>（<b>黑点线</b>）；右：<math><mrow><mo>|</mo><mi>Y</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo><mo>|</mo></mrow></math>。<span class="obs" id="dn5"></span></div></div></details>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 控制面板 ============ -->
+      <div class="side" id="sidePanel">
+        <div class="ctrls">
+          <h2 id="hMsg">声音 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></h2>
+          <div class="ctrl"><label>选一段声音</label>
+            <select id="selP1">
+              <option value="tone">单音（一个纯音）</option>
+              <option value="two">双音（300 Hz ＋ 700 Hz）</option>
+              <option value="melA">一小段旋律：小星星</option>
+              <option value="melB">一小段旋律：两只老虎</option>
+            </select></div>
+          <div class="ctrl" id="wrapFm"><label>单音频率 <math><msub><mi>f</mi><mi>m</mi></msub></math>：<span class="v" id="vFm"></span></label>
+            <input type="range" id="sFm" min="200" max="800" step="10" value="500"></div>
+        </div>
+        <div class="ctrls">
+          <h2>载波与调制方式</h2>
+          <div class="ctrl"><label><span id="lblF0">载波频率 <math><msub><mi>f</mi><mn>0</mn></msub></math></span>：<span class="v" id="vF0"></span></label>
+            <input type="range" id="sF0" min="2000" max="8000" step="100" value="3000"></div>
+          <div class="ctrl radio">
+            <label><input type="radio" name="am" value="dsb" checked> 双边带 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math></label>
+            <label><input type="radio" name="am" value="am"> 普通调幅 <math><mrow><mo>[</mo><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math></label>
+          </div>
+          <div class="ctrl" id="wrapA" style="display:none"><label>直流偏置 <math><mi>A</mi></math>：<span class="v" id="vA"></span></label>
+            <input type="range" id="sA" min="0.2" max="2.5" step="0.05" value="1.5">
+            <small id="aNote"></small></div>
+        </div>
+        <div class="ctrls" id="boxDual" style="display:none">
+          <h2>两个电台 · 调台</h2>
+          <div class="ctrl"><label>电台 2 的声音 <math><mrow><msub><mi>m</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></label>
+            <select id="selP2">
+              <option value="tone">单音 500 Hz</option>
+              <option value="two">双音（300 Hz ＋ 700 Hz）</option>
+              <option value="melA">旋律：小星星</option>
+              <option value="melB" selected>旋律：两只老虎</option>
+            </select></div>
+          <div class="ctrl"><label>电台 2 载波 <math><msub><mi>f</mi><mn>2</mn></msub></math>：<span class="v" id="vF2"></span></label>
+            <input type="range" id="sF2" min="2000" max="8000" step="100" value="6000"></div>
+          <div class="ctrl"><label>🎛 调台旋钮 <math><msub><mi>f</mi><mi>r</mi></msub></math>（收音机调到的频率）：<span class="v" id="vTune"></span></label>
+            <input type="range" id="sTune" min="2000" max="8000" step="50" value="3000">
+            <small>把旋钮拧到某台的载波频率上，就"收到"那一台。</small></div>
+        </div>
+        <div class="ctrls">
+          <h2>收音机（解调）</h2>
+          <div class="ctrl"><label>本地载波相位误差 <math><mi>φ</mi></math>：<span class="v" id="vPhi"></span></label>
+            <input type="range" id="sPhi" min="0" max="180" step="5" value="0">
+            <small>收音机自己产生的 <math><mrow><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>+</mo><mi>φ</mi><mo stretchy="false">)</mo></mrow></math> 与电台载波"节拍没对齐"的程度。恢复幅度 ∝ <math><mrow><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>。</small></div>
+          <div class="ctrl"><label>低通截止频率 <math><msub><mi>f</mi><mi>c</mi></msub></math>：<span class="v" id="vFc"></span></label>
+            <input type="range" id="sFc" min="300" max="3500" step="50" value="1200">
+            <small>理想低通：<math><mrow><mrow><mo>|</mo><mi>f</mi><mo>|</mo></mrow><mo>≤</mo><msub><mi>f</mi><mi>c</mi></msub></mrow></math> 全放行，其余全挡掉。模式二中带通半宽也取 <math><msub><mi>f</mi><mi>c</mi></msub></math>。</small></div>
+        </div>
+        <div class="ctrls">
+          <h2>🔊 试听（点按钮开始；各步图的标题栏也有 ▶）</h2>
+          <div class="pbtns">
+            <button class="btn" id="pM">▶ 原始声音 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button>
+            <button class="btn" id="pS">▶ 调制后 <math><mrow><mi>s</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math>（高频"嗡嗡声"）</button>
+            <button class="btn" id="pY">▶ 同步解调恢复 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math></button>
+            <button class="btn" id="pE">▶ 包络检波（老式收音机）</button>
+            <button class="btn stop" id="pStop">■ 停止</button>
+          </div>
+          <details class="more"><summary>展开：试听说明（音量、手机静音键）</summary><div class="in"><small style="display:block;font-size:12px;">各段用<b>同一个音量系数</b>播放（播放前去掉直流，耳朵本来也听不到直流），所以 <math><mrow><mi>y</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 听起来比 <math><mrow><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></math> 轻（只有 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math> 倍）。手机请先关掉静音键。</small></div></details>
+        </div>
+        <div class="ctrls">
+          <h2>时域图的观察窗口</h2>
+          <div class="ctrl"><label>起点 <math><msub><mi>t</mi><mtext>起</mtext></msub></math>：<span class="v" id="vT0"></span></label>
+            <input type="range" id="sT0" min="0" max="1.58" step="0.005" value="0.25"></div>
+          <div class="ctrl"><label>窗口长度：<span class="v" id="vWin"></span></label>
+            <input type="range" id="sWin" min="2" max="20" step="0.5" value="6">
+            <small>整段信号长 1.6 秒；旋律每个音 0.2 秒，拖"起点"可看不同的音。</small></div>
+        </div>
+        <details class="more" id="moreSet"><summary>更多设置：导出数据</summary><div class="in">
+          <div style="margin-top:8px;"><button class="btn ghost" id="bExport">导出使用数据（CSV）</button></div>
+          <small style="display:block;font-size:12px;margin-top:4px;">"关于数值"（FFT 参数、纵轴含义）见顶部"？使用说明"。</small>
+        </div></details>
+      </div>
+    </div>
+  </div>
+
+  <div class="know">
+    <h2>看什么？三个要点</h2>
+    <p><b>① 调制＝频谱搬家，高度减半。</b></p>
+    <p><b>② 解调＝再搬一次＋低通，得到 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>。</b></p>
+    <p><b>③ 不同载波 ⟹ 频谱各占一段 ⟹ 电台互不干扰。</b></p>
+    <details class="more"><summary>展开：三个要点的详细解释</summary><div class="in">
+      <p>①第 1 步的 <math><mrow><mo>|</mo><mi>M</mi><mo>|</mo></mrow></math> 在 0 附近；第 3 步乘上 <math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math> 后，同一个形状出现在 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两处，高度正好是原来的 <math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>——这就是例 7.9 <math><mrow><mi>ℱ</mi><mo>[</mo><mi>f</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>]</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>[</mo><mi>F</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>−</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>+</mo><mi>F</mi><mo stretchy="false">(</mo><mi>ω</mi><mo>+</mo><msub><mi>ω</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mo>]</mo></mrow></math>。原因：<math><mrow><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo stretchy="false">(</mo><msup><mi>e</mi><mrow><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></msup><mo>+</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></msup><mo stretchy="false">)</mo></mrow></math>，乘 <math><msup><mi>e</mi><mrow><mi>j</mi><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></msup></math> 就是频移。拖载波 <math><msub><mi>f</mi><mn>0</mn></msub></math>，两份副本跟着平移，形状不变。</p>
+      <p>②因为 <math><mrow><msup><mi>cos</mi><mn>2</mn></msup><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>cos</mi><mo>⁡</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math>，再乘一次载波会把频谱分成"0 处一份 + <math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 两份"，低通只留下 0 处那份。拖相位误差 <math><mi>φ</mi></math>：<math><mrow><mi>φ</mi><mo>=</mo><msup><mn>60</mn><mo>∘</mo></msup></mrow></math> 时声音只剩一半，<math><mrow><mi>φ</mi><mo>=</mo><msup><mn>90</mn><mo>∘</mo></msup></mrow></math> 时<b>完全消失</b>，<math><mrow><mi>φ</mi><mo>=</mo><msup><mn>180</mn><mo>∘</mo></msup></mrow></math> 时波形整体倒过来。所以双边带需要收音机的本地载波与电台<b>同步</b>（叫相干解调）；而普通调幅 <math><mrow><mo>[</mo><mi>A</mi><mo>+</mo><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo>]</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mn>0</mn></msub><mi>t</mi></mrow></math> 的包络就是声音，便宜的收音机用"包络检波"直接描出包络即可，不需要同步——代价是多发了一个不含信息的载波（频谱里那根高高的线），浪费功率。</p>
+      <p>③切到模式二，拧调台旋钮：调到 <math><msub><mi>f</mi><mn>1</mn></msub></math> 听到电台 1，调到 <math><msub><mi>f</mi><mn>2</mn></msub></math> 听到电台 2。若把两台载波拉得太近（间距小于两家声音带宽之和），频谱副本就会叠在一起，带通再也分不开——这就是<b>串台</b>。所以国家要给每家电台统一分配频率（中波 AM 相邻电台一般相隔 9 kHz）。</p>
+    </div></details>
+  </div>
+
+  <footer>
+    © 北京信息科技大学 复变函数与积分变换课程组 · 本页仅用于教学。<br>
+    网页开发维护：何迪
+  </footer>
+</div>
+
+<div class="mbar" id="mbar" role="group" aria-label="常用参数快捷条">
+  <span class="ml" id="mLbl">载波 <math><msub><mi>f</mi><mn>0</mn></msub></math><span class="mv" id="mVal">3 kHz</span></span>
+  <input type="range" id="mSl" min="2000" max="8000" step="100" value="3000" aria-label="载波频率">
+  <button class="btn" id="mPlay" aria-label="试听恢复的声音">▶ 听</button>
+  <button class="btn ghost" id="mSet" aria-label="跳到全部参数">⚙ 参数</button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <span class="x" id="helpX">×</span>
+    <h3>使用说明 · AM 调制与解调</h3>
+    <p><b>这是什么：</b>用收音机的例子把傅里叶变换的<b>调制性质</b>（课件例 7.9）和<b>卷积定理</b>（定理 7.3）"看见、听见"。页面上方的<b>"从生活到数学"</b>面板先用大白话讲清电台为什么要调制、收音机怎么解调，并给出生活说法与数学符号的对照表。</p>
+    <h4>怎么用</h4>
+    <ol>
+      <li>右侧选一段<b>声音</b>（单音 / 双音 / 旋律），拖<b>载波频率</b> <math><msub><mi>f</mi><mn>0</mn></msub></math>。</li>
+      <li>从上往下看五步图：声音 → 载波 → 调制 → 再乘载波 → 低通。每步都是"左时域、右频谱"，公式写在图上方，图下一句结论；"看数值验证""看推导"等折叠块点开可看细节。第 ⑥ 步"包络检波"是进阶内容，默认收起，点开即看。</li>
+      <li>切换"双边带 / 普通调幅"，拖直流偏置 <math><mi>A</mi></math>，看包络什么时候和声音一样、什么时候<b>过调制</b>（<math><mrow><mi>A</mi><mo>&lt;</mo><mi>max</mi><mo>⁡</mo><mrow><mo>|</mo><mi>m</mi><mo>|</mo></mrow></mrow></math>，包络变形）。</li>
+      <li>拖<b>相位误差</b> <math><mi>φ</mi></math> 和<b>截止频率</b> <math><msub><mi>f</mi><mi>c</mi></msub></math>，看恢复效果；截止频率太低会削掉声音本身，太高会漏进 <math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 的副本。</li>
+      <li>点上方<b>模式二</b>：两个电台、一个调台旋钮。</li>
+      <li>点 <b>▶</b> 按钮用耳朵听（需点击后才能出声，这是浏览器规定）。第 ①③⑤⑥ 步（模式二的 ①②⑤ 步）图的标题栏里也有 ▶，边看边听；正在播放的按钮变蓝，再点一次就停。</li>
+      <li>改了某个参数，<b>最主要受它影响的那一步</b>会闪一下蓝光；那一步不在屏幕内时，底部会提示"↓ 第③步 调制 已更新"并写出还影响哪几步，点提示就跳过去。手机上图在上、参数在下，屏幕底部的固定条可直接拖载波 <math><msub><mi>f</mi><mn>0</mn></msub></math>（模式二为调台旋钮）、点"▶ 听"听恢复的声音、点"⚙ 参数"跳到全部参数。</li>
+    </ol>
+    <h4>看什么（3 个要点）</h4>
+    <p>① 调制把频谱原样搬到 <math><mrow><mo>±</mo><msub><mi>ω</mi><mn>0</mn></msub></mrow></math>，每份高度减半（例 7.9）。② 解调是再搬一次：0 处一份 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>M</mi></mrow></math>、<math><mrow><mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub></mrow></math> 各一份 <math><mrow><mfrac><mn>1</mn><mn>4</mn></mfrac><mi>M</mi></mrow></math>，低通后得 <math><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>m</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi></mrow></math>（滤波＝频域相乘＝时域卷积，定理 7.3）。③ 不同电台的载波不同，频谱各占一段，带通就能把想听的那家挑出来；载波靠得太近就会串台。</p>
+    <h4>与其他工具的关系</h4>
+    <p><a href="./T12_频谱与傅里叶变换对.html">T12 频谱与傅里叶变换对</a>：什么是频谱、余弦的谱为什么是两根线。<a href="./T14_傅里叶变换的性质.html">T14 傅里叶变换的性质</a>：其中"频移 / 调制"一项就是本页的核心公式，本页给它配上了真实用途。<a href="./T15_卷积定理.html">T15 卷积定理</a>：本页的滤波（频域乘 <math><mrow><mi>H</mi><mo stretchy="false">(</mo><mi>ω</mi><mo stretchy="false">)</mo></mrow></math>）与"乘法的谱＝谱的卷积"都来自它。</p>
+    <h4>说明</h4>
+    <p>频率是按比例缩小的教学频率（声音 200–900 Hz，载波 2–8 kHz），真实中波载波约为 530–1600 kHz。频谱用 FFT 数值计算，滤波器取理想滤波器（实际电路做不到绝对陡峭的边沿）。</p>
+    <h4>关于数值</h4>
+    <p>频谱由 FFT 算出（采样率 40960 Hz，<math><mrow><mi>N</mi><mo>=</mo><mn>65536</mn></mrow></math> 点，时长 1.6 s，频率分辨率 0.625 Hz）。纵轴＝<math><mrow><mo>|</mo><msub><mi>X</mi><mi>k</mi></msub><mo>|</mo><mo>/</mo><mi>N</mi></mrow></math>：振幅为 <math><mi>a</mi></math> 的余弦 <math><mrow><mi>a</mi><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mi>m</mi></msub><mi>t</mi></mrow></math> 在 <math><mrow><mo>±</mo><msub><mi>ω</mi><mi>m</mi></msub></mrow></math> 各画高 <math><mrow><mi>a</mi><mo>/</mo><mn>2</mn></mrow></math>（理论上是冲激 <math><mrow><mi>a</mi><mi>π</mi><mi>δ</mi></mrow></math>，画的是冲激强度除以 <math><mrow><mn>2</mn><mi>π</mi></mrow></math>）。滤波器为理想滤波（频域直接乘 0/1）。</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 匿名使用埋点（本机 localStorage，可导出 CSV）============ */
+var EduTelemetry = (function(){
+  var KEY="edu_telemetry_T23", buf=[];
+  try{ buf=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ buf=[]; }
+  function log(type,detail){
+    buf.push({t:new Date().toISOString(), type:type, detail:detail==null?"":String(detail)});
+    if(buf.length>2000) buf=buf.slice(-2000);
+    try{ localStorage.setItem(KEY, JSON.stringify(buf)); }catch(e){}
+  }
+  function exportCSV(){
+    var rows=[["time","type","detail"]].concat(buf.map(function(r){return [r.t,r.type,r.detail.replace(/[,\n]/g,";")];}));
+    var csv=rows.map(function(r){return r.join(",");}).join("\n");
+    var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="T23_使用数据.csv"; document.body.appendChild(a); a.click(); a.remove();
+  }
+  return {log:log, exportCSV:exportCSV};
+})();
+
+/*ENGINE-START*/
+/* ============ 数值引擎：信号合成、FFT、调制、解调、理想滤波 ============ */
+var FS=40960, N=65536, DF=FS/N, TT=N/FS, NOTE=0.2, TWO_PI=2*Math.PI;
+var MEL={
+  melA:[261.63,261.63,392.00,392.00,440.00,440.00,392.00,392.00],   // 小星星 C C G G A A G G
+  melB:[261.63,293.66,329.63,261.63,261.63,293.66,329.63,261.63]    // 两只老虎 C D E C C D E C
+};
+var BW={tone:0, two:700, melA:900, melB:700};   // 声音带宽（Hz），tone 用 fm
+function bandwidth(p,fm){ return p==="tone"?fm:BW[p]; }
+// radix-2 FFT（原位，迭代）；inv=true 时为未除 N 的逆变换
+var FFT=(function(n){
+  var lg=Math.round(Math.log(n)/Math.LN2), rev=new Uint32Array(n), cs=new Float64Array(n/2), sn=new Float64Array(n/2);
+  for(var i=0;i<n;i++){ var r=0,x=i; for(var b=0;b<lg;b++){ r=(r<<1)|(x&1); x>>=1; } rev[i]=r; }
+  for(var k=0;k<n/2;k++){ cs[k]=Math.cos(TWO_PI*k/n); sn[k]=-Math.sin(TWO_PI*k/n); }
+  return function(re,im,inv){
+    for(var i=0;i<n;i++){ var j=rev[i]; if(j>i){ var t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+    for(var size=2;size<=n;size<<=1){
+      var half=size>>1, step=n/size;
+      for(var st=0;st<n;st+=size){
+        for(var k=0,tw=0;k<half;k++,tw+=step){
+          var wr=cs[tw], wi=inv?-sn[tw]:sn[tw], a=st+k, b=a+half;
+          var xr=re[b]*wr-im[b]*wi, xi=re[b]*wi+im[b]*wr;
+          re[b]=re[a]-xr; im[b]=im[a]-xi; re[a]+=xr; im[a]+=xi;
+        }
+      }
+    }
+  };
+})(N);
+function spec(x){ var re=Float64Array.from(x), im=new Float64Array(N); FFT(re,im,false); return {re:re,im:im}; }
+function ispecReal(X){ var re=X.re.slice(), im=X.im.slice(); FFT(re,im,true); for(var i=0;i<N;i++) re[i]/=N; return re; }
+function magOf(X){ var m=new Float64Array(N); for(var i=0;i<N;i++) m[i]=Math.sqrt(X.re[i]*X.re[i]+X.im[i]*X.im[i])/N; return m; }
+function fOfBin(k){ return k<N/2?k*DF:(k-N)*DF; }
+function binOf(f){ var k=Math.round(f/DF); return ((k%N)+N)%N; }
+function filt(X,gain){ var re=new Float64Array(N), im=new Float64Array(N); for(var k=0;k<N;k++){ var g=gain(fOfBin(k)); re[k]=X.re[k]*g; im[k]=X.im[k]*g; } return {re:re,im:im}; }
+function addSpec(A,B){ var re=new Float64Array(N), im=new Float64Array(N); for(var k=0;k<N;k++){ re[k]=A.re[k]+B.re[k]; im[k]=A.im[k]+B.im[k]; } return {re:re,im:im}; }
+function lpGain(fc){ return function(f){ return Math.abs(f)<=fc+1e-9?1:0; }; }
+function bpGain(f0,B){ return function(f){ return Math.abs(Math.abs(f)-f0)<=B+1e-9?1:0; }; }
+function noteEnv(tl){ var a=0.015, r=0.05; if(tl<a) return 0.5*(1-Math.cos(Math.PI*tl/a)); if(tl>NOTE-r) return 0.5*(1+Math.cos(Math.PI*(tl-(NOTE-r))/r)); return 1; }
+// 消息信号（解析式，可在任意 t 求值；整段以 TT=1.6 s 为周期）
+function mAt(p,fm,t){
+  t=((t%TT)+TT)%TT;
+  if(p==="tone") return Math.cos(TWO_PI*fm*t);
+  if(p==="two")  return 0.6*Math.cos(TWO_PI*300*t)+0.4*Math.cos(TWO_PI*700*t);
+  var notes=MEL[p], idx=Math.min(7,Math.floor(t/NOTE)), tl=t-idx*NOTE, f=notes[idx];
+  return 0.85*noteEnv(tl)*(Math.sin(TWO_PI*f*tl)+0.2*Math.sin(2*TWO_PI*f*tl))/1.2;
+}
+function makeMsg(p,fm){ var x=new Float64Array(N); for(var n=0;n<N;n++) x[n]=mAt(p,fm,n/FS); var X=spec(x); return {x:x, X:X, mag:magOf(X)}; }
+function modulate(m,f0,am,A){ var s=new Float64Array(N); for(var n=0;n<N;n++) s[n]=((am?A:0)+m[n])*Math.cos(TWO_PI*f0*n/FS); return s; }
+function mix(x,f0,phi){ var v=new Float64Array(N); for(var n=0;n<N;n++) v[n]=x[n]*Math.cos(TWO_PI*f0*n/FS+phi); return v; }
+function envDetect(x,fc){ var a=new Float64Array(N); for(var n=0;n<N;n++) a[n]=Math.abs(x[n]); var e=ispecReal(filt(spec(a),lpGain(fc))); for(var i=0;i<N;i++) e[i]*=Math.PI/2; return e; }
+function acPart(x){ var m=0,i; for(i=0;i<N;i++) m+=x[i]; m/=N; var y=new Float64Array(N); for(i=0;i<N;i++) y[i]=x[i]-m; return y; }
+function rms(x){ var s=0; for(var i=0;i<x.length;i++) s+=x[i]*x[i]; return Math.sqrt(s/x.length); }
+function relErr(y,t){ var d=0,s=0; for(var i=0;i<y.length;i++){ d+=(y[i]-t[i])*(y[i]-t[i]); s+=t[i]*t[i]; } return s<1e-12?null:Math.sqrt(d/s); }
+// 模式一：P={p1,fm,f0,am,A,phi(rad),fc}
+function runSingle(P,mm){
+  if(!mm) mm=makeMsg(P.p1,P.fm);
+  var s=modulate(mm.x,P.f0,P.am,P.A), S=spec(s);
+  var v=mix(s,P.f0,P.phi), V=spec(v);
+  var Y=filt(V,lpGain(P.fc)), y=ispecReal(Y);
+  var g=0.5*Math.cos(P.phi), tgt=new Float64Array(N);
+  for(var n=0;n<N;n++) tgt[n]=g*((P.am?P.A:0)+mm.x[n]);
+  var env=envDetect(s,P.fc), envErr=relErr(acPart(env),acPart(mm.x));
+  return {env:env, envErr:envErr, m:mm.x, M:mm.X, mM:mm.mag, s:s, S:S, mS:magOf(S), v:v, V:V, mV:magOf(V), Y:Y, mY:magOf(Y), y:y, tgt:tgt, err:relErr(y,tgt)};
+}
+// 模式二：P={p1,fm,f0,p2,f2,am,A,tune,phi,fc}
+function runDual(P,m1,m2){
+  if(!m1) m1=makeMsg(P.p1,P.fm);
+  if(!m2) m2=makeMsg(P.p2,500);
+  var s1=modulate(m1.x,P.f0,P.am,P.A), s2=modulate(m2.x,P.f2,P.am,P.A);
+  var S1=spec(s1), S2=spec(s2), R=addSpec(S1,S2), r=new Float64Array(N);
+  for(var n=0;n<N;n++) r[n]=s1[n]+s2[n];
+  var Bs=filt(R,bpGain(P.tune,P.fc)), b=ispecReal(Bs);
+  var v=mix(b,P.tune,P.phi), V=spec(v), Y=filt(V,lpGain(P.fc)), y=ispecReal(Y);
+  var k=0; if(Math.abs(P.tune-P.f0)<1) k=1; else if(Math.abs(P.tune-P.f2)<1) k=2;
+  if(Math.abs(P.f0-P.f2)<1 && k) k=3;            // 两台同频
+  var tgt=null, err=null;
+  if(k===1||k===2){ var mk=(k===1?m1:m2).x, g=0.5*Math.cos(P.phi); tgt=new Float64Array(N);
+    for(var i=0;i<N;i++) tgt[i]=g*((P.am?P.A:0)+mk[i]); err=relErr(y,tgt); }
+  var env=envDetect(b,P.fc), envErr=(k===1||k===2)?relErr(acPart(env),acPart((k===1?m1:m2).x)):null;
+  return {env:env, envErr:envErr, m1:m1, m2:m2, s1:s1, s2:s2, r:r, mS1:magOf(S1), mS2:magOf(S2), mR:magOf(R), b:b, mB:magOf(Bs), v:v, mV:magOf(V), y:y, mY:magOf(Y), k:k, tgt:tgt, err:err};
+}
+// 区间内谱峰（|f| 在 [fa,fb]，可排除若干精确频点）
+function peakIn(mag,fa,fb,excl){
+  var best=0, ka=Math.ceil(fa/DF), kb=Math.floor(fb/DF);
+  for(var k=ka;k<=kb;k++){ var f=k*DF, skip=false;
+    if(excl) for(var e=0;e<excl.length;e++) if(Math.abs(f-excl[e])<DF/2) skip=true;
+    if(skip) continue; var v=mag[((k%N)+N)%N]; if(v>best) best=v; }
+  return best;
+}
+/*ENGINE-END*/
+
+/* ============ 界面状态 ============ */
+var P={mode:"single", p1:"tone", fm:500, f0:3000, am:false, A:1.5, phiDeg:0, fc:1200, p2:"melB", f2:6000, tune:3000, t0:0.25, win:6};
+var RES=null, DPR=1;
+var msgCache={};
+function getMsg(p,fm){
+  var key=p+"|"+(p==="tone"?fm:"");
+  if(!msgCache[key]){ var ks=Object.keys(msgCache); if(ks.length>6) delete msgCache[ks[0]]; msgCache[key]=makeMsg(p,fm); }
+  return msgCache[key];
+}
+function $(id){ return document.getElementById(id); }
+function engineParams(){ return {p1:P.p1, fm:P.fm, f0:P.f0, am:P.am, A:P.A, phi:P.phiDeg*Math.PI/180, fc:P.fc, p2:P.p2, f2:P.f2, tune:P.tune}; }
+function compute(){
+  var E=engineParams();
+  if(P.mode==="single") RES=runSingle(E,getMsg(P.p1,P.fm));
+  else RES=runDual(E,getMsg(P.p1,P.fm),getMsg(P.p2,500));
+}
+
+/* ============ 绘图工具 ============ */
+var COL={m:"#2b6cb0", c:"#b7791f", s:"#2f855a", env:"#c53030", v:"#6b46c1", y:"#2f855a", m2:"#c05621", ink:"#1a202c"};
+var CN="12px 'Microsoft YaHei',sans-serif", MF="italic 13px 'Cambria Math','STIX Two Math',serif";
+function prep(id){
+  var cv=$(id), w=cv.clientWidth||400, h=Math.round(Math.max(170,Math.min(210,w*0.45)));
+  cv.width=Math.round(w*DPR); cv.height=Math.round(h*DPR); cv.style.height=h+"px";
+  var c=cv.getContext("2d"); c.setTransform(DPR,0,0,DPR,0,0); c.clearRect(0,0,w,h);
+  return {c:c,w:w,h:h};
+}
+function niceCeil(v){ var L=[0.01,0.02,0.025,0.05,0.1,0.2,0.25,0.3,0.4,0.5,0.6,0.75,1,1.25,1.5,2,2.5,3,4,5]; for(var i=0;i<L.length;i++) if(L[i]>=v) return L[i]; return Math.ceil(v); }
+function fmtNum(v){ if(v===0) return "0"; var a=Math.abs(v); return a>=1?v.toFixed(a>=10?0:1).replace(/\.0$/,""):(a>=0.1?v.toFixed(2):v.toFixed(3)).replace(/0+$/,"").replace(/\.$/,""); }
+// 画布里的公式标签：汉字用 CN，cos/max 等函数名直立，其余（变量）用斜体数学字体 MF
+var MU="13px 'Cambria Math','STIX Two Math',serif";
+function mixRuns(s){ var out=[], re=/([　-鿿＀-￯]+|cos|sin|max)/g, last=0, m;
+  while((m=re.exec(s))){ if(m.index>last) out.push([s.slice(last,m.index),MF]); out.push([m[0],/^(cos|sin|max)$/.test(m[0])?MU:CN]); last=re.lastIndex; }
+  if(last<s.length) out.push([s.slice(last),MF]); return out; }
+function mixW(c,s){ var w=0; mixRuns(s).forEach(function(r){ c.font=r[1]; w+=c.measureText(r[0]).width; }); return w; }
+function mixText(c,s,x,y){ var al=c.textAlign; c.textAlign="left"; mixRuns(s).forEach(function(r){ c.font=r[1]; c.fillText(r[0],x,y); x+=c.measureText(r[0]).width; }); c.textAlign=al; }
+function legend(c,items,x,y){
+  c.font=CN; var cx=x;
+  for(var i=0;i<items.length;i++){ var it=items[i];
+    c.strokeStyle=it.col; c.lineWidth=it.lw||2; c.setLineDash(it.dash||[]);
+    c.beginPath(); c.moveTo(cx,y-4); c.lineTo(cx+16,y-4); c.stroke(); c.setLineDash([]);
+    c.fillStyle=COL.ink; mixText(c,it.lab,cx+20,y); cx+=24+mixW(c,it.lab)+10; }
+}
+// 时域图：traces=[{f(t),col,lw,dash,lab}]
+function drawTime(id,traces,title,yFixed){
+  var g=prep(id), c=g.c, W=g.w, H=g.h, L=40, Rm=8, T=22, B=34, pw=W-L-Rm, ph=H-T-B;
+  var t0=P.t0, t1=P.t0+P.win/1000, npx=Math.ceil(pw*3), ymax=0, data=[];
+  for(var j=0;j<traces.length;j++){ var arr=new Float64Array(npx+1);
+    for(var i=0;i<=npx;i++){ arr[i]=traces[j].f(t0+(t1-t0)*i/npx); if(Math.abs(arr[i])>ymax) ymax=Math.abs(arr[i]); }
+    data.push(arr); }
+  ymax=yFixed||niceCeil(Math.max(ymax*1.08,0.05));
+  function Y(v){ return T+ph/2-v/ymax*ph/2; }
+  c.strokeStyle="#e2e8f0"; c.lineWidth=1; c.strokeRect(L,T,pw,ph);
+  c.strokeStyle="#a0aec0"; c.beginPath(); c.moveTo(L,Y(0)); c.lineTo(L+pw,Y(0)); c.stroke();
+  c.fillStyle=COL.ink; c.font="11px 'Microsoft YaHei',sans-serif"; c.textAlign="right";
+  c.fillText(fmtNum(ymax),L-4,T+8); c.fillText("0",L-4,Y(0)+4); c.fillText("−"+fmtNum(ymax),L-4,T+ph);
+  c.textAlign="center";
+  var NT=pw<360?2:4;   /* 窄屏（手机）只画 3 个刻度，避免数字挤在一起 */
+  var dec=(Math.abs(P.win/NT-Math.round(P.win/NT))<1e-9 && Math.abs(P.t0*1000-Math.round(P.t0*1000))<1e-9)?0:(Math.abs(P.win*10/NT-Math.round(P.win*10/NT))<1e-9?1:2);
+  for(var q=0;q<=NT;q++){ var tt=t0+(t1-t0)*q/NT, xx=L+pw*q/NT; c.textAlign=q===NT?"right":"center"; c.fillText((tt*1000).toFixed(dec),q===NT?xx+4:xx,H-19);
+    c.strokeStyle="#edf2f7"; c.beginPath(); c.moveTo(xx,T); c.lineTo(xx,T+ph); c.stroke(); }
+  c.textAlign="right"; c.font="11px 'Microsoft YaHei',sans-serif"; var uw=c.measureText(" (ms)").width; c.fillText(" (ms)",L+pw+4,H-4);
+  c.font="italic 12px 'Cambria Math','STIX Two Math',serif"; c.fillText("t",L+pw+4-uw,H-4); c.font="11px 'Microsoft YaHei',sans-serif";
+  c.textAlign="left";
+  c.save(); c.beginPath(); c.rect(L,T,pw,ph); c.clip();
+  for(var j2=0;j2<traces.length;j2++){ var tr=traces[j2], a=data[j2];
+    c.strokeStyle=tr.col; c.lineWidth=tr.lw||1.6; c.setLineDash(tr.dash||[]); c.beginPath();
+    for(var i2=0;i2<=npx;i2++){ var x=L+pw*i2/npx, y=Y(Math.max(-ymax*1.05,Math.min(ymax*1.05,a[i2]))); if(i2===0) c.moveTo(x,y); else c.lineTo(x,y); }
+    c.stroke(); c.setLineDash([]); }
+  c.restore();
+  c.font=CN; c.fillStyle=COL.ink; c.fillText(title,L,T-7);
+  var items=traces.filter(function(t){return t.lab;});
+  c.font=CN; var tw=c.measureText(title).width;
+  legend(c,items,L+tw+12,T-7);
+}
+// 频谱图：o={layers:[{mag,col,alpha}],ymax,Fmax,marks:[{f,lab}],bands:[{a,b,lab,col,fill}],refs:[{y,lab}],title}
+function drawSpec(id,o){
+  var g=prep(id), c=g.c, W=g.w, H=g.h, L=40, Rm=8, T=22, B=34, pw=W-L-Rm, ph=H-T-B, Fm=o.Fmax, ym=o.ymax;
+  function X(f){ return L+(f+Fm)/(2*Fm)*pw; }
+  function Y(v){ return T+ph-v/ym*ph; }
+  c.strokeStyle="#e2e8f0"; c.lineWidth=1; c.strokeRect(L,T,pw,ph);
+  // 横轴刻度（kHz）
+  var stepK=[0.5,1,2,2.5,5,10], st=1; for(var i=0;i<stepK.length;i++){ if(Fm/1000/stepK[i]<=(pw<360?2:4)){ st=stepK[i]; break; } }   /* 窄屏每侧最多 2 个刻度 */
+  c.font="11px 'Microsoft YaHei',sans-serif"; c.fillStyle=COL.ink; c.textAlign="center";
+  var kMax=Math.floor(Fm/1000/st+1e-9)*st;
+  for(var kf=-kMax; kf<=kMax+1e-9; kf+=st){ var xx=X(kf*1000), last=kf>kMax-1e-9;
+    c.strokeStyle="#edf2f7"; c.beginPath(); c.moveTo(xx,T); c.lineTo(xx,T+ph); c.stroke();
+    var lab=(kf<0?"−":"")+fmtNum(Math.abs(kf));
+    if(xx>L+pw-10){ c.textAlign="right"; c.fillText(lab,L+pw+4,H-19); c.textAlign="center"; }
+    else if(xx<L+10){ c.textAlign="left"; c.fillText(lab,L-4,H-19); c.textAlign="center"; }
+    else c.fillText(lab,xx,H-19); }
+  c.textAlign="right"; var uw2=c.measureText(" (kHz)").width; c.fillText(" (kHz)",L+pw+4,H-4);
+  c.font="italic 12px 'Cambria Math','STIX Two Math',serif"; c.fillText("f",L+pw+4-uw2,H-4); c.font="11px 'Microsoft YaHei',sans-serif";
+  c.textAlign="right"; c.fillText(fmtNum(ym),L-4,T+8); c.fillText("0",L-4,T+ph); c.textAlign="left";
+  // 滤波器放行区
+  (o.bands||[]).forEach(function(bd){ var xa=X(Math.max(-Fm,bd.a)), xb=X(Math.min(Fm,bd.b)); if(xb<=xa) return;
+    c.fillStyle=bd.fill; c.fillRect(xa,T,xb-xa,ph); c.strokeStyle=bd.col; c.lineWidth=1.2; c.setLineDash([4,3]); c.strokeRect(xa,T,xb-xa,ph); c.setLineDash([]);
+  });
+  // 谱
+  var clips=[];
+  (o.layers||[]).forEach(function(ly){
+    c.fillStyle=ly.col; c.globalAlpha=ly.alpha||1;
+    for(var px=0;px<pw;px++){
+      var fa=-Fm+2*Fm*px/pw, fb=-Fm+2*Fm*(px+1)/pw, ka=Math.ceil(fa/DF), kb=Math.floor(fb/DF);
+      if(kb<ka){ ka=kb=Math.round((fa+fb)/2/DF); }
+      var mx=0; for(var k=ka;k<=kb;k++){ var v=ly.mag[((k%N)+N)%N]; if(v>mx) mx=v; }
+      if(mx<ym*0.004) continue;
+      var h=Math.min(mx,ym); c.fillRect(L+px-0.6,Y(h),2,T+ph-Y(h));
+      if(mx>ym*1.001 && !ly.noClipLab) clips.push({x:L+px,v:mx});
+    }
+    c.globalAlpha=1;
+  });
+  // 放行区文字画在谱之后、放在框顶部，避免被谱线盖住
+  (o.bands||[]).forEach(function(bd){ if(!bd.lab) return; var xa=X(Math.max(-Fm,bd.a)), xb=X(Math.min(Fm,bd.b)); if(xb<=xa) return;
+    c.font="11px 'Microsoft YaHei',sans-serif"; var tw=c.measureText(bd.lab).width, tx=Math.max(L+2,Math.min((xa+xb)/2-tw/2,L+pw-tw-2)), ty=T+28;
+    c.fillStyle="rgba(255,255,255,0.85)"; c.fillRect(tx-2,ty-11,tw+4,14); c.fillStyle=bd.col; c.fillText(bd.lab,tx,ty); });
+  // 截断的谱线标数值
+  c.font="11px 'Microsoft YaHei',sans-serif"; c.fillStyle=COL.env; var lastX=-99;
+  clips.forEach(function(cp){ if(cp.x-lastX<30) return; lastX=cp.x; c.fillText("↑"+fmtNum(cp.v),cp.x+3,T+11); });
+  // 参考水平线
+  (o.refs||[]).forEach(function(rf){ if(rf.y>ym||rf.y<=0) return; var yy=Y(rf.y);
+    c.strokeStyle=COL.ink; c.lineWidth=1; c.setLineDash([5,4]); c.beginPath(); c.moveTo(L,yy); c.lineTo(L+pw,yy); c.stroke(); c.setLineDash([]);
+    c.fillStyle=COL.ink; c.font="11px 'Microsoft YaHei',sans-serif"; c.textAlign="right"; c.fillText(rf.lab,L+pw-3,yy-3); c.textAlign="left"; });
+  // 频率标记
+  c.textAlign="center";
+  var marks=(o.marks||[]).slice().sort(function(a,b){return a.f-b.f;}), lastLab=-1e9;
+  marks.forEach(function(mk){ if(Math.abs(mk.f)>Fm) return; var xx=X(mk.f);
+    c.strokeStyle=mk.col||"#718096"; c.lineWidth=1; c.setLineDash([2,3]); c.beginPath(); c.moveTo(xx,T); c.lineTo(xx,T+ph); c.stroke(); c.setLineDash([]);
+    if(!mk.lab) return;
+    var tw=subW(c,mk.lab);
+    if(xx-tw/2<lastLab+4) return;               // 与前一个标签太近就不写字
+    c.fillStyle=mk.col||COL.ink; subText(c,mk.lab,xx-tw/2,T-6); lastLab=xx+tw/2; });
+  c.textAlign="left";
+  if(o.title){ c.fillStyle=COL.ink; mixText(c,o.title,L+2,T+13); }
+}
+// 画带下标的标签："ω_c" → ω 加小号下标 c（画布里没有现成的下标 c / r 字符）
+var MFS="italic 10px 'Cambria Math','STIX Two Math',serif";
+function subParts(lab){ var i=lab.indexOf("_"); return i<0?[lab,""]:[lab.slice(0,i),lab.slice(i+1)]; }
+function subW(c,lab){ var q=subParts(lab); c.font=MF; var w=c.measureText(q[0]).width; if(q[1]){ c.font=MFS; w+=c.measureText(q[1]).width+1; } return w; }
+function subText(c,lab,x,y){ var q=subParts(lab), al=c.textAlign; c.textAlign="left"; c.font=MF; c.fillText(q[0],x,y);
+  if(q[1]){ var w=c.measureText(q[0]).width; c.font=MFS; c.fillText(q[1],x+w+1,y+3); } c.textAlign=al; }
+// 由采样序列做 Lanczos 插值（用于需要显示的数值结果）
+function interp(arr){ var A=8; return function(t){ var x=t*FS, i0=Math.floor(x), s=0;
+  for(var k=i0-A+1;k<=i0+A;k++){ var u=x-k, w; if(Math.abs(u)<1e-9) w=1; else { var pu=Math.PI*u; w=A*Math.sin(pu)*Math.sin(pu/A)/(pu*pu); }
+    s+=arr[((k%N)+N)%N]*w; } return s; }; }
+
+/* ============ 渲染 ============ */
+function mml(s){ return "<math>"+s+"</math>"; }
+var MW0=mml("<msub><mi>ω</mi><mn>0</mn></msub>"), MF0=mml("<msub><mi>f</mi><mn>0</mn></msub>"), MFC=mml("<msub><mi>f</mi><mi>c</mi></msub>"),
+    MPHI=mml("<mi>φ</mi>"), MHALF=mml("<mfrac><mn>1</mn><mn>2</mn></mfrac>"), MQ=mml("<mfrac><mn>1</mn><mn>4</mn></mfrac>");
+// 公式片段（属性一律单引号）
+function par(x){ return "<mo stretchy='false'>(</mo>"+x+"<mo stretchy='false'>)</mo>"; }
+function fn(v){ return "<mi>"+v+"</mi>"+par("<mi>t</mi>"); }                 // m(t) 之类
+function fnSub(v,s){ return "<msub><mi>"+v+"</mi><mn>"+s+"</mn></msub>"+par("<mi>t</mi>"); }  // m₁(t)
+var X_MT=fn("m"), X_APM="<mi>A</mi><mo>+</mo>"+fn("m"), X_MAXM="<mi>max</mi><mo>⁡</mo><mrow><mo>|</mo><mi>m</mi><mo>|</mo></mrow>",
+    X_COSPHI="<mi>cos</mi><mo>⁡</mo><mi>φ</mi>", X_HALF="<mfrac><mn>1</mn><mn>2</mn></mfrac>";
+var MA=mml("<mi>A</mi>"), MMT=mml(X_MT), MYT=mml(fn("y")), MAPM=mml(X_APM), MM=mml("<mi>m</mi>");
+function mnum(s){ s=String(s); return s.charAt(0)==="-"?"<mo>−</mo><mn>"+s.slice(1)+"</mn>":"<mn>"+s+"</mn>"; }
+function deg(d){ return "<msup>"+mnum(d)+"<mo>∘</mo></msup>"; }
+function kHz(f){ return (f/1000).toFixed(f%1000===0?0:(f%100===0?1:2))+" kHz"; }
+function pct(e){ return e==null?"—":(e<1e-6?"< 0.0001 %":(100*e).toFixed(e<0.01?3:2)+" %"); }
+function msgFormula(p,fm){
+  if(p==="tone") return "单音 "+mml("<mi>m</mi><mo stretchy='false'>(</mo><mi>t</mi><mo stretchy='false'>)</mo><mo>=</mo><mi>cos</mi><mo>⁡</mo><mn>2</mn><mi>π</mi><msub><mi>f</mi><mi>m</mi></msub><mi>t</mi>")+"，"+mml("<msub><mi>f</mi><mi>m</mi></msub>")+" = "+fm+" Hz";
+  if(p==="two") return "双音 "+mml("<mi>m</mi><mo stretchy='false'>(</mo><mi>t</mi><mo stretchy='false'>)</mo><mo>=</mo><mn>0.6</mn><mi>cos</mi><mo>⁡</mo><mo stretchy='false'>(</mo><mn>2</mn><mi>π</mi><mo>⋅</mo><mn>300</mn><mi>t</mi><mo stretchy='false'>)</mo><mo>+</mo><mn>0.4</mn><mi>cos</mi><mo>⁡</mo><mo stretchy='false'>(</mo><mn>2</mn><mi>π</mi><mo>⋅</mo><mn>700</mn><mi>t</mi><mo stretchy='false'>)</mo>");
+  return (p==="melA"?"旋律《小星星》":"旋律《两只老虎》")+"：8 个音、每音 0.2 s，每个音＝基音＋少量二倍频（让音色不那么“电子”），音高约 262–440 Hz";
+}
+function renderSingle(){
+  var R=RES, f0=P.f0, am=P.am, A=P.A, phi=P.phiDeg*Math.PI/180, cph=Math.cos(phi), fc=P.fc;
+  var p=P.p1, fm=P.fm, W=bandwidth(p,fm);
+  var Fmax=Math.ceil((2*f0+1500)/1000)*1000;
+  var excl=am?[f0,-f0]:null;
+  var pM=peakIn(R.mM,-3000,3000,null), ym=niceCeil(pM*1.22);
+  var mf=function(t){ return mAt(p,fm,t); };
+  var w0=TWO_PI*f0;
+  $("fm1x").innerHTML="当前："+msgFormula(p,fm);
+  // ① 声音
+  drawTime("t1",[{f:mf,col:COL.m,lw:2,lab:"m(t)"}],"①");
+  var mk1=p==="tone"?[{f:fm,lab:"ωₘ"},{f:-fm,lab:"−ωₘ"}]:[];
+  drawSpec("f1",{layers:[{mag:R.mM,col:COL.m}],ymax:ym,Fmax:Fmax,marks:mk1,refs:[{y:pM,lab:"峰高 "+fmtNum(pM)}],title:"|M(ω)|"});
+  $("n1").innerHTML=(p==="tone"?"纯音只有一对谱线，位于 ±"+fm+" Hz，高 "+pM.toFixed(3)+"（＝振幅 1 的一半）。"
+    :p==="two"?"两个音 → 两对谱线：±300 Hz 处高 0.3、±700 Hz 处高 0.2（各为振幅的一半）。"
+    :"旋律含很多音高，而且每个音有起止，频谱是 0 附近（约 ±"+fmtNum(W/1000)+" kHz 以内）的一片“小山”。")+" 注意：整片频谱都挤在 <b>0 附近</b>，这就是“声音是低频信号”。";
+  // ② 载波
+  drawTime("t2",[{f:function(t){return Math.cos(w0*t);},col:COL.c,lw:1.6,lab:"cos ω₀t"}],"②");
+  var cm=new Float64Array(N); cm[binOf(f0)]=0.5; cm[binOf(-f0)]=0.5;
+  drawSpec("f2",{layers:[{mag:cm,col:COL.c}],ymax:0.6,Fmax:Fmax,marks:[{f:f0,lab:"ω₀"},{f:-f0,lab:"−ω₀"}],title:"cos ω₀t 的谱"});
+  $("n2").innerHTML="载波 "+MF0+" = "+kHz(f0)+"（"+mml("<msub><mi>ω</mi><mn>0</mn></msub><mo>=</mo><mn>2</mn><mi>π</mi><mo>×</mo>"+mnum(f0)+"<mo>≈</mo>"+mnum((w0).toFixed(0)))+" rad/s），约是声音最高频率的 "+(f0/W).toFixed(1)+" 倍。两根线各高 0.5。";
+  // ③ 调制
+  $("fm3dsb").style.display=am?"none":""; $("fm3am").style.display=am?"":"none"; $("fm4am").style.display=am?"":"none";
+  var sf=function(t){ return ((am?A:0)+mf(t))*Math.cos(w0*t); };
+  var envP=function(t){ return (am?A:0)+mf(t); }, envN=function(t){ return -((am?A:0)+mf(t)); };
+  drawTime("t3",[{f:sf,col:COL.s,lw:1.3,lab:"s(t)"},{f:envP,col:COL.env,lw:1.6,dash:[6,4],lab:am?"包络 ±[A+m(t)]":"包络 ±m(t)"},{f:envN,col:COL.env,lw:1.6,dash:[6,4]}],"③");
+  drawSpec("f3",{layers:[{mag:R.mS,col:COL.s}],ymax:ym,Fmax:Fmax,marks:[{f:f0,lab:"ω₀"},{f:-f0,lab:"−ω₀"}],refs:[{y:pM,lab:"原峰高"},{y:pM/2,lab:"½ 原峰高"}],title:"|S(ω)|"});
+  var pS=peakIn(R.mS,f0-W-100,f0+W+100,excl);
+  var mmax=0; for(var n=0;n<N;n++) if(Math.abs(R.m[n])>mmax) mmax=Math.abs(R.m[n]);
+  var t3="实测："+mml("<mo>|</mo><mi>S</mi><mo>|</mo>")+" 在 "+MW0+" 附近的峰高 "+pS.toFixed(4)+"，第 1 步峰高 "+pM.toFixed(4)+"，比值 <b>"+(pS/pM).toFixed(4)+"</b>（理论 "+MHALF+"）"+(Math.abs(pS/pM-0.5)<0.01?" <span class='ok'>✓</span>":"")+"。0 附近已经<b>空了</b>——声音被整体搬走。";
+  if(p==="tone") t3+=" 谱线位于 ±("+kHz(f0)+" ± "+fm+" Hz)，即 "+mml("<mo>±</mo><mo stretchy='false'>(</mo><msub><mi>ω</mi><mn>0</mn></msub><mo>±</mo><msub><mi>ω</mi><mi>m</mi></msub><mo stretchy='false'>)</mo>")+"。";
+  var w3=Math.abs(pS/pM-0.5)<0.01?"<span class='ok'>✓ 实测峰高比 "+(pS/pM).toFixed(4)+"，正是 "+MHALF+"</span>":"";
+  var cmpA=function(op){ return mml("<mi>A</mi><mo>=</mo>"+mnum(A.toFixed(2))+"<mo>"+op+"</mo>"+X_MAXM+"<mo>≈</mo>"+mnum(mmax.toFixed(2))); };
+  if(am){ t3+="<br>普通调幅多出 ±"+MW0+" 两根<b>载波谱线</b>，高 "+mml("<mi>A</mi><mo>/</mo><mn>2</mn><mo>=</mo>"+mnum((A/2).toFixed(3)))+(A/2>ym*1.001?"（超出纵轴被截断，红字标出数值）":"")+"。";
+    if(A>=mmax) t3+=" 现在 "+cmpA("≥")+"，上包络 "+MAPM+" 与声音形状一致。";
+    else w3+=(w3?"<br>":"")+"<span class='warn'>"+cmpA("&lt;")+"：过调制！"+MAPM+" 会变成负的，包络不再是声音的形状（包络检波会失真；同步解调仍可恢复）。</span>"; }
+  $("n3").innerHTML=t3; $("n3w").innerHTML=w3;
+  $("aNote").innerHTML="当前 "+mml("<mi>max</mi><mo>⁡</mo><mrow><mo>|</mo>"+X_MT+"<mo>|</mo></mrow><mo>≈</mo>"+mnum(mmax.toFixed(2)))+"；调制深度 "+mml("<mi>μ</mi><mo>=</mo>"+X_MAXM+"<mo>/</mo><mi>A</mi><mo>=</mo>"+mnum((mmax/A).toFixed(2)))+(mmax/A>1?"（"+mml("<mi>μ</mi><mo>&gt;</mo><mn>1</mn>")+"，过调制）":"");
+  // ④ 再乘载波
+  var vf=function(t){ return sf(t)*Math.cos(w0*t+phi); };
+  var avg=function(t){ return 0.5*cph*((am?A:0)+mf(t)); };
+  drawTime("t4",[{f:vf,col:COL.v,lw:1.2,lab:"v(t)"},{f:avg,col:COL.env,lw:1.8,dash:[6,4],lab:"½[·]cos φ"}],"④");
+  drawSpec("f4",{layers:[{mag:R.mV,col:COL.v}],ymax:ym,Fmax:Fmax,marks:[{f:2*f0,lab:"2ω₀"},{f:-2*f0,lab:"−2ω₀"},{f:0,lab:"0"}],refs:[{y:pM/2,lab:"½"},{y:pM/4,lab:"¼"}],title:"|V(ω)|"});
+  var ex0=am?[0]:null, ex2=am?[2*f0,-2*f0]:null;
+  var p0=peakIn(R.mV,-W-100,W+100,ex0), p2=peakIn(R.mV,2*f0-W-100,2*f0+W+100,ex2);
+  $("n4").innerHTML="实测：0 附近副本峰高 / 原峰高 = <b>"+(p0/pM).toFixed(4)+"</b>（理论 "+mml(X_HALF+"<mrow><mo>|</mo>"+X_COSPHI+"<mo>|</mo></mrow><mo>=</mo>"+mnum((0.5*Math.abs(cph)).toFixed(4)))+"）；"+mml("<mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub>")+" 副本峰高 / 原峰高 = <b>"+(p2/pM).toFixed(4)+"</b>（理论 "+MQ+"，与 "+MPHI+" 无关）。";
+  // ⑤ 低通
+  var yf=interp(R.y), tf=function(t){ return 0.5*cph*((am?A:0)+mf(t)); };
+  var yfix=niceCeil(Math.max(mmax,(am?A:0)+mmax)*1.08);
+  drawTime("t5",[{f:mf,col:COL.m,lw:1.4,dash:[6,4],lab:"m(t)"},{f:yf,col:COL.y,lw:3,lab:"y(t)"},{f:tf,col:COL.ink,lw:1.5,dash:[2,3],lab:"理论"}],"⑤",yfix);
+  drawSpec("f5",{layers:[{mag:R.mV,col:"#b794f4",alpha:0.55,noClipLab:true},{mag:R.mY,col:COL.y}],ymax:ym,Fmax:Fmax,
+    bands:[{a:-fc,b:fc,lab:"低通放行",col:"#2b6cb0",fill:"rgba(49,130,206,0.10)"}],marks:[{f:fc,lab:"ω_c"},{f:-fc,lab:"−ω_c"}],refs:[{y:pM/2,lab:"½"}],title:"|Y(ω)|"});
+  var t5="恢复 "+MYT+" 与理论 "+MHALF+mml("<mi>m</mi><mo stretchy='false'>(</mo><mi>t</mi><mo stretchy='false'>)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi>")+" 的相对误差 <b>"+pct(R.err)+"</b>；"+
+    MYT+" 是 "+MMT+" 的 "+mml(X_HALF+"<mi>cos</mi><mo>⁡</mo>"+deg(P.phiDeg)+"<mo>=</mo>")+" <b>"+(0.5*cph).toFixed(3).replace("-","−")+"</b> 倍。";
+  if(R.err==null) t5=t5.replace("相对误差 <b>—</b>","相对误差无从计算（理论值恒为 0）");
+  var w5="";
+  if(Math.abs(cph)<0.02) w5+=" <span class='warn'>"+mml("<mi>φ</mi><mo>=</mo>"+deg(90))+"：声音完全消失！</span>";
+  if(am) t5+=" （普通调幅时 "+mml("<mi>y</mi>")+" 里还有直流 "+mml("<mi>A</mi><mi>cos</mi><mo>⁡</mo><mi>φ</mi><mo>/</mo><mn>2</mn>")+"，实际收音机用隔直电容去掉它。）";
+  if(fc<W) w5+=" <span class='warn'>截止频率 "+fc+" Hz 低于声音带宽约 "+W+" Hz：声音本身的高音被削掉了。</span>";
+  if(fc>=2*f0-W) w5+=" <span class='warn'>截止频率太高（"+mml("<mo>≥</mo><mn>2</mn><msub><mi>f</mi><mn>0</mn></msub><mo>−</mo><mtext>带宽</mtext><mo>=</mo>"+mnum(2*f0-W))+" Hz）："+mml("<mo>±</mo><mn>2</mn><msub><mi>ω</mi><mn>0</mn></msub>")+" 处的副本漏了进来。</span>";
+  $("n5").innerHTML=t5; $("n5w").innerHTML=w5;
+  // ⑥ 包络检波
+  var ef=interp(R.env), am0=am?A:0, apm=function(t){ return am0+mf(t); };
+  drawTime("t6",[{f:sf,col:"rgba(47,133,90,0.35)",lw:1,lab:"s(t)"},{f:apm,col:COL.m,lw:1.6,dash:[6,4],lab:"A+m(t)"},{f:ef,col:COL.env,lw:2.6,lab:"检波输出"}],"⑥",yfix);
+  var t6="检波输出去掉直流后与声音 "+mml("<mi>m</mi><mo stretchy='false'>(</mo><mi>t</mi><mo stretchy='false'>)</mo>")+" 的相对误差 <b>"+pct(R.envErr)+"</b>。";
+  var w6="";
+  if(!am) w6+=" <span class='warn'>双边带没有载波，包络是 "+mml("<mrow><mo>|</mo>"+X_MT+"<mo>|</mo></mrow>")+"："+MM+" 为负的那半被翻成正的，声音严重失真（单音 "+mml("<mrow><mo>|</mo><mi>cos</mi><mo>⁡</mo><msub><mi>ω</mi><mi>m</mi></msub><mi>t</mi><mo>|</mo></mrow>")+" 的基频是 "+mml("<mn>2</mn><msub><mi>f</mi><mi>m</mi></msub>")+"，听起来高了一个八度；旋律刺耳）。所以双边带只能用第④⑤步的同步解调。</span>";
+  else if(A<mmax) w6+=" <span class='warn'>过调制："+cmpA("&lt;")+"，"+MAPM+" 有变负的时刻，包络被翻折，听起来发破。把 "+MA+" 拖到 "+mmax.toFixed(2)+" 以上就好了。</span>";
+  else { w6+="<span class='ok'>✓ "+mml("<mi>A</mi><mo>≥</mo>"+X_MAXM)+"，"+MAPM+" 始终为正，包络就是 "+MAPM+"。</span>"; t6+=" 一个二极管加一个电容就能把声音取出来，不需要本地载波，也不怕相位偏差（试试把 "+MPHI+" 拖到 90°：同步解调没声了，包络检波照样有）。这就是中波广播用普通调幅的原因；代价是大部分发射功率花在了不带信息的载波上。"; }
+  if(P.fc<W) w6+=" <span class='warn'>截止频率低于声音带宽，高音同样会被削掉。</span>";
+  $("n6").innerHTML=t6; $("n6w").innerHTML=w6;
+}
+function renderDual(){
+  var R=RES, f1=P.f0, f2=P.f2, ft=P.tune, am=P.am, A=P.A, phi=P.phiDeg*Math.PI/180, cph=Math.cos(phi), fc=P.fc;
+  var W1=bandwidth(P.p1,P.fm), W2=bandwidth(P.p2,500);
+  var Fmax=Math.ceil((2*Math.max(f1,f2,ft)+1500)/1000)*1000;
+  var m1f=function(t){ return mAt(P.p1,P.fm,t); }, m2f=function(t){ return mAt(P.p2,500,t); };
+  var p1=peakIn(R.m1.mag,-3000,3000), p2=peakIn(R.m2.mag,-3000,3000), ym=niceCeil(Math.max(p1,p2)*1.22);
+  drawTime("dt1",[{f:m1f,col:COL.m,lw:2,lab:"m₁(t)"},{f:m2f,col:COL.m2,lw:2,lab:"m₂(t)"}],"①");
+  drawSpec("df1",{layers:[{mag:R.m1.mag,col:COL.m},{mag:R.m2.mag,col:COL.m2,alpha:0.75}],ymax:ym,Fmax:Fmax,title:"|M₁|, |M₂|"});
+  $("dn1").innerHTML="两段声音的频谱都挤在 0 附近、互相重叠。如果不调制直接发射，收音机无论怎么“筛”都分不开。";
+  var w1=TWO_PI*f1, w2=TWO_PI*f2, wt=TWO_PI*ft, a0=am?A:0;
+  var rf=function(t){ return (a0+m1f(t))*Math.cos(w1*t)+(a0+m2f(t))*Math.cos(w2*t); };
+  drawTime("dt2",[{f:rf,col:COL.s,lw:1.2,lab:"r(t)"}],"②");
+  var bpBands=[{a:ft-fc,b:ft+fc,lab:"",col:"#b7791f",fill:"rgba(214,158,46,0.16)"},{a:-ft-fc,b:-ft+fc,lab:"",col:"#b7791f",fill:"rgba(214,158,46,0.16)"}];
+  var mk2=[{f:f1,lab:"ω₁",col:COL.m},{f:-f1,lab:"−ω₁",col:COL.m},{f:f2,lab:"ω₂",col:COL.m2},{f:-f2,lab:"−ω₂",col:COL.m2}];
+  drawSpec("df2",{layers:[{mag:R.mS1,col:COL.m},{mag:R.mS2,col:COL.m2,alpha:0.8}],bands:bpBands,ymax:ym,Fmax:Fmax,marks:mk2,title:"|R(ω)|"});
+  var gap=Math.abs(f1-f2), need=W1+W2;
+  var t2="两台载波间距 "+gap+" Hz；两家声音带宽之和约 "+need+" Hz。";
+  var w2= gap>=need?"<span class='ok'>间距足够，频谱副本互不重叠。</span>":"<span class='warn'>间距不够，两家的频谱副本叠在一起了——会串台！</span>";
+  $("dn2").innerHTML=t2; $("dn2w").innerHTML=w2; $("dfm2am").style.display=am?"":"none";
+  drawTime("dt3",[{f:interp(R.b),col:COL.s,lw:1.3,lab:"b(t)"}],"③");
+  drawSpec("df3",{layers:[{mag:R.mB,col:COL.s}],bands:bpBands,ymax:ym,Fmax:Fmax,marks:[{f:ft,lab:"ω_r"},{f:-ft,lab:"−ω_r"}],title:"|B(ω)|"});
+  var who=R.k===1?"电台 1":R.k===2?"电台 2":R.k===3?"两台同频，混在一起":null;
+  $("dn3").innerHTML="收音机调到 "+mml("<msub><mi>f</mi><mi>r</mi></msub>")+" = "+kHz(ft)+"："+(who?("对准了 <b>"+who+"</b>。"):"<span class='warn'>没对准任何电台的载波</span>（放行区里可能只有某台的一部分边带，或什么都没有）。");
+  var bfun=interp(R.b), vf=function(t){ return bfun(t)*Math.cos(wt*t+phi); };
+  drawTime("dt4",[{f:vf,col:COL.v,lw:1.2,lab:"v(t)"}],"④");
+  drawSpec("df4",{layers:[{mag:R.mV,col:COL.v}],ymax:ym,Fmax:Fmax,marks:[{f:2*ft,lab:"2ω_r"},{f:-2*ft,lab:"−2ω_r"}],bands:[{a:-fc,b:fc,lab:"低通放行",col:"#2b6cb0",fill:"rgba(49,130,206,0.10)"}],title:"|V(ω)|"});
+  $("dn4").innerHTML="和模式一第 4 步一样：0 附近一份、±2"+mml("<msub><mi>ω</mi><mi>r</mi></msub>")+" 各一份。"+(who&&R.k!==3?"":" 没调准时，搬回来的频谱不在原位置，声音会变调或变成杂音。");
+  var tr=[{f:interp(R.y),col:COL.y,lw:3,lab:"y(t)"}];
+  if(R.tgt){ var mk=R.k===1?m1f:m2f; tr.unshift({f:mk,col:R.k===1?COL.m:COL.m2,lw:1.4,dash:[6,4],lab:R.k===1?"m₁(t)":"m₂(t)"});
+    tr.push({f:function(t){return 0.5*cph*(a0+mk(t));},col:COL.ink,lw:1.5,dash:[2,3],lab:"理论"}); }
+  drawTime("dt5",tr,"⑤",niceCeil(Math.max(p1,p2)>0?(a0+1)*1.08:1));
+  drawSpec("df5",{layers:[{mag:R.mY,col:COL.y}],ymax:ym,Fmax:Fmax,bands:[{a:-fc,b:fc,lab:"",col:"#2b6cb0",fill:"rgba(49,130,206,0.10)"}],title:"|Y(ω)|"});
+  var t5="", w5;
+  if(R.k===1||R.k===2){ w5="收到 <b>电台 "+R.k+"</b>"+
+      (R.err!=null&&R.err<0.02?" <span class='ok'>✓ 另一台完全没有混进来</span>":(R.err!=null&&R.err>0.1?" <span class='warn'>误差很大：另一台串进来了，或带宽设置不当</span>":""))+"。";
+    t5="收到电台 "+R.k+"：与理论 "+MHALF+mml("<msub><mi>m</mi><mi>k</mi></msub><mo stretchy='false'>(</mo><mi>t</mi><mo stretchy='false'>)</mo><mi>cos</mi><mo>⁡</mo><mi>φ</mi>")+" 的相对误差 <b>"+pct(R.err)+"</b>。"; }
+  else if(R.k===3) w5="<span class='warn'>两台用了同一个载波，频谱完全重叠，收到的是两段声音的叠加——这就是为什么载波频率必须由国家统一分配。</span>";
+  else w5="没调准：听到的是失真的声音或一片寂静。把旋钮拧到 "+kHz(f1)+" 或 "+kHz(f2)+" 试试。";
+  if(Math.abs(cph)<0.02) w5+=" <span class='warn'>"+mml("<mi>φ</mi><mo>=</mo>"+deg(90))+"：即使调准也没声音！</span>";
+  if(R.k===1||R.k===2){ var Wk=R.k===1?W1:W2;
+    if(fc<Wk) w5+=" <span class='warn'>截止频率 "+fc+" Hz 低于该台声音带宽约 "+Wk+" Hz：声音本身被削掉了一部分。</span>";
+    if(fc>=2*ft-Wk) w5+=" <span class='warn'>截止频率太高（"+mml("<mo>≥</mo><mn>2</mn><msub><mi>f</mi><mi>r</mi></msub><mo>−</mo><mtext>带宽</mtext><mo>=</mo>"+mnum(2*ft-Wk))+" Hz）："+mml("<mo>±</mo><mn>2</mn><msub><mi>ω</mi><mi>r</mi></msub>")+" 处的副本漏了进来。</span>"; }
+  $("dn5").innerHTML=t5||"（调准某一台时这里显示与理论值的相对误差。）"; $("dn5w").innerHTML=w5;
+}
+function syncLabels(){
+  $("vFm").textContent=P.fm+" Hz"; $("vF0").textContent=kHz(P.f0); $("vA").textContent=P.A.toFixed(2);
+  $("vF2").textContent=kHz(P.f2); $("vTune").textContent=kHz(P.tune); $("vPhi").innerHTML=P.phiDeg+"°（"+mml(X_COSPHI+"<mo>=</mo>"+mnum(Math.cos(P.phiDeg*Math.PI/180).toFixed(3)))+"）";
+  $("vFc").textContent=P.fc+" Hz"; $("vT0").textContent=P.t0.toFixed(3)+" s"; $("vWin").textContent=P.win+" ms";
+  $("wrapFm").style.display=P.p1==="tone"?"":"none"; $("wrapA").style.display=P.am?"":"none";
+  var dual=P.mode==="dual";
+  $("modeSingle").style.display=dual?"none":""; $("modeDual").style.display=dual?"":"none"; $("boxDual").style.display=dual?"":"none";
+  $("mSingle").className=dual?"":"on"; $("mDual").className=dual?"on":"";
+  $("hMsg").innerHTML=dual?"电台 1 的声音 "+mml(fnSub("m",1)):"声音 "+MMT;
+  $("lblF0").innerHTML=dual?"电台 1 载波 "+mml("<msub><mi>f</mi><mn>1</mn></msub>"):"载波频率 "+MF0;
+  $("pM").innerHTML=dual?"▶ 电台 1 的声音 "+mml(fnSub("m",1)):"▶ 原始声音 "+MMT;
+  $("pS").innerHTML=dual?"▶ 天线收到的总信号 "+mml(fn("r")):"▶ 调制后 "+mml(fn("s"))+"（高频“嗡嗡声”）";
+  $("pY").innerHTML=dual?"▶ 调台后恢复 "+MYT:"▶ 同步解调恢复 "+MYT;
+}
+var dirty=true, pending=false;
+function render(){ if(dirty){ compute(); dirty=false; } syncLabels(); syncBar(); if(P.mode==="single") renderSingle(); else renderDual(); }
+function schedule(recompute){ if(recompute) dirty=true; if(pending) return; pending=true; requestAnimationFrame(function(){ pending=false; try{ render(); }catch(e){ showErr(e); } }); }
+function showErr(e){ var b=$("errbox"); b.style.display="block"; b.textContent+= "错误："+(e&&e.message?e.message:e)+"\n"; }
+
+/* ============ 改了就提示：最主要受影响的那一步闪一下；不在视口内时弹 toast（并说明还影响哪几步）============ */
+var STAGE={s1:"st1",s2:"st2",s3:"st3",s4:"st4",s5:"st5",s6:"adv6",d1:"dst1",d2:"dst2",d3:"dst3",d4:"dst4",d5:"dst5"};
+var STNAME={s1:"第①步 原始声音",s2:"第②步 载波",s3:"第③步 调制",s4:"第④步 再乘本地载波",s5:"第⑤步 低通恢复",s6:"第⑥步 包络检波",
+  d1:"第①步 两家电台的声音",d2:"第②步 天线收到的总信号",d3:"第③步 调台（带通）",d4:"第④步 乘本地载波",d5:"第⑤步 听到的声音"};
+// 控件 → [模式一主卡片, 还影响哪几步] / [模式二主卡片, 还影响哪几步]；lab = toast 里的控件名
+var HINTMAP={
+  selP1:{lab:"声音",s:["s1","②–⑥"],d:["d1","②–⑤"]},
+  sFm:{lab:"单音频率 fₘ ",s:["s1","②–⑥"],d:["d1","②–⑤"]},
+  sF0:{lab:"载波 f₀ ",dlab:"电台 1 载波 f₁ ",s:["s3","②④⑤"],d:["d2","③–⑤"]},
+  am:{lab:"调制方式",s:["s3","④⑤⑥"],d:["d2","③–⑤"]},
+  sA:{lab:"直流偏置 A ",s:["s3","④⑤⑥"],d:["d2","③–⑤"]},
+  sPhi:{lab:"相位误差 φ ",s:["s5","④"],d:["d5","④"]},
+  sFc:{lab:"截止频率",s:["s5","⑥"],d:["d3","②的金框、⑤的低通"]},
+  selP2:{lab:"电台 2 的声音",d:["d1","②–⑤"]},
+  sF2:{lab:"电台 2 载波 f₂ ",d:["d2","③–⑤"]},
+  sTune:{lab:"调台旋钮",d:["d3","④⑤"]}
+};
+function flashCard(el){ if(!el) return; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  clearTimeout(el._flT); el._flT=setTimeout(function(){ el.classList.remove("flash"); },650); }
+var mbar=$("mbar"), toastEl=$("toast"), _toT=null, _toTarget=null;
+function barH(){ return getComputedStyle(mbar).display!=="none"?mbar.offsetHeight:0; }
+function inView(el){ var r=el.getBoundingClientRect(), vb=window.innerHeight-barH(), vis=Math.min(r.bottom,vb)-Math.max(r.top,0);
+  return vis>=Math.min(120,r.height*0.4); }
+function showToast(el,txt){ var r=el.getBoundingClientRect();
+  toastEl.textContent=(r.top>=window.innerHeight-barH()?"↓ ":"↑ ")+txt; _toTarget=el;
+  toastEl.classList.add("on"); clearTimeout(_toT); _toT=setTimeout(function(){ toastEl.classList.remove("on"); },2500); }
+toastEl.addEventListener("click",function(){ if(_toTarget) _toTarget.scrollIntoView({behavior:"smooth",block:"center"}); toastEl.classList.remove("on"); });
+// 观察窗口（t起、窗口长度）同时改所有时域图：闪当前屏幕内的各步，不弹 toast
+function visibleStages(){ var pre=P.mode==="single"?"s":"d", out=[];
+  Object.keys(STAGE).forEach(function(k){ if(k.charAt(0)!==pre) return; var el=$(STAGE[k]);
+    if(el.offsetParent===null) return; if(k==="s6" && !el.open) return; if(inView(el)) out.push(el); });
+  return out; }
+// opt.flash / opt.toast 默认都为 true
+function hint(name,opt){ opt=opt||{};
+  if(name==="sT0"||name==="sWin"){ if(opt.flash!==false) visibleStages().forEach(flashCard); return; }
+  var h=HINTMAP[name]; if(!h) return; var m=P.mode==="single"?h.s:h.d; if(!m) return;
+  var el=$(STAGE[m[0]]);
+  if(opt.flash!==false) flashCard(el);
+  if(opt.toast!==false && !inView(el)){ var lab=(P.mode==="dual"&&h.dlab)?h.dlab:h.lab;
+    showToast(el,STNAME[m[0]]+" 已更新（"+lab+"还影响 "+m[1]+"）"); } }
+// 拖滑杆：拖动中只闪一次；松手（change）时才判断要不要 toast
+var _drag={};
+function dragHint(name){ if(!_drag[name]){ _drag[name]=true; hint(name,{toast:false}); } }
+function dragEnd(name){ _drag[name]=false; hint(name,{flash:false}); }
+
+/* ============ 控件绑定 ============ */
+function bindRange(id,key,recompute,conv){
+  var el=$(id); el.addEventListener("input",function(){ P[key]=conv?conv(+el.value):+el.value; schedule(recompute); dragHint(id); });
+  el.addEventListener("change",function(){ EduTelemetry.log("slider",key+"="+P[key]); dragEnd(id); });
+}
+bindRange("sFm","fm",true); bindRange("sF0","f0",true); bindRange("sA","A",true); bindRange("sPhi","phiDeg",true);
+bindRange("sFc","fc",true); bindRange("sF2","f2",true); bindRange("sTune","tune",true);
+bindRange("sT0","t0",false); bindRange("sWin","win",false);
+$("selP1").addEventListener("change",function(e){ P.p1=e.target.value; EduTelemetry.log("preset1",P.p1); schedule(true); hint("selP1"); });
+$("selP2").addEventListener("change",function(e){ P.p2=e.target.value; EduTelemetry.log("preset2",P.p2); schedule(true); hint("selP2"); });
+Array.prototype.forEach.call(document.querySelectorAll("input[name=am]"),function(r){ r.addEventListener("change",function(){ P.am=(r.value==="am"&&r.checked); EduTelemetry.log("am",P.am?"AM":"DSB"); schedule(true); hint("am"); }); });
+/* ---- 手机底部固定条：模式一 = 载波 f₀（与 sF0 同一状态），模式二 = 调台旋钮（与 sTune 同一状态）---- */
+var mSl=$("mSl");
+function barKey(){ return P.mode==="single"?{key:"f0",src:"sF0",step:"100"}:{key:"tune",src:"sTune",step:"50"}; }
+function syncBar(){ var b=barKey();
+  $("mLbl").firstChild.textContent=P.mode==="single"?"载波 ":"调台 ";
+  $("mLbl").querySelector("math").innerHTML=P.mode==="single"?"<msub><mi>f</mi><mn>0</mn></msub>":"<msub><mi>f</mi><mi>r</mi></msub>";
+  if(mSl.step!==b.step) mSl.step=b.step;
+  if(+mSl.value!==P[b.key]) mSl.value=P[b.key];
+  mSl.setAttribute("aria-label",P.mode==="single"?"载波频率":"调台旋钮");
+  $("mVal").textContent=kHz(P[b.key]); }
+mSl.addEventListener("input",function(){ var b=barKey(); P[b.key]=+mSl.value; $(b.src).value=mSl.value; schedule(true); dragHint(b.src); });
+mSl.addEventListener("change",function(){ var b=barKey(); EduTelemetry.log("slider",b.key+"="+P[b.key]+"@bar"); dragEnd(b.src); });
+$("mSet").addEventListener("click",function(){ $("sidePanel").scrollIntoView({behavior:"smooth",block:"start"}); });
+function setMode(m){ P.mode=m; EduTelemetry.log("mode",m); stopPlay(); schedule(true); }
+$("mSingle").addEventListener("click",function(){ setMode("single"); });
+$("mDual").addEventListener("click",function(){ setMode("dual"); });
+$("helpBtn").addEventListener("click",function(){ $("mask").classList.add("on"); EduTelemetry.log("help_open"); });
+$("helpX").addEventListener("click",function(){ $("mask").classList.remove("on"); });
+$("mask").addEventListener("click",function(e){ if(e.target===this) this.classList.remove("on"); });
+$("bExport").addEventListener("click",function(){ EduTelemetry.log("export"); EduTelemetry.exportCSV(); });
+// 折叠块：展开时重绘（收起状态下画布宽度为 0，展开后须按真实宽度重画）
+Array.prototype.forEach.call(document.querySelectorAll("details"),function(d){
+  var hasCv=!!d.querySelector("canvas");
+  d.addEventListener("toggle",function(){ if(!d.open) return; if(d.id) EduTelemetry.log("open",d.id);
+    if(hasCv){ try{ render(); }catch(e){ showErr(e); } } });
+});
+
+/* ============ 声音播放（Web Audio，点击后才启动）============ */
+var AC=null, SRC=null;
+function play(which){
+  try{
+    if(dirty) compute(), dirty=false;
+    if(!AC){ var Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx){ alert("此浏览器不支持网页音频"); return; } AC=new Ctx(); }
+    if(AC.state==="suspended") AC.resume();
+    stopPlay();
+    var R=RES, arrs, x;
+    if(P.mode==="single") arrs={m:R.m, s:R.s, y:acPart(R.y), e:acPart(R.env)};
+    else arrs={m:R.m1.x, s:R.r, y:acPart(R.y), e:acPart(R.env)};
+    var peak=0; ["m","s","y","e"].forEach(function(k){ var a=arrs[k]; for(var i=0;i<N;i++) if(Math.abs(a[i])>peak) peak=Math.abs(a[i]); });
+    var gain=0.8/Math.max(peak,1e-6); x=arrs[which];
+    var buf=AC.createBuffer(1,N,FS), d=buf.getChannelData(0), fade=Math.round(0.02*FS);
+    for(var n=0;n<N;n++){ var w=1; if(n<fade) w=n/fade; else if(n>N-fade) w=(N-n)/fade; d[n]=x[n]*gain*w; }
+    SRC=AC.createBufferSource(); SRC.buffer=buf; SRC.connect(AC.destination); SRC.start();
+    var me=SRC; SRC.onended=function(){ if(SRC===me){ SRC=null; setPlayUI(null); } };
+    setPlayUI(which);
+    EduTelemetry.log("play",P.mode+":"+which);
+  }catch(e){ showErr(e); }
+}
+function stopPlay(){ if(SRC){ try{ SRC.stop(); }catch(e){} SRC=null; } setPlayUI(null); }
+// 正在播放哪一段：对应的按钮 / 标题栏 ▶ 变蓝；底部条按钮变"■ 停"
+var PLAYING=null, PBTN={m:"pM",s:"pS",y:"pY",e:"pE"};
+function setPlayUI(w){ PLAYING=w;
+  Object.keys(PBTN).forEach(function(k){ $(PBTN[k]).classList.toggle("playing",k===w); });
+  Array.prototype.forEach.call(document.querySelectorAll(".pchip"),function(c){ c.classList.toggle("playing",c.getAttribute("data-play")===w); });
+  var mp=$("mPlay"); mp.textContent=w?"■ 停":"▶ 听"; mp.classList.toggle("playing",!!w); }
+Array.prototype.forEach.call(document.querySelectorAll(".pchip"),function(c){
+  c.addEventListener("click",function(){ var w=c.getAttribute("data-play"); if(PLAYING===w) stopPlay(); else play(w); }); });
+$("mPlay").addEventListener("click",function(){ if(PLAYING) stopPlay(); else play("y"); });
+$("pM").addEventListener("click",function(){ play("m"); });
+$("pS").addEventListener("click",function(){ play("s"); });
+$("pY").addEventListener("click",function(){ play("y"); });
+$("pE").addEventListener("click",function(){ play("e"); });
+$("pStop").addEventListener("click",stopPlay);
+
+function resize(){ DPR=window.devicePixelRatio||1; schedule(false); }
+window.addEventListener("resize",resize);
+resize();
+EduTelemetry.log("open");
+
+// 访问统计
+(function(){
+  var CNT_ENDPOINT="https://fubian-d6g8u2u9d2f52010b-1475289034.ap-shanghai.app.tcloudbase.com/counter";
+  var TOOL = "fb-am-modulation";
+  if(!CNT_ENDPOINT||CNT_ENDPOINT.indexOf("REPLACE-ME")>=0) return;
+  try{
+    var seenKey="fbtool_seen:"+TOOL, first=localStorage.getItem(seenKey)?0:1;
+    if(first) localStorage.setItem(seenKey,"1");
+    var url=CNT_ENDPOINT+"?action=hit&tool="+encodeURIComponent(TOOL)+"&first="+first;
+    if(navigator.sendBeacon) navigator.sendBeacon(url); else fetch(url,{mode:"no-cors",keepalive:true});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
