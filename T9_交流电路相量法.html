@@ -67,6 +67,17 @@
   .modal math{font-size:15px;}
   .modal .x{float:right; cursor:pointer; color:var(--sub); font-size:20px; line-height:1;}
 </style>
+<!-- 百度统计（与 CloudBase 计数并行；事件标签=稳定计数键）-->
+<script>
+var _hmt = _hmt || [];
+_hmt.push(["_trackEvent", "fubian", "open", "fb-phasor"]);
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?193c927113cbabe0184f0b2e8d61fcc2";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 </head>
 <body>
 <div class="wrap">

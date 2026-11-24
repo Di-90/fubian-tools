@@ -79,6 +79,17 @@
   .fig canvas{display:block; width:100%; height:auto; background:#fbfdff;
               border:1px solid var(--line); border-radius:8px;}
 </style>
+<!-- 百度统计（与 CloudBase 计数并行；事件标签=稳定计数键）-->
+<script>
+var _hmt = _hmt || [];
+_hmt.push(["_trackEvent", "fubian", "open", "fb-fourier-series"]);
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?193c927113cbabe0184f0b2e8d61fcc2";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 </head>
 <body>
 <div class="wrap">

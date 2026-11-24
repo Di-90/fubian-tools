@@ -67,6 +67,17 @@
   .bubble .cursor{display:inline-block; width:7px; height:15px; background:#a0aec0; vertical-align:-2px; animation:b 1s infinite;}
   .hint{max-width:820px; margin:4px auto 0; font-size:12px; color:#718096;}
 </style>
+<!-- 百度统计（与 CloudBase 计数并行；事件标签=稳定计数键）-->
+<script>
+var _hmt = _hmt || [];
+_hmt.push(["_trackEvent", "fubian", "open", "fb-laplace-tutor"]);
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?193c927113cbabe0184f0b2e8d61fcc2";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 </head>
 <body>
 <div class="top">
